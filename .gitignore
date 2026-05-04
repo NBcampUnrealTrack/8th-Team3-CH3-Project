@@ -1,24 +1,40 @@
 Binaries/
-Build/
-DerivedDataCache/
 Intermediate/
 Saved/
+DerivedDataCache/
+Build/
+*.uproject.local
 
+
+# 비주얼 스튜디오 (Visual Studio)
+.vs/
+*.ipch
 *.sln
 *.suo
+*.vcproj
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+
 *.xcodeproj
 *.xcworkspace
 *.VC.db
 *.VC.VC.opendb
 
-*.log
-*.tmp
+# 제트브레인스 라이더 (JetBrains Rider)
+.idea/
+*.sln.DotSettings.user
+
 
 .DS_Store
+Thumbs.db
+*.log
+*.obj
+*.tmp
 
-.vscode/
-.idea/
+# Plugin generated folders
+Plugins/**/Binaries/
+Plugins/**/Intermediate/
 
-# Visual Studio cache
-.vs/
-*.ipch
+# Unreal local/user files
+*.uproject.local
