@@ -8,8 +8,6 @@
 class UInputComponent;
 class USkeletalMeshComponent;
 class UCameraComponent;
-//class UInputAction;
-//class UInputMappingContext;
 struct FInputActionValue;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
@@ -26,25 +24,32 @@ class AGunFireCharacter : public ACharacter
 	// 카메라 (1인칭)
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* FirstPersonCameraComponent;
-
-	//// IMC 맵핑
-	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	//UInputMappingContext* DefaultMappingContext;
-
-	//// 점프 액션
-	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta=(AllowPrivateAccess = "true"))
-	//UInputAction* JumpAction;
-
-	//// 이동 액션
-	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta=(AllowPrivateAccess = "true"))
-	//UInputAction* MoveAction;
-
-	//// 시점 액션
-	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	//class UInputAction* LookAction;
 	
 public:
 	AGunFireCharacter();
+
+protected:
+    // 대쉬(회피)
+    UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Run", meta = (AllowPrivateAccess = "true"))
+    bool bcanDash;                      // 대쉬 가능 여부
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dash", meta = (AllowPrivateAccess = "true"))
+    float DashStrength;                 // 대쉬 세기
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dash", meta = (AllowPrivateAccess = "true"))
+    float DashCooldown;                 // 대쉬 쿨타임
+
+    float DefaultGroundFriction;            // 현재 마찰력 저장
+    float DefaultBrakingDeceleration;       // 현재 제동력 저장
+    FTimerHandle DashCooldownTimerHandle;   // 대쉬 쿨타임타이머
+    FTimerHandle DashStopTimerHandle;       // 대쉬 적용시간 타이머
+
+    // 달리기
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Run", meta = (AllowPrivateAccess = "true"))
+    float NormalSpeed;          // 기본속도
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Run", meta = (AllowPrivateAccess = "true"))
+    float RunSpeedMultiplier;   // 기본 속도 대비 몇 배로 달리지 결정
+    UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Run", meta = (AllowPrivateAccess = "true"))
+    float RunSpeed;             // 최종 달리는 속도
+
 protected:
 	// 이동
 	void Move(const FInputActionValue& Value);
@@ -52,17 +57,14 @@ protected:
 	// 시점
 	void Look(const FInputActionValue& Value);
 
-    // 대쉬
+    // 대쉬(회피)
 	void Dash(const FInputActionValue& Value);
     void StopDash();
-    void ResetDash();
-    bool bcanDash;                      // 대쉬 가능 여부
-    float DashStrength;                 // 대쉬 세기
-    float DashCooldown;                 // 대쉬 쿨타임
-    float DefaultGroundFriction;        // 현재 마찰력 저장
-    float DefaultBrakingDeceleration;   // 현재 제동력 저장
-    FTimerHandle DashCooldownTimerHandle;
-    FTimerHandle DashStopTimerHandle;
+    void ResetDash();       // 대쉬(회피) 쿨타임 초기화
+
+    // 달리기
+    void Run(const FInputActionValue& Value);
+    void StopRun();
 
 protected:
 	// 폰 인터페이스 (컨트롤러 변경 알림)

@@ -35,6 +35,12 @@ AGunFireCharacter::AGunFireCharacter()
     bcanDash = true;
     DashStrength = 2000.0f;
     DashCooldown = 3.0f;
+
+    // 이동속도
+    NormalSpeed = 600.0f;
+    RunSpeedMultiplier = 1.5f;
+    RunSpeed = NormalSpeed * RunSpeedMultiplier;
+    GetCharacterMovement()->MaxWalkSpeed = NormalSpeed;
 }
 
 //////////////////////////////////////////////////////////////////////////// 입력
@@ -42,15 +48,6 @@ AGunFireCharacter::AGunFireCharacter()
 void AGunFireCharacter::NotifyControllerChanged()
 {
 	Super::NotifyControllerChanged();
-
-	// 입력 매핑 추가
-	/*if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
-	{
-		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
-		{
-			Subsystem->AddMappingContext(DefaultMappingContext, 0);
-		}
-	}*/
 }
 
 void AGunFireCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -85,6 +82,13 @@ void AGunFireCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
             if (PlayerController->DashAction)
             {
                 EnhancedInputComponent->BindAction(PlayerController->DashAction, ETriggerEvent::Triggered, this, &AGunFireCharacter::Dash);
+            }
+
+            // 달리기
+            if (PlayerController->RunAction)
+            {
+                EnhancedInputComponent->BindAction(PlayerController->RunAction, ETriggerEvent::Started, this, &AGunFireCharacter::Run);
+                EnhancedInputComponent->BindAction(PlayerController->RunAction, ETriggerEvent::Completed, this, &AGunFireCharacter::StopRun);
             }
         }
 	}
@@ -169,4 +173,20 @@ void AGunFireCharacter::StopDash()
     // 원래의 마찰력으로 복구
     MoveComp->GroundFriction = DefaultGroundFriction;
     MoveComp->BrakingDecelerationWalking = DefaultBrakingDeceleration;
+}
+
+void AGunFireCharacter::Run(const FInputActionValue& Value)
+{
+    if (GetCharacterMovement())
+    {
+        GetCharacterMovement()->MaxWalkSpeed = RunSpeed;
+    }
+}
+
+void AGunFireCharacter::StopRun()
+{
+    if (GetCharacterMovement())
+    {
+        GetCharacterMovement()->MaxWalkSpeed = NormalSpeed;
+    }
 }
