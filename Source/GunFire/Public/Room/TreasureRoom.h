@@ -11,6 +11,9 @@ class GUNFIRE_API ATreasureRoom : public ARoomBase
     GENERATED_BODY()
 
 public:
+    ATreasureRoom();
+
+protected:
     virtual void OnStart(AGunFireGameMode* GFGameMode, AGunFireGameState* GFGameState) override;
     virtual void OnEnd(AGunFireGameMode* GFGameMode, AGunFireGameState* GFGameState) override;
 };

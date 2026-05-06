@@ -7,6 +7,7 @@
 #include "Room/RoomTypes.h"
 #include "GunFireGameMode.generated.h"
 
+class ASafeRoom;
 class AGunFireGameState;
 class ARoomBase;
 
@@ -22,22 +23,40 @@ public:
     virtual void InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage) override;
     virtual void StartPlay() override;
 
-    // 현재 선택된 방 처리
     UFUNCTION(BlueprintCallable, Category = "Room")
-    void StartRoom(ERoomType RoomType);
+    void EnterInitialSafeRoom();
 
     UFUNCTION(BlueprintCallable, Category = "Room")
-    void EndRoom();
+    void TryEnterRoom(ARoomBase* EnteredRoom);
+
+    UFUNCTION(BlueprintCallable, Category = "Room")
+    void StartCurrentRoom();
+
+    UFUNCTION(BlueprintCallable, Category = "Room")
+    void EndCurrentRoom();
+
+    UFUNCTION(BlueprintCallable, Category = "Room")
+    void TryEnterNextFloor();
 
 protected:
+    // 초기 방의 타입
     UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Room")
     ERoomType InitialRoomType;
+
+    // 맨 처음 휴식방의 ID
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Room")
+    FName InitialSafeRoomID;
+
+    // 현재 방을 가리키는 포인터
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Room")
+    TObjectPtr<ARoomBase> CurrentRoom;
 
     // 다음 방 넘어가는 포탈 활성화 함수
     UFUNCTION(BlueprintCallable, Category = "Room")
     void ActivatePortal();
 
-    // 현재 레벨이 어떤 방인지 알아내는 함수
-    ARoomBase* FindRoom() const;
+private:
+    bool CanEnterRoom(const ARoomBase* EnteredRoom);
+    ASafeRoom* FindInitialSafeRoom();
 };
 

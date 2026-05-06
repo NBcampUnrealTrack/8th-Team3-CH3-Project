@@ -4,11 +4,15 @@
 #include "RoomTypes.generated.h"
 
 
-// 방의 타입 : 전투, 함정, 보물방
+// 방의 타입 : 정비, 전투, 보스
+// 이후에 선택 추가 : 함정, 보물방
 UENUM(BlueprintType)
 enum class ERoomType : uint8
 {
+    Safe        UMETA(DisplayName = "휴식방"),
     Combat      UMETA(DisplayName = "전투방"),
+    Boss        UMETA(DisplayName = "보스방"),
+
     Trap        UMETA(DisplayName = "함정방"),
     Treasure    UMETA(DisplayName = "보물방")
 };
