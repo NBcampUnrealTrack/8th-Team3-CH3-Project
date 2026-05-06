@@ -60,11 +60,19 @@ protected:
     // 대쉬(회피)
 	void Dash(const FInputActionValue& Value);
     void StopDash();
-    void ResetDash();       // 대쉬(회피) 쿨타임 초기화
+    void ResetDash();       // 대쉬(회피) 초기화
 
     // 달리기
     void Run(const FInputActionValue& Value);
     void StopRun();
+
+    void Shot(const FInputActionValue& Value);
+    void MeleeAttack(const FInputActionValue& Value);
+    void Aiming(const FInputActionValue& Value);
+    void StopAiming();
+    void Reload(const FInputActionValue& Value);
+    void Skill(const FInputActionValue& Value);
+    void Interaction(const FInputActionValue& Value);
 
 protected:
 	// 폰 인터페이스 (컨트롤러 변경 알림)

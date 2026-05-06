@@ -90,6 +90,43 @@ void AGunFireCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
                 EnhancedInputComponent->BindAction(PlayerController->RunAction, ETriggerEvent::Started, this, &AGunFireCharacter::Run);
                 EnhancedInputComponent->BindAction(PlayerController->RunAction, ETriggerEvent::Completed, this, &AGunFireCharacter::StopRun);
             }
+
+            // 사격
+            if (PlayerController->ShotAction)
+            {
+                EnhancedInputComponent->BindAction(PlayerController->ShotAction, ETriggerEvent::Triggered, this, &AGunFireCharacter::Shot);
+            }
+
+            // 근접 공격
+            if (PlayerController->MeleeAttackAction)
+            {
+                EnhancedInputComponent->BindAction(PlayerController->MeleeAttackAction, ETriggerEvent::Triggered, this, &AGunFireCharacter::MeleeAttack);
+            }
+
+            // 조준
+            if (PlayerController->AimingAction)
+            {
+                EnhancedInputComponent->BindAction(PlayerController->AimingAction, ETriggerEvent::Started, this, &AGunFireCharacter::Aiming);
+                EnhancedInputComponent->BindAction(PlayerController->AimingAction, ETriggerEvent::Completed, this, &AGunFireCharacter::StopAiming);
+            }
+
+            // 재장전
+            if (PlayerController->ReloadAction)
+            {
+                EnhancedInputComponent->BindAction(PlayerController->ReloadAction, ETriggerEvent::Triggered, this, &AGunFireCharacter::Reload);
+            }
+
+            // 스킬
+            if (PlayerController->SkillAction)
+            {
+                EnhancedInputComponent->BindAction(PlayerController->SkillAction, ETriggerEvent::Triggered, this, &AGunFireCharacter::Skill);
+            }
+
+            // 상호작용
+            if (PlayerController->InteractionAction)
+            {
+                EnhancedInputComponent->BindAction(PlayerController->InteractionAction, ETriggerEvent::Triggered, this, &AGunFireCharacter::Interaction);
+            }
         }
 	}
 	else
@@ -189,4 +226,33 @@ void AGunFireCharacter::StopRun()
     {
         GetCharacterMovement()->MaxWalkSpeed = NormalSpeed;
     }
+}
+
+void AGunFireCharacter::Shot(const FInputActionValue& Value)
+{
+}
+
+void AGunFireCharacter::MeleeAttack(const FInputActionValue& Value)
+{
+}
+
+void AGunFireCharacter::Aiming(const FInputActionValue& Value)
+{
+}
+
+void AGunFireCharacter::StopAiming()
+{
+
+}
+
+void AGunFireCharacter::Reload(const FInputActionValue& Value)
+{
+}
+
+void AGunFireCharacter::Skill(const FInputActionValue& Value)
+{
+}
+
+void AGunFireCharacter::Interaction(const FInputActionValue& Value)
+{
 }
