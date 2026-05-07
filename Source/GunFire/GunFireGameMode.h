@@ -41,6 +41,9 @@ public:
     UFUNCTION(BlueprintPure, Category = "Room")
     bool IsCurrentRoom(ARoomBase* Room) const;
 
+    UFUNCTION(BlueprintCallable, Category = "Room")
+    void ClearGame();
+
     // 디버그용 적을 처치하는 함수
     UFUNCTION( BlueprintCallable, Category = "Room|Debug")
     void KillEnemyForTest();
@@ -53,6 +56,10 @@ protected:
     // 맨 처음 휴식방의 ID
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Room")
     FName InitialSafeRoomID;
+
+    // 결과창 레벨의 이름
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Room")
+    FName ResultLevelName;
 
     // 현재 방을 가리키는 포인터
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Room")

@@ -46,7 +46,7 @@ protected:
     FName RoomID;
 
     // 방 타입
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Room")
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Room")
     ERoomType RoomType;
 
     // 다음 방

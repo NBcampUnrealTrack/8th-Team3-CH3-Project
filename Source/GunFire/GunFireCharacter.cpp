@@ -70,7 +70,10 @@ void AGunFireCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AGunFireCharacter::Look);
 
 	    // Kill Test Binding
-	    EnhancedInputComponent->BindAction(KillTestAction, ETriggerEvent::Started, this, &AGunFireCharacter::KillTest);
+	    if (KillTestAction)
+	    {
+	        EnhancedInputComponent->BindAction(KillTestAction, ETriggerEvent::Started, this, &AGunFireCharacter::KillTest);
+	    }
 	}
 	else
 	{

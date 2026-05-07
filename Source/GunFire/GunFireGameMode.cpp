@@ -21,6 +21,7 @@ AGunFireGameMode::AGunFireGameMode()
     GameStateClass = AGunFireGameState::StaticClass();
     InitialRoomType = ERoomType::Safe;
     InitialSafeRoomID = TEXT("StartSafeRoom");
+    ResultLevelName = TEXT("ResultLevel");
     CurrentRoom = nullptr;
 }
 
@@ -35,6 +36,12 @@ void AGunFireGameMode::InitGame(const FString& MapName, const FString& Options, 
 void AGunFireGameMode::StartPlay()
 {
     Super::StartPlay();
+
+    if (APlayerController* PlayerController = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr)
+    {
+        PlayerController->SetInputMode(FInputModeGameOnly());
+        PlayerController->SetShowMouseCursor(false);
+    }
 
     EnterInitialSafeRoom();
 }
@@ -94,6 +101,13 @@ void AGunFireGameMode::EndCurrentRoom()
     // 현재 방을 종료함
     CurrentRoom->EndRoom(this, GFGameState);
 
+    // 보스방이 종료되었다면 결과창으로 이동하고 함수 종료
+    if (CurrentRoom->GetRoomType() == ERoomType::Boss)
+    {
+        ClearGame();
+        return;
+    }
+
     // 다음 방들 진입 가능한 상태로 전환
     CurrentRoom->UnlockNextRooms();
 
@@ -131,6 +145,18 @@ void AGunFireGameMode::TryEnterNextFloor(FName NextLevelName)
 bool AGunFireGameMode::IsCurrentRoom(ARoomBase* Room) const
 {
     return IsValid(Room) && CurrentRoom == Room;
+}
+
+// 게임 클리어시 호출할 함수, 결과창으로 가는 함수
+void AGunFireGameMode::ClearGame()
+{
+    if (ResultLevelName.IsNone())
+    {
+        UE_LOG(LogTemp, Error, TEXT("Result Level is None"));
+        return;
+    }
+
+    UGameplayStatics::OpenLevel(this, ResultLevelName);
 }
 
 void AGunFireGameMode::KillEnemyForTest()
