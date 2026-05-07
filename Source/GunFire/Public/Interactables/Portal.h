@@ -15,20 +15,28 @@ class GUNFIRE_API APortal : public AActor
 public:
 	APortal();
 
+    virtual void BeginPlay() override;
+
+    void SetActive(bool NewValue);
+
 protected:
     // 컴포넌트
-    UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Component")
+    UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Portal|Component")
     TObjectPtr<USceneComponent> Scene;
 
-    UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Component")
+    UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Portal|Component")
     TObjectPtr<UBoxComponent> Collision;
 
-    UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Component")
+    UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Portal|Component")
     TObjectPtr<UNiagaraComponent> PortalEffect;
 
-    UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Component")
-    TObjectPtr<UNiagaraComponent> PortalDashEffect;
+    // 넘어갈 다음 레벨의 이름
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Portal")
+    FName TargetLevelName;
 
+    // 활성화 상태
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Portal")
+    bool bActive;
 
     // 충돌 바인딩 함수
     UFUNCTION()
@@ -40,4 +48,6 @@ protected:
         bool bFromSweep,
         const FHitResult& SweepResult
         );
+
+private:
 };

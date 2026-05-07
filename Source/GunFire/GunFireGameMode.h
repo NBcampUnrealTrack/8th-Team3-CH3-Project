@@ -36,7 +36,14 @@ public:
     void EndCurrentRoom();
 
     UFUNCTION(BlueprintCallable, Category = "Room")
-    void TryEnterNextFloor();
+    void TryEnterNextFloor(FName NextLevelName);
+
+    UFUNCTION(BlueprintPure, Category = "Room")
+    bool IsCurrentRoom(ARoomBase* Room) const;
+
+    // 디버그용 적을 처치하는 함수
+    UFUNCTION( BlueprintCallable, Category = "Room|Debug")
+    void KillEnemyForTest();
 
 protected:
     // 초기 방의 타입

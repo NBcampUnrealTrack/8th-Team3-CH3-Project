@@ -19,13 +19,44 @@ APortal::APortal()
     PortalEffect = CreateDefaultSubobject<UNiagaraComponent>("PortalEffect");
     PortalEffect->SetupAttachment(Scene);
 
-    PortalDashEffect = CreateDefaultSubobject<UNiagaraComponent>("PortalDashEffect");
-    PortalDashEffect->SetupAttachment(PortalEffect);
+    TargetLevelName = NAME_None;
+    bActive = false;
+}
+
+void APortal::BeginPlay()
+{
+    Super::BeginPlay();
+
+    // 시작시 포탈 끄고 시작
+    SetActive(false);
+}
+
+void APortal::SetActive(bool NewValue)
+{
+    bActive = NewValue;
+
+    // 충돌 여부 변경, 나이아가라 활성화/비활성화
+    if (bActive)
+    {
+        Collision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+        PortalEffect->Activate();
+    }
+    else
+    {
+        Collision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+        PortalEffect->Deactivate();
+    }
+
+    // 가시성 변경, 자식 컴포넌트들까지 가시성 변경함
+    PortalEffect->SetVisibility(bActive, true);
 }
 
 void APortal::OnPortalBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp,
-    int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+                                   int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
+    if (!bActive) return;
+    if (TargetLevelName.IsNone()) return;
+
     // 플레이어와 충돌인 경우에만
     if (OtherActor && OtherActor->ActorHasTag(TEXT("Player")))
     {
@@ -34,7 +65,7 @@ void APortal::OnPortalBeginOverlap(UPrimitiveComponent* OverlappedComponent, AAc
                 nullptr)
         {
             UE_LOG(LogTemp, Warning, TEXT("Portal Overlapped"));
-            GFGameMode->TryEnterNextFloor();
+            GFGameMode->TryEnterNextFloor(TargetLevelName);
         }
     }
 }

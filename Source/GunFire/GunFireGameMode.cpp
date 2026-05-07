@@ -5,6 +5,9 @@
 #include "EngineUtils.h"
 #include "Room/RoomBase.h"
 #include "GunFireGameState.h"
+#include "Interactables/Portal.h"
+#include "Kismet/GameplayStatics.h"
+#include "Room/CombatRoom.h"
 #include "Room/SafeRoom.h"
 #include "UObject/ConstructorHelpers.h"
 
@@ -97,12 +100,13 @@ void AGunFireGameMode::EndCurrentRoom()
     // 다음방이 없다면 마지막방이므로 포탈 활성화
     if (!CurrentRoom->HasNextRooms())
     {
+        UE_LOG(LogTemp, Warning, TEXT("Portal Activated!!"));
         ActivatePortal();
     }
 }
 
 // 다음층으로 진입 시도하는 함수
-void AGunFireGameMode::TryEnterNextFloor()
+void AGunFireGameMode::TryEnterNextFloor(FName NextLevelName)
 {
     AGunFireGameState* GFGameState = GetGameState<AGunFireGameState>();
     if (!GFGameState) return;
@@ -113,18 +117,53 @@ void AGunFireGameMode::TryEnterNextFloor()
     // 포탈이 활성화 된 상태가 아니라면 진입 X
     if (!GFGameState->GetPortalActivated()) return;
 
+    // 다음 레벨 이름이 지정되어있지 않으면 진입 X
+    if (NextLevelName.IsNone()) return;
+
     UE_LOG(LogTemp, Warning, TEXT("EnterNextRoom"));
 
-    // 층 증가 및 다음 층에 해당하는 레벨 OpenLevel
+    // 포탈에서 지정한 다음 레벨로 이동
+    UGameplayStatics::OpenLevel(this, NextLevelName);
+
+    // 층 이동 Instance 동기화 필요함
 }
 
-// 포탈 활성화
+bool AGunFireGameMode::IsCurrentRoom(ARoomBase* Room) const
+{
+    return IsValid(Room) && CurrentRoom == Room;
+}
+
+void AGunFireGameMode::KillEnemyForTest()
+{
+    if (ACombatRoom* CombatRoom = Cast<ACombatRoom>(CurrentRoom))
+    {
+        if (IsValid(CombatRoom))
+        {
+            CombatRoom->KillEnemyForTest();
+        }
+    }
+}
+
+// 포탈 활성화 함수
 void AGunFireGameMode::ActivatePortal()
 {
     AGunFireGameState* GFGameState = GetGameState<AGunFireGameState>();
     if (!GFGameState) return;
 
+    // GameState 동기화
     GFGameState->SetPortalActivated(true);
+
+    UWorld* World = GetWorld();
+    if (!World) return;
+
+    for (TActorIterator<APortal> It(World); It; ++It)
+    {
+        APortal* Portal = *It;
+        if (IsValid(Portal))
+        {
+            Portal->SetActive(true);
+        }
+    }
 }
 
 // 다음 방이 진입할 수 있는지 확인하는 함수
@@ -154,7 +193,7 @@ ASafeRoom* AGunFireGameMode::FindInitialSafeRoom()
         for (TActorIterator<ASafeRoom> It(World); It; ++It)
         {
             ASafeRoom* SafeRoom = *It;
-            if (SafeRoom && SafeRoom->GetRoomID() == InitialSafeRoomID)
+            if (IsValid(SafeRoom) && SafeRoom->GetRoomID() == InitialSafeRoomID)
             {
                 return SafeRoom;
             }

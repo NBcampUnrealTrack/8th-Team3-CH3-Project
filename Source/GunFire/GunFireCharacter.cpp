@@ -8,6 +8,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "GunFireGameMode.h"
 #include "InputActionValue.h"
 #include "Engine/LocalPlayer.h"
 
@@ -20,8 +21,8 @@ AGunFireCharacter::AGunFireCharacter()
 {
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(55.f, 96.0f);
-		
-	// Create a CameraComponent	
+
+	// Create a CameraComponent
 	FirstPersonCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
 	FirstPersonCameraComponent->SetupAttachment(GetCapsuleComponent());
 	FirstPersonCameraComponent->SetRelativeLocation(FVector(-10.f, 0.f, 60.f)); // Position the camera
@@ -54,7 +55,7 @@ void AGunFireCharacter::NotifyControllerChanged()
 }
 
 void AGunFireCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-{	
+{
 	// Set up action bindings
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
 	{
@@ -67,6 +68,9 @@ void AGunFireCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 
 		// Looking
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AGunFireCharacter::Look);
+
+	    // Kill Test Binding
+	    EnhancedInputComponent->BindAction(KillTestAction, ETriggerEvent::Started, this, &AGunFireCharacter::KillTest);
 	}
 	else
 	{
@@ -82,7 +86,7 @@ void AGunFireCharacter::Move(const FInputActionValue& Value)
 
 	if (Controller != nullptr)
 	{
-		// add movement 
+		// add movement
 		AddMovementInput(GetActorForwardVector(), MovementVector.Y);
 		AddMovementInput(GetActorRightVector(), MovementVector.X);
 	}
@@ -99,4 +103,14 @@ void AGunFireCharacter::Look(const FInputActionValue& Value)
 		AddControllerYawInput(LookAxisVector.X);
 		AddControllerPitchInput(LookAxisVector.Y);
 	}
+}
+
+void AGunFireCharacter::KillTest()
+{
+    // 테스트로 현재 방의 적을 처치함
+    if (AGunFireGameMode* GFGameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AGunFireGameMode>() : nullptr)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Kill Test 1 Enemy"));
+        GFGameMode->KillEnemyForTest();
+    }
 }

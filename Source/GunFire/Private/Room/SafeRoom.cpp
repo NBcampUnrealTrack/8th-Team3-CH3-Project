@@ -33,8 +33,12 @@ void ASafeRoom::OnExitTriggerBeginOverlap(UPrimitiveComponent* OverlappedCompone
         GetWorld()->GetAuthGameMode<AGunFireGameMode>() :
         nullptr)
         {
-            // SafeRoom의 경우 트리거 Overlap 이 해당 방 빠져나오도록 함
-            GFGameMode->EndCurrentRoom();
+            // 현재 방일 때
+            if (GFGameMode->IsCurrentRoom(this))
+            {
+                // SafeRoom의 경우 트리거 Overlap 이 해당 방 빠져나오도록 함
+                GFGameMode->EndCurrentRoom();
+            }
         }
     }
 }
