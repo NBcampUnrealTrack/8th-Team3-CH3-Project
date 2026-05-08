@@ -3,8 +3,9 @@
 #include "GunFireGameMode.h"
 
 #include "EngineUtils.h"
+#include "Game/GunFireGameInstance.h"
 #include "Room/RoomBase.h"
-#include "GunFireGameState.h"
+#include "Game/GunFireGameState.h"
 #include "Interactables/Portal.h"
 #include "Kismet/GameplayStatics.h"
 #include "Room/CombatRoom.h"
@@ -42,6 +43,19 @@ void AGunFireGameMode::StartPlay()
         PlayerController->SetInputMode(FInputModeGameOnly());
         PlayerController->SetShowMouseCursor(false);
     }
+
+    // 게임 인스턴스 층 동기화
+    if (AGunFireGameState* GFGameState = GetGameState<AGunFireGameState>())
+    {
+        if (UGunFireGameInstance* GFGameInstance = GetGameInstance<UGunFireGameInstance>())
+        {
+            GFGameState->SetCurrentFloor(GFGameInstance->GetCurrentFloor());
+
+            // 플레이어 정보 동기화 필요
+            UE_LOG(LogTemp, Error, TEXT("플레이어 정보 입력 필요!!"));
+        }
+    }
+
 
     EnterInitialSafeRoom();
 }
@@ -101,6 +115,19 @@ void AGunFireGameMode::EndCurrentRoom()
     // 현재 방을 종료함
     CurrentRoom->EndRoom(this, GFGameState);
 
+
+    // 게임 인스턴스에 클리어한 방 정보 저장
+    UGunFireGameInstance* GFGameInstance = GetGameInstance<UGunFireGameInstance>();
+    if (GFGameInstance)
+    {
+        FRoomData Data;
+        Data.Floor = GFGameState->GetCurrentFloor();
+        Data.RoomID = CurrentRoom->GetRoomID();
+        Data.RoomType = CurrentRoom->GetRoomType();
+
+        GFGameInstance->AddRoomData(Data);
+    }
+
     // 보스방이 종료되었다면 결과창으로 이동하고 함수 종료
     if (CurrentRoom->GetRoomType() == ERoomType::Boss)
     {
@@ -134,7 +161,17 @@ void AGunFireGameMode::TryEnterNextFloor(FName NextLevelName)
     // 다음 레벨 이름이 지정되어있지 않으면 진입 X
     if (NextLevelName.IsNone()) return;
 
-    UE_LOG(LogTemp, Warning, TEXT("EnterNextRoom"));
+
+    // 게임 인스턴스 층 변경
+    UGunFireGameInstance* GFGameInstance = GetGameInstance<UGunFireGameInstance>();
+    if (GFGameInstance)
+    {
+        GFGameInstance->MoveNextFloor();
+
+        // 플레이어 정보 동기화 필요
+        UE_LOG(LogTemp, Error, TEXT("플레이어 정보 인스턴스에 기록 필요"));
+    }
+
 
     // 포탈에서 지정한 다음 레벨로 이동
     UGameplayStatics::OpenLevel(this, NextLevelName);
@@ -150,13 +187,12 @@ bool AGunFireGameMode::IsCurrentRoom(ARoomBase* Room) const
 // 게임 클리어시 호출할 함수, 결과창으로 가는 함수
 void AGunFireGameMode::ClearGame()
 {
-    if (ResultLevelName.IsNone())
-    {
-        UE_LOG(LogTemp, Error, TEXT("Result Level is None"));
-        return;
-    }
+    GoToResultLevel(ESessionResult::Victory);
+}
 
-    UGameplayStatics::OpenLevel(this, ResultLevelName);
+void AGunFireGameMode::GameOver()
+{
+    GoToResultLevel(ESessionResult::Death);
 }
 
 void AGunFireGameMode::KillEnemyForTest()
@@ -227,4 +263,21 @@ ASafeRoom* AGunFireGameMode::FindInitialSafeRoom()
     }
 
     return nullptr;
+}
+
+void AGunFireGameMode::GoToResultLevel(ESessionResult Result)
+{
+    // 게임 인스턴스에서 세션 끝내기
+    if (UGunFireGameInstance* GFGameInstance = GetGameInstance<UGunFireGameInstance>())
+    {
+        GFGameInstance->FinishSession(Result);
+    }
+
+    if (ResultLevelName.IsNone())
+    {
+        UE_LOG(LogTemp, Error, TEXT("Result Level is None"));
+        return;
+    }
+
+    UGameplayStatics::OpenLevel(this, ResultLevelName);
 }

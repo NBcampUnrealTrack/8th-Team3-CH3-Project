@@ -1,6 +1,7 @@
 #include "Room/CombatRoom.h"
 
-#include "GunFireGameState.h"
+#include "Game/GunFireGameInstance.h"
+#include "Game/GunFireGameState.h"
 #include "EnemyBase.h"
 #include "GunFire/GunFireGameMode.h"
 
@@ -90,6 +91,12 @@ void ACombatRoom::HandleEnemyDead(AEnemyBase* DeadEnemy)
     if (AGunFireGameState* GameState = World->GetGameState<AGunFireGameState>())
     {
         GameState->SetRemainingEnemyCount(RemainingEnemyCount);
+    }
+
+    // 게임 인스턴스에 킬 카운트 추가
+    if (UGunFireGameInstance* GameInstance = GetGameInstance<UGunFireGameInstance>())
+    {
+        GameInstance->AddKilledEnemyCount(1);
     }
 
     // 적을 전부 처치하면 GameMode에서 현재 방 끝내기

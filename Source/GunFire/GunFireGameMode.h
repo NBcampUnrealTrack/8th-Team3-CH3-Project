@@ -7,6 +7,7 @@
 #include "Room/RoomTypes.h"
 #include "GunFireGameMode.generated.h"
 
+enum class ESessionResult : uint8;
 class ASafeRoom;
 class AGunFireGameState;
 class ARoomBase;
@@ -41,8 +42,11 @@ public:
     UFUNCTION(BlueprintPure, Category = "Room")
     bool IsCurrentRoom(ARoomBase* Room) const;
 
-    UFUNCTION(BlueprintCallable, Category = "Room")
+    UFUNCTION(BlueprintCallable, Category = "Game")
     void ClearGame();
+
+    UFUNCTION(BlueprintCallable, Category = "Game")
+    void GameOver();
 
     // 디버그용 적을 처치하는 함수
     UFUNCTION( BlueprintCallable, Category = "Room|Debug")
@@ -72,5 +76,6 @@ protected:
 private:
     bool CanEnterRoom(const ARoomBase* EnteredRoom);
     ASafeRoom* FindInitialSafeRoom();
+    void GoToResultLevel(ESessionResult Result);
 };
 
