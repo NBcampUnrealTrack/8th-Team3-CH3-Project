@@ -47,7 +47,7 @@ public:
     virtual void OnAttackAnimationFinished();
 
     // 이벤트 디스패쳐
-    //
+    // 공격이 끝낫음을 알림
     UPROPERTY(BlueprintAssignable, Category = "AI|Combat")
     FOnAttackFinishedDelegate OnAttackFinishedDispatcher;
 
