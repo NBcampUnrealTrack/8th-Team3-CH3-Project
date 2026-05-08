@@ -13,7 +13,7 @@ AGunFirePlayerController::AGunFirePlayerController()
         ReloadAction(nullptr),
         AimingAction(nullptr),
         InteractionAction(nullptr),
-        SKillAction(nullptr)
+        SkillAction(nullptr)
 {
 }
 

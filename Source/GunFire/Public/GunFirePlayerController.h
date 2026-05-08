@@ -57,7 +57,7 @@ public:
 
     // 스킬 액션
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-    UInputAction* SKillAction;
+    UInputAction* SkillAction;
 
     // 조준 액션
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
