@@ -5,6 +5,7 @@ DerivedDataCache/
 Build/
 *.uproject.local
 Content/PortalSystem/
+Content/Resources/
 
 
 # 비주얼 스튜디오 (Visual Studio)

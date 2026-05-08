@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+﻿// Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "GunFireGameMode.h"
 
@@ -11,6 +11,8 @@
 #include "Room/CombatRoom.h"
 #include "Room/SafeRoom.h"
 #include "UObject/ConstructorHelpers.h"
+#include "PlayerCharacter.h"
+#include "GunFirePlayerController.h"
 
 AGunFireGameMode::AGunFireGameMode()
 	: Super()
@@ -18,7 +20,8 @@ AGunFireGameMode::AGunFireGameMode()
 
 	static ConstructorHelpers::FClassFinder<APawn> PlayerPawnClassFinder(TEXT("/Game/FirstPerson/Blueprints/BP_FirstPersonCharacter"));
 
-    DefaultPawnClass = PlayerPawnClassFinder.Class;
+    DefaultPawnClass = APlayerCharacter::StaticClass();
+    PlayerControllerClass = AGunFirePlayerController::StaticClass();
     GameStateClass = AGunFireGameState::StaticClass();
     InitialRoomType = ERoomType::Safe;
     InitialSafeRoomID = TEXT("StartSafeRoom");
