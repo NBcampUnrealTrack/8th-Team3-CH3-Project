@@ -8,12 +8,12 @@
 UENUM(BlueprintType)
 enum class EGF_ItemType : uint8
 {
-    Passive    UMETA(DisplayName = "Passive"),
-    Active     UMETA(DisplayName = "Active"),
-    Material   UMETA(DisplayName = "Material")
+    Passive   UMETA(DisplayName = "Passive"),
+    Active    UMETA(DisplayName = "Active"),
+    Material  UMETA(DisplayName = "Material")
 };
 
-// 아이템 구조체
+// 아이템 공통
 USTRUCT(BlueprintType)
 struct FGF_ItemBase : public FTableRowBase
 {
@@ -26,13 +26,16 @@ struct FGF_ItemBase : public FTableRowBase
     FText ItemDescription;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
+    class UTexture2D* ItemIcon;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
     EGF_ItemType ItemType;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
     int32 CurrentLevel = 0;
 };
 
-// 패시브 구조체
+// 패시브 아이템 
 USTRUCT(BlueprintType)
 struct FGF_PassiveItemData : public FGF_ItemBase
 {
@@ -47,7 +50,7 @@ struct FGF_PassiveItemData : public FGF_ItemBase
     float StatValue;
 };
 
-// 액티브 구조체 
+// 액티브 아이템 
 USTRUCT(BlueprintType)
 struct FGF_ActiveItemData : public FGF_ItemBase
 {
