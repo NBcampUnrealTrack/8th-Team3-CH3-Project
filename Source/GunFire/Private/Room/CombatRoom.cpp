@@ -2,7 +2,7 @@
 
 #include "Game/GunFireGameInstance.h"
 #include "Game/GunFireGameState.h"
-#include "EnemyBase.h"
+#include "Enemy/EnemyBase.h"
 #include "GunFire/GunFireGameMode.h"
 
 ACombatRoom::ACombatRoom()

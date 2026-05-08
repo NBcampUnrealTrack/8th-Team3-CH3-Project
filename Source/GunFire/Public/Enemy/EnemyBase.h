@@ -6,6 +6,13 @@
 #include "GameFramework/Character.h"
 #include "EnemyBase.generated.h"
 
+// 델리게이트에서 EnemyBase 포인터를 넘기기 위한 전방선언
+class AEnemyBase;
+
+// Delegate/Event 방식으로 몬스터 사망시 Room 에 알리기 위함
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEnemyDied, AEnemyBase*, DeadEnemy);
+
+
 UCLASS()
 class GUNFIRE_API AEnemyBase : public ACharacter
 {
@@ -14,12 +21,20 @@ class GUNFIRE_API AEnemyBase : public ACharacter
 public:
 	AEnemyBase();
 
+    // 델리게이트 타입의 변수 생성
+    UPROPERTY(BlueprintAssignable, Category = "Enemy")
+    FOnEnemyDied OnEnemyDead;
+
+
     UFUNCTION()
     virtual void OnWeaponOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
     UFUNCTION(BlueprintCallable, Category = "Combat")
     virtual void ActivateAttackCollision();
     UFUNCTION(BlueprintCallable, Category = "Combat")
     virtual void DeactivateAttackCollision();
+
+    UFUNCTION()
+    void Die();
 
 protected:
     UPROPERTY()
@@ -39,6 +54,8 @@ protected:
     UPROPERTY(EditAnywhere, Category = "Stats")
     float AttackDamage;
 
+    UPROPERTY(VisibleAnywhere, Category = "Stats")
+    bool bDead;
 
 	virtual void BeginPlay() override;
 

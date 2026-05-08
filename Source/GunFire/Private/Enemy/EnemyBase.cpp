@@ -14,6 +14,7 @@ AEnemyBase::AEnemyBase()
 
     HP = 100.f;
     AttackDamage = 10.f;
+    bDead = false;
 }
 
 void AEnemyBase::OnWeaponOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -41,6 +42,21 @@ void AEnemyBase::DeactivateAttackCollision()
             Comp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
         }
     }
+}
+
+void AEnemyBase::Die()
+{
+    // 중복 호출 방지용
+    if (bDead) return;
+
+    bDead = true;
+
+    UE_LOG(LogTemp, Warning, TEXT("Enemy Died!"));
+
+    // 바인딩한 이벤트들에게 Broadcast
+    // 바인딩한 함수들을 처리하고 뒤의 Destroy 호출함
+    OnEnemyDead.Broadcast(this);
+    Destroy();
 }
 
 // Called when the game starts or when spawned

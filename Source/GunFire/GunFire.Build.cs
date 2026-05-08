@@ -16,7 +16,8 @@ public class GunFire : ModuleRules
             "InputCore",
             "EnhancedInput",
             "UMG",
-            "Niagara"
+            "Niagara",
+            "AIModule"
         });
 	}
 }
