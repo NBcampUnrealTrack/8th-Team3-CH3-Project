@@ -3,6 +3,8 @@ Intermediate/
 Saved/
 DerivedDataCache/
 Build/
+Content/Resources/
+Content/ParagonMinions/
 *.uproject.local
 Content/PortalSystem/
 Content/Resources/
