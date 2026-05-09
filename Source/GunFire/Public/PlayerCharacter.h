@@ -21,7 +21,7 @@ public:
     // 캐릭터 메쉬
     //UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh, meta = (AllowPrivateAccess = "true"))
     //USkeletalMeshComponent* SkeletalMesh;
-    
+
     // 스프링 암 컴포넌트
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera", meta = (AllowPrivateAccess = "true"))
     USpringArmComponent* SpringArmComponent;
@@ -29,7 +29,7 @@ public:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera", meta = (AllowPrivateAccess = "true"))
     UCameraComponent* ThirdPersonCameraComponent;
 
-public:	
+public:
 	virtual void Tick(float DeltaTime) override;
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
@@ -96,4 +96,7 @@ protected:
     void Skill(const FInputActionValue& Value);
     // 상호작용
     void Interaction(const FInputActionValue& Value);
+
+    // 디버그용 몬스터 처치 함수
+    void KillEnemyForDebug();
 };

@@ -63,5 +63,9 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
     UInputAction* AimingAction;
 
+    // 디버그용 몬스터 처치 액션
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+    UInputAction* KillTestAction;
+
     virtual void BeginPlay() override;
 };

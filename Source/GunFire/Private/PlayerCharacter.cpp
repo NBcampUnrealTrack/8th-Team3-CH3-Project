@@ -4,6 +4,7 @@
 #include "GunFirePlayerController.h"
 #include "EnhancedInputComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "GunFire/GunFireGameMode.h"
 
 APlayerCharacter::APlayerCharacter()
 {
@@ -36,7 +37,7 @@ APlayerCharacter::APlayerCharacter()
     DefaultFOV = ThirdPersonCameraComponent->FieldOfView;
     AimFOV = 70.0f;
     DefaultSocketOffset = ThirdPersonCameraComponent->GetComponentLocation();
-    
+
 }
 
 void APlayerCharacter::BeginPlay()
@@ -141,6 +142,13 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
             if (PlayerController->InteractionAction)
             {
                 EnhancedInputComponent->BindAction(PlayerController->InteractionAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Interaction);
+            }
+
+
+            // 디버그용 몬스터 처치 액션
+            if (PlayerController->KillTestAction)
+            {
+                EnhancedInputComponent->BindAction(PlayerController->KillTestAction, ETriggerEvent::Started, this, &APlayerCharacter::KillEnemyForDebug);
             }
         }
     }
@@ -309,4 +317,14 @@ void APlayerCharacter::Skill(const FInputActionValue& Value)
 void APlayerCharacter::Interaction(const FInputActionValue& Value)
 {
 
+}
+
+void APlayerCharacter::KillEnemyForDebug()
+{
+    // 테스트로 현재 방의 적을 처치함
+    if (AGunFireGameMode* GFGameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AGunFireGameMode>() : nullptr)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Kill 1 Enemy for Test"));
+        GFGameMode->KillEnemyForTest();
+    }
 }

@@ -11,10 +11,7 @@ enum class ERoomType : uint8
 {
     Safe        UMETA(DisplayName = "휴식방"),
     Combat      UMETA(DisplayName = "전투방"),
-    Boss        UMETA(DisplayName = "보스방"),
-
-    Trap        UMETA(DisplayName = "함정방"),
-    Treasure    UMETA(DisplayName = "보물방")
+    Boss        UMETA(DisplayName = "보스방")
 };
 
 // 방의 상태 : 시작 전 대기, 진행 중, 클리어

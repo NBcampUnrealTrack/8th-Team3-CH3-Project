@@ -10,15 +10,13 @@
 #include "Kismet/GameplayStatics.h"
 #include "Room/CombatRoom.h"
 #include "Room/SafeRoom.h"
-#include "UObject/ConstructorHelpers.h"
 #include "PlayerCharacter.h"
 #include "GunFirePlayerController.h"
 
 AGunFireGameMode::AGunFireGameMode()
 	: Super()
 {
-
-	static ConstructorHelpers::FClassFinder<APawn> PlayerPawnClassFinder(TEXT("/Game/FirstPerson/Blueprints/BP_FirstPersonCharacter"));
+	//static ConstructorHelpers::FClassFinder<APawn> PlayerPawnClassFinder(TEXT("/Game/FirstPerson/Blueprints/BP_FirstPersonCharacter"));
 
     DefaultPawnClass = APlayerCharacter::StaticClass();
     PlayerControllerClass = AGunFirePlayerController::StaticClass();
@@ -53,6 +51,8 @@ void AGunFireGameMode::StartPlay()
         if (UGunFireGameInstance* GFGameInstance = GetGameInstance<UGunFireGameInstance>())
         {
             GFGameState->SetCurrentFloor(GFGameInstance->GetCurrentFloor());
+
+            UE_LOG(LogTemp, Warning, TEXT("%d 층"), GFGameInstance->GetCurrentFloor());
 
             // 플레이어 정보 동기화 필요
             UE_LOG(LogTemp, Error, TEXT("플레이어 정보 입력 필요!!"));
@@ -129,6 +129,7 @@ void AGunFireGameMode::EndCurrentRoom()
         Data.RoomType = CurrentRoom->GetRoomType();
 
         GFGameInstance->AddRoomData(Data);
+        UE_LOG(LogTemp, Warning, TEXT("방 정보 동기화"));
     }
 
     // 보스방이 종료되었다면 결과창으로 이동하고 함수 종료
@@ -172,14 +173,12 @@ void AGunFireGameMode::TryEnterNextFloor(FName NextLevelName)
         GFGameInstance->MoveNextFloor();
 
         // 플레이어 정보 동기화 필요
-        UE_LOG(LogTemp, Error, TEXT("플레이어 정보 인스턴스에 기록 필요"));
+        UE_LOG(LogTemp, Error, TEXT("층 변경, 플레이어 정보 인스턴스에 기록 필요"));
     }
 
 
     // 포탈에서 지정한 다음 레벨로 이동
     UGameplayStatics::OpenLevel(this, NextLevelName);
-
-    // 층 이동 Instance 동기화 필요함
 }
 
 bool AGunFireGameMode::IsCurrentRoom(ARoomBase* Room) const
@@ -273,6 +272,7 @@ void AGunFireGameMode::GoToResultLevel(ESessionResult Result)
     // 게임 인스턴스에서 세션 끝내기
     if (UGunFireGameInstance* GFGameInstance = GetGameInstance<UGunFireGameInstance>())
     {
+        UE_LOG(LogTemp, Warning, TEXT("세션 종료, 결과창으로 이동"));
         GFGameInstance->FinishSession(Result);
     }
 
