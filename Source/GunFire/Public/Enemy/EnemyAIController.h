@@ -90,7 +90,7 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Combat")
     float FleeProbability; // 후퇴 확률
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Config")
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Combat")
     float LowHealthThreshold; // 후퇴를 결심하는 체력 비율
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Combat")
@@ -98,6 +98,9 @@ protected:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Combat")
     float EncircleRadius; // 포위 반경
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Combat")
+    float EncircleDuration; // 포위 유지 시간
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Combat")
     float AttackDistance; // 공격상태변경 거리
@@ -135,7 +138,7 @@ protected:
 
     // 타겟을 놓치고 일정 시간 뒤 호출될 이벤트
     UFUNCTION()
-    void StartEnemyTimer();
+    virtual void StartEnemyTimer();
 
     // 핵심 전술 판단 로직
     // 전투시 0.5초마다 실행됨. Combat노드에서 들어와야 실행되도록 해야함(HasLineOfSightKey가 true)

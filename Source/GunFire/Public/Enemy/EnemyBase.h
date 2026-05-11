@@ -12,6 +12,7 @@ class AEnemyBase;
 // Delegate/Event 방식으로 몬스터 사망시 Room 에 알리기 위함
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEnemyDied, AEnemyBase*, DeadEnemy);
 
+class UStatComponent;
 
 UCLASS()
 class GUNFIRE_API AEnemyBase : public ACharacter
@@ -21,6 +22,9 @@ class GUNFIRE_API AEnemyBase : public ACharacter
 public:
 	AEnemyBase();
 
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    UStatComponent* StatComponent;
+
     // 델리게이트 타입의 변수 생성
     UPROPERTY(BlueprintAssignable, Category = "Enemy")
     FOnEnemyDied OnEnemyDead;
@@ -29,7 +33,7 @@ public:
     UFUNCTION()
     virtual void OnWeaponOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
     UFUNCTION(BlueprintCallable, Category = "Combat")
-    virtual void ActivateAttackCollision();
+    virtual void ActivateAttackCollision(FName WeaponTag);
     UFUNCTION(BlueprintCallable, Category = "Combat")
     virtual void DeactivateAttackCollision();
 
@@ -37,11 +41,6 @@ public:
     void Die();
 
 protected:
-    UPROPERTY()
-    TArray<UPrimitiveComponent*> WeaponCollisions;
-
-    UPROPERTY(EditAnywhere, Category = "Stats")
-    UAnimMontage* AttackMontage;
 
     UPROPERTY(EditAnywhere, Category = "Stats")
     float HP;

@@ -27,6 +27,7 @@ AEnemyAIController::AEnemyAIController()
     AttackDistance = 200.0f; // 공격상태변경 거리
     confDistance = 600.0f; // 추적이후 다른상태 변경이될 거리
     ExitMargin = 600.f;
+    EncircleDuration = 4.f;
 
     // 블랙보드 키 이름
     TargetActorKey = FName("EnemyActor");
