@@ -3,8 +3,9 @@ Intermediate/
 Saved/
 DerivedDataCache/
 Build/
+Content/Resources/
+Content/ParagonMinions/
 *.uproject.local
-Content/PortalSystem/
 
 
 # 비주얼 스튜디오 (Visual Studio)
