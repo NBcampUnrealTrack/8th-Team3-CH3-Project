@@ -2,13 +2,14 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "CombatStat.h"
 #include "StatComponent.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FDamagedSignature, float, CurrentHealth, float, MaxHealth, float, ActualDamage);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FHealedSignature, float, CurrentHealth, float, MaxHealth, float, HealAmount);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDamagedSignature, float, ActualDamage);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FHealedSignature, float, HealAmount);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDeadSignature, AController*, Instigator);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FStaminaComsumeSignature, float, CurrentStamina, float, MaxStamina);
-
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FHealthChangedSignature, float, CurrentHealth, float, MaxHealth);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FStaminaChangedSignature, float, CurrentStamina, float, MaxStamina);
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class GUNFIRE_API UStatComponent : public UActorComponent
@@ -19,11 +20,20 @@ public:
 	UStatComponent();
 
     bool TryConsumeStamina(float Cost);
-    void ChangeSpeed(float Speed);
     void Heal(float Amount);
+    void AddBaseStat(ECombatStatType StatType, float AddValue);
+    void AddModifier(const FStatModifier& Modifier);
+    void RemoveModifier(FName SourceID);
+    void CalculateFinalStats();
 
-    float GetMovementSpeed(bool bIsSprint) const;
+    float GetStatValue(ECombatStatType StatType) const;
     bool IsDead() const;
+
+    float GetMaxHealth() const;
+    float GetAttackPower() const;
+    float GetDefense() const;
+    float GetMovementSpeed(bool bIsSprint) const;
+    float GetMaxStamina() const;
 
 public:
     // 델리게이트 객체
@@ -34,13 +44,18 @@ public:
     FHealedSignature OnHealed;
 
     UPROPERTY(BlueprintAssignable)
+    FHealthChangedSignature OnHealthChanged;
+
+    UPROPERTY(BlueprintAssignable)
     FDeadSignature OnDead;
 
     UPROPERTY(BlueprintAssignable)
-    FStaminaComsumeSignature OnStaminaConsumed;
+    FStaminaChangedSignature OnStaminaChanged;
 
 protected:
     virtual void BeginPlay() override;
+
+    virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
     UFUNCTION()
     void TakeDamage(AActor* DamagedActor,
@@ -51,51 +66,36 @@ protected:
         );
 
 protected:
+    // 기본 스탯
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stat")
+    FCombatStat BaseStats;
+
+    // 최종 스탯
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stat")
+    FCombatStat FinalStats;
+
+    // 유물이나 장비로 인한 변화값들을 저장
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stat")
+    TArray<FStatModifier> Modifiers;
+
     // 체력
-    UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Status")
+    UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Stat")
     float CurrentHealth;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
-    float MaxHealth;
-
-    // 공격력
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
-    int32 AttackPower;
-
-    // 방어력
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
-    int32 Defense;
-
-    // 걷기 속도, Base 속도
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
-    float WalkSpeed;
-
-    // 걷기 속도에 곱해서 달리기 속도 구하는 용도
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status")
-    float SprintMultiplier;
-
-    // 달리기 속도
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Status")
-    float SprintSpeed;
-
     // 스태미너
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
+    UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Stat")
     float CurrentStamina;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
-    float MaxStamina;
-
-    // 초당 스태미너 회복량
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
-    float StaminaRegen;
-
-    // 스태미너 소모하는 액터, 아닌 액터 구분
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status")
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stat")
     bool bUseStamina;
 
 private:
+    void StartRegenStamina();
     void RegenerateStamina();
 
+    // 스태미너 회복 타이머, 액션 이후 일정 시간 뒤에 스태미너 회복을 발생시킬 타이머
     FTimerHandle StaminaRegenTimerHandle;
+    FTimerHandle RegenDelayTimerHandle;
     float StaminaRegenInterval;
+    float StaminaRegenDelayTime;
 };
