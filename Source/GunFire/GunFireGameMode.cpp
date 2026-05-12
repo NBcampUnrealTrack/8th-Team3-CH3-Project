@@ -26,6 +26,8 @@ AGunFireGameMode::AGunFireGameMode()
     StartingRoom = nullptr;
     RequiredCombatRoomCount = 0;
     ClearedCombatRoomCount = 0;
+    MaxRandomRelicRoomCount = 2;
+    CurrentRandomRelicRoomCount = 0;
 }
 
 void AGunFireGameMode::InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage)
@@ -176,6 +178,7 @@ void AGunFireGameMode::EndCurrentRoom()
     if (CurrentRoom->GetRoomType() == ERoomType::Combat)
     {
         ++ClearedCombatRoomCount;
+        GFGameState->SetClearedCombatRoomCount(ClearedCombatRoomCount);
 
         // 요구하는 횟수를 만족하면 시작방에 포탈 활성화
         if (ClearedCombatRoomCount >= RequiredCombatRoomCount)
@@ -231,6 +234,17 @@ void AGunFireGameMode::ClearGame()
 void AGunFireGameMode::GameOver()
 {
     GoToResultLevel(ESessionResult::Death);
+}
+
+bool AGunFireGameMode::TryGenerateRandomRelicRoom()
+{
+    if (CurrentRandomRelicRoomCount >= MaxRandomRelicRoomCount)
+    {
+        return false;
+    }
+
+    ++CurrentRandomRelicRoomCount;
+    return true;
 }
 
 void AGunFireGameMode::KillEnemyForTest()

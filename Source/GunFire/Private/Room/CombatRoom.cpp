@@ -12,6 +12,13 @@ ACombatRoom::ACombatRoom()
     Initialize();
 }
 
+// 초기화 함수
+void ACombatRoom::Initialize()
+{
+    RemainingEnemyCount = 0;
+    Enemies.Empty();
+}
+
 void ACombatRoom::KillEnemyForTest()
 {
     for (const auto& Enemy : Enemies)
@@ -24,27 +31,25 @@ void ACombatRoom::KillEnemyForTest()
     }
 }
 
-// 초기화 함수
-void ACombatRoom::Initialize()
+void ACombatRoom::CompleteSelectReward()
 {
-    RemainingEnemyCount = 0;
-    Enemies.Empty();
+    if (AGunFireGameMode* GFGameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AGunFireGameMode>() : nullptr)
+    {
+        GFGameMode->EndCurrentRoom();
+    }
 }
 
 void ACombatRoom::OnStart(AGunFireGameMode* GFGameMode, AGunFireGameState* GFGameState)
 {
     Initialize();
 
-    UE_LOG(LogTemp, Warning, TEXT("Combat Room Start"));
-
     SpawnEnemies();
     GFGameState->SetRemainingEnemyCount(RemainingEnemyCount);
 
-    // 에러나 실수로 0마리가 소환됐다면 방을 종료하고 로그
+    // 에러나 실수로 0마리가 소환됐다면 로그
     if (RemainingEnemyCount <= 0)
     {
-        UE_LOG(LogTemp, Error, TEXT("Error : Enemy Not Spawned!!"));
-        GFGameMode->EndCurrentRoom();
+        UE_LOG(LogTemp, Error, TEXT("Error : 적 스폰 실패!!"));
     }
 }
 
@@ -65,8 +70,6 @@ void ACombatRoom::OnEnd(AGunFireGameMode* GFGameMode, AGunFireGameState* GFGameS
     }
     Enemies.Empty();
     GFGameState->SetRemainingEnemyCount(0);
-
-    UE_LOG(LogTemp, Warning, TEXT("Combat Room End"));
 }
 
 // 적 사망 시 호출할 함수
@@ -102,11 +105,29 @@ void ACombatRoom::HandleEnemyDead(AEnemyBase* DeadEnemy)
     // 적을 전부 처치하면 GameMode에서 현재 방 끝내기
     if (RemainingEnemyCount <= 0)
     {
-        if (AGunFireGameMode* GameMode = World->GetAuthGameMode<AGunFireGameMode>())
-        {
-            GameMode->EndCurrentRoom();
-        }
+        OnClearedCombat();
     }
+}
+
+void ACombatRoom::OnClearedCombat()
+{
+    StartSelectReward();
+}
+
+// 보상 선택 함수의 cpp 기본 동작
+void ACombatRoom::StartSelectReward_Implementation()
+{
+    // BP에서 유물 선택 / UI 처리
+    // 선택이 끝나면 CompleteSelectReward()
+    const UEnum* EnumPtr = StaticEnum<ERoomType>();
+    if (EnumPtr)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("RoomType: %s"),
+            *EnumPtr->GetDisplayNameTextByValue(static_cast<int64>(RoomType)).ToString());
+    }
+
+    UE_LOG(LogTemp, Error, TEXT("유물 선택 즉시 종료, 유물 시스템 연결 후 해당 구문 제거 필요"));
+    CompleteSelectReward();
 }
 
 void ACombatRoom::SpawnEnemies()

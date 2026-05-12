@@ -51,6 +51,9 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Game")
     void GameOver();
 
+    UFUNCTION(BlueprintCallable, Category = "Game")
+    bool TryGenerateRandomRelicRoom();
+
     // 디버그용 적을 처치하는 함수
     UFUNCTION( BlueprintCallable, Category = "Room|Debug")
     void KillEnemyForTest();
@@ -74,6 +77,14 @@ protected:
     // 현재 클리어한 전투방 횟수
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Room")
     int32 ClearedCombatRoomCount;
+
+    // 한층에 랜덤방에서 유물방이 등장할 수 있는 최대 횟수
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Room")
+    int32 MaxRandomRelicRoomCount;
+
+    // 현재 랜덤방에서 유물방이 등장한 횟수
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Room")
+    int32 CurrentRandomRelicRoomCount;
 
 protected:
     // 다음 방 넘어가는 포탈 활성화 함수
