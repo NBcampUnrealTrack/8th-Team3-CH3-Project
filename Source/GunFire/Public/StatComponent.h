@@ -30,13 +30,14 @@ public:
     bool IsDead() const;
 
     float GetMaxHealth() const;
+    float GetCurrentHealth() const;
     float GetAttackPower() const;
     float GetDefense() const;
     float GetMovementSpeed(bool bIsSprint) const;
     float GetMaxStamina() const;
 
 public:
-    // 델리게이트 객체
+    // 델리게이트
     UPROPERTY(BlueprintAssignable)
     FDamagedSignature OnDamaged;
 

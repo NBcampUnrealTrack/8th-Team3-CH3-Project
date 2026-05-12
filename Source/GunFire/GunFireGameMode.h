@@ -8,7 +8,7 @@
 #include "GunFireGameMode.generated.h"
 
 enum class ESessionResult : uint8;
-class ASafeRoom;
+class AStartRoom;
 class AGunFireGameState;
 class ARoomBase;
 
@@ -25,7 +25,10 @@ public:
     virtual void StartPlay() override;
 
     UFUNCTION(BlueprintCallable, Category = "Room")
-    void EnterInitialSafeRoom();
+    void EnterStartRoom();
+
+    UFUNCTION(BlueprintCallable, Category = "Room")
+    void EndStartRoom();
 
     UFUNCTION(BlueprintCallable, Category = "Room")
     void TryEnterRoom(ARoomBase* EnteredRoom);
@@ -53,14 +56,6 @@ public:
     void KillEnemyForTest();
 
 protected:
-    // 초기 방의 타입
-    UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Room")
-    ERoomType InitialRoomType;
-
-    // 맨 처음 휴식방의 ID
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Room")
-    FName InitialSafeRoomID;
-
     // 결과창 레벨의 이름
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Room")
     FName ResultLevelName;
@@ -69,13 +64,26 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Room")
     TObjectPtr<ARoomBase> CurrentRoom;
 
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Room")
+    TObjectPtr<AStartRoom> StartingRoom;
+
+    // 다음 층으로 이동하는데 필요한 전투방 클리어 횟수
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Room")
+    int32 RequiredCombatRoomCount;
+
+    // 현재 클리어한 전투방 횟수
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Room")
+    int32 ClearedCombatRoomCount;
+
+protected:
     // 다음 방 넘어가는 포탈 활성화 함수
     UFUNCTION(BlueprintCallable, Category = "Room")
     void ActivatePortal();
 
 private:
     bool CanEnterRoom(const ARoomBase* EnteredRoom);
-    ASafeRoom* FindInitialSafeRoom();
+    AStartRoom* FindStartRoom();
+    int32 CountCombatRooms();
     void GoToResultLevel(ESessionResult Result);
 };
 

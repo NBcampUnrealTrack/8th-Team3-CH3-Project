@@ -6,10 +6,9 @@
 #include "Game/GunFireGameInstance.h"
 #include "Room/RoomBase.h"
 #include "Game/GunFireGameState.h"
-#include "Interactables/Portal.h"
 #include "Kismet/GameplayStatics.h"
 #include "Room/CombatRoom.h"
-#include "Room/SafeRoom.h"
+#include "Room/StartRoom.h"
 #include "PlayerCharacter.h"
 #include "GunFirePlayerController.h"
 
@@ -21,10 +20,12 @@ AGunFireGameMode::AGunFireGameMode()
     DefaultPawnClass = APlayerCharacter::StaticClass();
     PlayerControllerClass = AGunFirePlayerController::StaticClass();
     GameStateClass = AGunFireGameState::StaticClass();
-    InitialRoomType = ERoomType::Safe;
-    InitialSafeRoomID = TEXT("StartSafeRoom");
+
     ResultLevelName = TEXT("ResultLevel");
     CurrentRoom = nullptr;
+    StartingRoom = nullptr;
+    RequiredCombatRoomCount = 0;
+    ClearedCombatRoomCount = 0;
 }
 
 void AGunFireGameMode::InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage)
@@ -39,48 +40,78 @@ void AGunFireGameMode::StartPlay()
 {
     Super::StartPlay();
 
-    if (APlayerController* PlayerController = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr)
+    // UI 입력 모드에서 GameOnly로 전환
+    APlayerController* PlayerController = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr;
+    if (IsValid(PlayerController))
     {
         PlayerController->SetInputMode(FInputModeGameOnly());
         PlayerController->SetShowMouseCursor(false);
     }
 
-    // 게임 인스턴스 층 동기화
+    // 전투 방 갯수 확인
+    RequiredCombatRoomCount = CountCombatRooms();
+    ClearedCombatRoomCount = 0;
+
+    // 게임 인스턴스 층 동기화, 게임 스테이트 동기화
     if (AGunFireGameState* GFGameState = GetGameState<AGunFireGameState>())
     {
         if (UGunFireGameInstance* GFGameInstance = GetGameInstance<UGunFireGameInstance>())
         {
-            GFGameState->SetCurrentFloor(GFGameInstance->GetCurrentFloor());
+            GFGameState->StartFloor(GFGameInstance->GetCurrentFloor(), RequiredCombatRoomCount);
 
             UE_LOG(LogTemp, Warning, TEXT("%d 층"), GFGameInstance->GetCurrentFloor());
+            UE_LOG(LogTemp, Warning, TEXT("필요한 전투방 클리어 횟수 : %d"), RequiredCombatRoomCount);
 
             // 플레이어 정보 동기화 필요
             UE_LOG(LogTemp, Error, TEXT("플레이어 정보 입력 필요!!"));
         }
     }
 
-
-    EnterInitialSafeRoom();
+    EnterStartRoom();
 }
 
-// 레벨 시작 시 초기 방에 진입, 현재 레벨마다 초기 방은 휴식방
-void AGunFireGameMode::EnterInitialSafeRoom()
+// 레벨 시작 시 StartRoom에 진입
+void AGunFireGameMode::EnterStartRoom()
 {
-    ASafeRoom* SafeRoom = FindInitialSafeRoom();
-    if (!SafeRoom) return;
+    StartingRoom = FindStartRoom();
+    if (!IsValid(StartingRoom)) return;
 
-    if (SafeRoom->GetRoomType() != InitialRoomType) return;
+    APlayerController* PlayerController = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr;
+    if (!IsValid(PlayerController)) return;
 
-    SafeRoom->SetLocked(false);
+    APawn* PlayerPawn = PlayerController->GetPawn();
+    AActor* StartingPoint = StartingRoom->GetPlayerSpawnPoint();
 
-    CurrentRoom = SafeRoom;
+    // StartRoom의 시작지점에 플레이어 배치
+    if (IsValid(PlayerPawn))
+    {
+        if (IsValid(StartingPoint))
+        {
+            PlayerPawn->SetActorTransform(StartingPoint->GetActorTransform());
+        }
+        else
+        {
+            PlayerPawn->SetActorTransform(StartingRoom->GetActorTransform());
+            UE_LOG(LogTemp, Warning, TEXT("시작지점 배치가 필요합니다"));
+        }
+    }
+
+    CurrentRoom = StartingRoom;
     StartCurrentRoom();
+}
+
+// Start Room 을 종료하는 함수
+// 이후에 상호작용이나 특정 조건에 의해 호출될 함수
+void AGunFireGameMode::EndStartRoom()
+{
+    UE_LOG(LogTemp, Warning, TEXT("Start Room 종료!!"));
+    EndCurrentRoom();
 }
 
 // 다음 방으로 진입 시도
 void AGunFireGameMode::TryEnterRoom(ARoomBase* EnteredRoom)
 {
-    if (!EnteredRoom) return;
+    if (!IsValid(EnteredRoom)) return;
     if (!CanEnterRoom(EnteredRoom)) return;
 
     CurrentRoom = EnteredRoom;
@@ -99,7 +130,6 @@ void AGunFireGameMode::StartCurrentRoom()
     GFGameState->SetCurrentRoomState(ERoomState::InProgress);
     GFGameState->SetCurrentRoomID(CurrentRoom->GetRoomID());
     GFGameState->SetRemainingEnemyCount(0);
-    GFGameState->SetPortalActivated(false);
 
     // 현재 방을 시작처리함
     CurrentRoom->StartRoom(this, GFGameState);
@@ -118,7 +148,6 @@ void AGunFireGameMode::EndCurrentRoom()
     // 현재 방을 종료함
     CurrentRoom->EndRoom(this, GFGameState);
 
-
     // 게임 인스턴스에 클리어한 방 정보 저장
     UGunFireGameInstance* GFGameInstance = GetGameInstance<UGunFireGameInstance>();
     if (GFGameInstance)
@@ -128,8 +157,12 @@ void AGunFireGameMode::EndCurrentRoom()
         Data.RoomID = CurrentRoom->GetRoomID();
         Data.RoomType = CurrentRoom->GetRoomType();
 
-        GFGameInstance->AddRoomData(Data);
-        UE_LOG(LogTemp, Warning, TEXT("방 정보 동기화"));
+        // 시작방은 기록 X
+        if (Data.RoomType != ERoomType::Start)
+        {
+            GFGameInstance->AddRoomData(Data);
+            UE_LOG(LogTemp, Warning, TEXT("방 정보 동기화"));
+        }
     }
 
     // 보스방이 종료되었다면 결과창으로 이동하고 함수 종료
@@ -139,14 +172,17 @@ void AGunFireGameMode::EndCurrentRoom()
         return;
     }
 
-    // 다음 방들 진입 가능한 상태로 전환
-    CurrentRoom->UnlockNextRooms();
-
-    // 다음방이 없다면 마지막방이므로 포탈 활성화
-    if (!CurrentRoom->HasNextRooms())
+    // CombatRoom이면 클리어한 전투방 카운트 증가
+    if (CurrentRoom->GetRoomType() == ERoomType::Combat)
     {
-        UE_LOG(LogTemp, Warning, TEXT("Portal Activated!!"));
-        ActivatePortal();
+        ++ClearedCombatRoomCount;
+
+        // 요구하는 횟수를 만족하면 시작방에 포탈 활성화
+        if (ClearedCombatRoomCount >= RequiredCombatRoomCount)
+        {
+            UE_LOG(LogTemp, Warning, TEXT("모든 전투방 클리어. 포탈을 활성화합니다!!"));
+            ActivatePortal();
+        }
     }
 }
 
@@ -217,54 +253,63 @@ void AGunFireGameMode::ActivatePortal()
     // GameState 동기화
     GFGameState->SetPortalActivated(true);
 
-    UWorld* World = GetWorld();
-    if (!World) return;
-
-    for (TActorIterator<APortal> It(World); It; ++It)
+    // Start Room 의 포탈 활성화
+    if (IsValid(StartingRoom))
     {
-        APortal* Portal = *It;
-        if (IsValid(Portal))
-        {
-            Portal->SetActive(true);
-        }
+        StartingRoom->ActivateFloorPortal();
     }
 }
 
 // 다음 방이 진입할 수 있는지 확인하는 함수
 bool AGunFireGameMode::CanEnterRoom(const ARoomBase* EnteredRoom)
 {
-    // 진입하려는 방 확인
-    if (!EnteredRoom) return false;
-    if (EnteredRoom->IsCleared()) return false;
-    if (EnteredRoom->IsLocked()) return false;
+    if (!IsValid(EnteredRoom)) return false;
 
-    // 현재 방 상태 확인
-    if (!CurrentRoom || !CurrentRoom->IsCleared()) return false;
+    // 대기중인 방만 시작 가능
+    // 진행중 or 클리어된 방은 시작 X
+    if (!EnteredRoom->IsWaiting()) return false;
 
-    // 다음 방으로 이어져있는지 확인
-    return CurrentRoom->CanMoveNextRoom(EnteredRoom);
+    // 현재 방이 진행중이지만 다른 방에 넘어갔을 경우 시작 못하게 막음
+    if (IsValid(CurrentRoom) && CurrentRoom->IsInProgress()) return false;
+
+    return true;
 }
 
-// 맨 처음 휴식방 찾는 함수
-ASafeRoom* AGunFireGameMode::FindInitialSafeRoom()
+// StartRoom을 레벨에서 찾는 함수
+AStartRoom* AGunFireGameMode::FindStartRoom()
 {
-    // 초기 SafeRoomID 를 초기화하지 않았다면 nullptr
-    if (InitialSafeRoomID.IsNone()) return nullptr;
-
     // TActorIterator 로 특정 클래스를 찾을 수 있음
     if (UWorld* World = GetWorld())
     {
-        for (TActorIterator<ASafeRoom> It(World); It; ++It)
+        for (TActorIterator<AStartRoom> It(World); It; ++It)
         {
-            ASafeRoom* SafeRoom = *It;
-            if (IsValid(SafeRoom) && SafeRoom->GetRoomID() == InitialSafeRoomID)
+            AStartRoom* StartRoom = *It;
+            if (IsValid(StartRoom))
             {
-                return SafeRoom;
+                return StartRoom;
             }
         }
     }
-
     return nullptr;
+}
+
+int32 AGunFireGameMode::CountCombatRooms()
+{
+    int32 Count = 0;
+
+    // TActorIterator는 자식클래스까지 전부 찾으므로 RoomType으로 확인해야 함
+    if (UWorld* World = GetWorld())
+    {
+        for (TActorIterator<ACombatRoom> It(World); It; ++It)
+        {
+            ACombatRoom* CombatRoom = *It;
+            if (IsValid(CombatRoom) && CombatRoom->GetRoomType() == ERoomType::Combat)
+            {
+                ++Count;
+            }
+        }
+    }
+    return Count;
 }
 
 void AGunFireGameMode::GoToResultLevel(ESessionResult Result)

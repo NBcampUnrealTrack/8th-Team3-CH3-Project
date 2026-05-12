@@ -2,13 +2,27 @@
 
 AGunFireGameState::AGunFireGameState()
 {
-    CurrentRoomType = ERoomType::Safe;
+    Initialize();
+}
+
+void AGunFireGameState::Initialize()
+{
+    CurrentRoomType = ERoomType::Start;
     CurrentRoomState = ERoomState::Waiting;
-    CurrentRoomIndex = 0;
     CurrentRoomID = NAME_None;
     RemainingEnemyCount = 0;
     CurrentFloor = 1;
     bPortalActivated = false;
+    RequiredCombatRoomCount = 0;
+    ClearedCombatRoomCount = 0;
+}
+
+void AGunFireGameState::StartFloor(int32 NewFloor, int32 CombatRoomCount)
+{
+    Initialize();
+    CurrentRoomState = ERoomState::InProgress;
+    CurrentFloor = NewFloor;
+    RequiredCombatRoomCount = CombatRoomCount;
 }
 
 ERoomType AGunFireGameState::GetCurrentRoomType() const
@@ -19,11 +33,6 @@ ERoomType AGunFireGameState::GetCurrentRoomType() const
 ERoomState AGunFireGameState::GetCurrentRoomState() const
 {
     return CurrentRoomState;
-}
-
-int32 AGunFireGameState::GetCurrentRoomIndex() const
-{
-    return CurrentRoomIndex;
 }
 
 FName AGunFireGameState::GetCurrentRoomID() const
@@ -46,6 +55,16 @@ bool AGunFireGameState::GetPortalActivated() const
     return bPortalActivated;
 }
 
+int32 AGunFireGameState::GetRequiredCombatRoomCount() const
+{
+    return RequiredCombatRoomCount;
+}
+
+int32 AGunFireGameState::GetClearedCombatRoomCount() const
+{
+    return ClearedCombatRoomCount;
+}
+
 void AGunFireGameState::SetCurrentRoomType(ERoomType Type)
 {
     CurrentRoomType = Type;
@@ -54,11 +73,6 @@ void AGunFireGameState::SetCurrentRoomType(ERoomType Type)
 void AGunFireGameState::SetCurrentRoomState(ERoomState State)
 {
     CurrentRoomState = State;
-}
-
-void AGunFireGameState::SetCurrentRoomIndex(int32 Index)
-{
-    CurrentRoomIndex = FMath::Max(0, Index);
 }
 
 void AGunFireGameState::SetCurrentRoomID(FName ID)
@@ -79,4 +93,19 @@ void AGunFireGameState::SetCurrentFloor(int32 Floor)
 void AGunFireGameState::SetPortalActivated(bool Activated)
 {
     bPortalActivated = Activated;
+}
+
+void AGunFireGameState::SetRequiredCombatRoomCount(int32 Count)
+{
+    RequiredCombatRoomCount = FMath::Max(0, Count);
+}
+
+void AGunFireGameState::SetClearedCombatRoomCount(int32 Count)
+{
+    ClearedCombatRoomCount = FMath::Max(0, Count);
+}
+
+void AGunFireGameState::AddClearedCombatRoomCount()
+{
+    ++ClearedCombatRoomCount;
 }

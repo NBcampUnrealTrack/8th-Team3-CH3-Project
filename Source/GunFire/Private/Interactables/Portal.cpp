@@ -58,7 +58,7 @@ void APortal::OnPortalBeginOverlap(UPrimitiveComponent* OverlappedComponent, AAc
     if (TargetLevelName.IsNone()) return;
 
     // 플레이어와 충돌인 경우에만
-    if (OtherActor && OtherActor->ActorHasTag(TEXT("Player")))
+    if (IsValid(OtherActor) && OtherActor->ActorHasTag(TEXT("Player")))
     {
         if (AGunFireGameMode* GFGameMode = GetWorld() ?
                 GetWorld()->GetAuthGameMode<AGunFireGameMode>() :

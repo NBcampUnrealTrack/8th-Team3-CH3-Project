@@ -9,9 +9,12 @@
 UENUM(BlueprintType)
 enum class ERoomType : uint8
 {
-    Safe        UMETA(DisplayName = "휴식방"),
+    Start       UMETA(DisplayName = "시작방"),
     Combat      UMETA(DisplayName = "전투방"),
-    Boss        UMETA(DisplayName = "보스방")
+    Random      UMETA(DisplayName = "랜덤방"),
+    Boss        UMETA(DisplayName = "보스방"),
+
+    Safe        UMETA(DisplayName = "휴식방")
 };
 
 // 방의 상태 : 시작 전 대기, 진행 중, 클리어

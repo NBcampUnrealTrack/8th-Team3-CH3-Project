@@ -5,6 +5,7 @@
 #include "Room/RoomTypes.h"
 #include "RoomBase.generated.h"
 
+class ADoorBase;
 class AGunFireGameState;
 class AGunFireGameMode;
 class UBoxComponent;
@@ -20,51 +21,41 @@ public:
     void StartRoom(AGunFireGameMode* GFGameMode, AGunFireGameState* GFGameState);
     void EndRoom(AGunFireGameMode* GFGameMode, AGunFireGameState* GFGameState);
 
-    bool CanMoveNextRoom(const ARoomBase* NextRoom) const;
-    bool HasNextRooms() const;
-    void UnlockNextRooms();
-
-    ERoomType GetRoomType() const;
     FName GetRoomID() const;
-    bool IsStarted() const;
-    bool IsCleared() const;
-    bool IsLocked() const;
+    ERoomType GetRoomType() const;
+    ERoomState GetRoomState() const;
 
-    void SetLocked(bool bNewLocked);
+    bool IsWaiting() const;
+    bool IsInProgress() const;
+    bool IsCleared() const;
 
 protected:
     // 씬 컴포넌트
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Room|Component")
     TObjectPtr<USceneComponent> Scene;
 
-    // 진입 확인용 트리거 박스
+    // 방 시작용 트리거 박스
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Room|Component")
-    TObjectPtr<UBoxComponent> EntryTrigger;
+    TObjectPtr<UBoxComponent> StartTrigger;
 
     // 방의 ID
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Room")
     FName RoomID;
 
-    // 방 타입
+    // 방 타입 (시작, 전투, 랜덤, 보스 ...)
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Room")
     ERoomType RoomType;
 
-    // 다음 방
+    // 방 상태 (Waiting, InProgress, Cleared)
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Room")
+    ERoomState RoomState;
+
+    // 방과 연결된 문들
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Room")
-    TArray<TObjectPtr<ARoomBase>> NextRooms;
+    TArray<TObjectPtr<ADoorBase>> ConnectedDoors;
 
-    // 방 시작 했는지
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Room")
-    bool bStarted;
 
-    // 방 클리어 했는지
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Room")
-    bool bCleared;
-
-    // 방이 닫혀있는지
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Room")
-    bool bLocked;
-
+protected:
     // 시작, 종료 시 각각의 방에서 처리해야 할 함수
     virtual void OnStart(AGunFireGameMode* GFGameMode, AGunFireGameState* GFGameState);
     virtual void OnEnd(AGunFireGameMode* GFGameMode, AGunFireGameState* GFGameState);

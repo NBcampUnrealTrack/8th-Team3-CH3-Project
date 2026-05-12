@@ -122,7 +122,7 @@ void ACombatRoom::SpawnEnemies()
         if (i >= EnemySpawnPoints.Num()) break;
 
         AActor* SpawnPoint = EnemySpawnPoints[i].Get();
-        if (!SpawnPoint)
+        if (!IsValid(SpawnPoint))
         {
             UE_LOG(LogTemp, Warning, TEXT("스폰 포인트 찾기 실패!"));
             continue;
@@ -142,7 +142,7 @@ void ACombatRoom::SpawnEnemies()
             );
 
         // 생성한 적 컨테이너에 추가
-        if (SpawnedEnemy)
+        if (IsValid(SpawnedEnemy))
         {
             SpawnedEnemy->OnEnemyDead.AddDynamic(this, &ACombatRoom::HandleEnemyDead);
             Enemies.Add(SpawnedEnemy);

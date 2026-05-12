@@ -83,7 +83,7 @@ void UStatComponent::Heal(float Amount)
     if (IsDead() || Amount <= 0.f) return;
 
     // 오버힐 방지
-    const float ActualAmount = (CurrentHealth + Amount > GetMaxHealth()) ? GetMaxHealth() - CurrentHealth : Amount;
+    const float ActualAmount = CurrentHealth + Amount > GetMaxHealth() ? GetMaxHealth() - CurrentHealth : Amount;
     CurrentHealth += ActualAmount;
 
     // 회복 이벤트, 체력 변경 이벤트 발생
@@ -165,6 +165,11 @@ bool UStatComponent::IsDead() const
 float UStatComponent::GetMaxHealth() const
 {
     return GetStatValue(ECombatStatType::MaxHealth);
+}
+
+float UStatComponent::GetCurrentHealth() const
+{
+    return CurrentHealth;
 }
 
 float UStatComponent::GetAttackPower() const
