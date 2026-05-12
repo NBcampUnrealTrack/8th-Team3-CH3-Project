@@ -83,7 +83,7 @@ void UStatComponent::Heal(float Amount)
     if (IsDead() || Amount <= 0.f) return;
 
     // 오버힐 방지
-    const float ActualAmount = (CurrentHealth + Amount > GetMaxHealth()) ? GetMaxHealth() - CurrentHealth : Amount;
+    const float ActualAmount = CurrentHealth + Amount > GetMaxHealth() ? GetMaxHealth() - CurrentHealth : Amount;
     CurrentHealth += ActualAmount;
 
     // 회복 이벤트, 체력 변경 이벤트 발생
@@ -209,7 +209,7 @@ void UStatComponent::TakeDamage(AActor* DamagedActor, float Damage, const UDamag
     CurrentHealth = FMath::Max(0.f, CurrentHealth);
 
     // 피격 처리 이벤트, 체력 변경 이벤트 발생
-    OnDamaged.Broadcast(ActualDamage);
+    OnDamaged.Broadcast(ActualDamage, Instigator);
     OnHealthChanged.Broadcast(CurrentHealth, GetMaxHealth());
 
     if (IsDead())

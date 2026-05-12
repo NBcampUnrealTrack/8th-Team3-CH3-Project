@@ -2,6 +2,7 @@
 
 #include "GunFire/GunFireGameMode.h"
 #include "Components/BoxComponent.h"
+#include "Room/DoorBase.h"
 
 ARoomBase::ARoomBase()
 {
@@ -10,17 +11,15 @@ ARoomBase::ARoomBase()
     Scene = CreateDefaultSubobject<USceneComponent>(TEXT("Scene"));
     SetRootComponent(Scene);
 
-    EntryTrigger = CreateDefaultSubobject<UBoxComponent>(TEXT("EntryTrigger"));
-    EntryTrigger->SetupAttachment(Scene);
-    EntryTrigger->SetCollisionProfileName(TEXT("Trigger"));
-    EntryTrigger->OnComponentBeginOverlap.AddDynamic(this, &ARoomBase::OnEntryTriggerBeginOverlap);
+    StartTrigger = CreateDefaultSubobject<UBoxComponent>(TEXT("EntryTrigger"));
+    StartTrigger->SetupAttachment(Scene);
+    StartTrigger->SetCollisionProfileName(TEXT("Trigger"));
+    StartTrigger->SetBoxExtent(FVector(400.f, 400.f, 100.f));
+    StartTrigger->OnComponentBeginOverlap.AddDynamic(this, &ARoomBase::OnEntryTriggerBeginOverlap);
 
     RoomID = NAME_None;
     RoomType = ERoomType::Safe;
-    NextRooms.Empty();
-    bStarted = false;
-    bCleared = false;
-    bLocked = true;
+    RoomState = ERoomState::Waiting;
 }
 
 void ARoomBase::StartRoom(AGunFireGameMode* GFGameMode, AGunFireGameState* GFGameState)
@@ -31,7 +30,16 @@ void ARoomBase::StartRoom(AGunFireGameMode* GFGameMode, AGunFireGameState* GFGam
         return;
     }
 
-    bStarted = true;
+    // 방과 연결된 문 닫기
+    for (const auto& Door : EntranceDoors)
+    {
+        if (IsValid(Door))
+        {
+            Door->CloseDoor();
+        }
+    }
+
+    RoomState = ERoomState::InProgress;
     OnStart(GFGameMode, GFGameState);
 }
 
@@ -47,7 +55,16 @@ void ARoomBase::EndRoom(AGunFireGameMode* GFGameMode, AGunFireGameState* GFGameS
         return;
     }
 
-    bCleared = true;
+    // 방과 연결된 문 열기
+    for (const auto& Door : EntranceDoors)
+    {
+        if (IsValid(Door))
+        {
+            Door->OpenDoor();
+        }
+    }
+
+    RoomState = ERoomState::Cleared;
     OnEnd(GFGameMode, GFGameState);
 }
 
@@ -55,28 +72,9 @@ void ARoomBase::OnEnd(AGunFireGameMode* GFGameMode, AGunFireGameState* GFGameSta
 {
 }
 
-// 다음 방이 이어져있는지 확인
-bool ARoomBase::CanMoveNextRoom(const ARoomBase* NextRoom) const
+FName ARoomBase::GetRoomID() const
 {
-    return NextRooms.Contains(NextRoom);
-}
-
-// 다음방이 있는지 확인
-bool ARoomBase::HasNextRooms() const
-{
-    return !NextRooms.IsEmpty();
-}
-
-// 다음방을 진입 가능한 상태로 바꿈
-void ARoomBase::UnlockNextRooms()
-{
-    for (ARoomBase* NextRoom : NextRooms)
-    {
-        if (NextRoom)
-        {
-            NextRoom->SetLocked(false);
-        }
-    }
+    return RoomID;
 }
 
 ERoomType ARoomBase::GetRoomType() const
@@ -84,36 +82,36 @@ ERoomType ARoomBase::GetRoomType() const
     return RoomType;
 }
 
-FName ARoomBase::GetRoomID() const
+ERoomState ARoomBase::GetRoomState() const
 {
-    return RoomID;
+    return RoomState;
 }
 
-bool ARoomBase::IsStarted() const
+bool ARoomBase::IsWaiting() const
 {
-    return bStarted;
+    return RoomState == ERoomState::Waiting;
+}
+
+bool ARoomBase::IsPrepared() const
+{
+    return RoomState == ERoomState::Prepared;
+}
+
+bool ARoomBase::IsInProgress() const
+{
+    return RoomState == ERoomState::InProgress;
 }
 
 bool ARoomBase::IsCleared() const
 {
-    return bCleared;
-}
-
-bool ARoomBase::IsLocked() const
-{
-    return bLocked;
-}
-
-void ARoomBase::SetLocked(bool bNewLocked)
-{
-    bLocked = bNewLocked;
+    return RoomState == ERoomState::Cleared;
 }
 
 void ARoomBase::OnEntryTriggerBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
     UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
     // 플레이어와 충돌했다면
-    if (OtherActor && OtherActor->ActorHasTag(TEXT("Player")))
+    if (IsValid(OtherActor) && OtherActor->ActorHasTag(TEXT("Player")))
     {
         if (AGunFireGameMode* GFGameMode = GetWorld() ?
                 GetWorld()->GetAuthGameMode<AGunFireGameMode>() :

@@ -27,7 +27,7 @@ void ASafeRoom::OnEnd(AGunFireGameMode* GFGameMode, AGunFireGameState* GFGameSta
 void ASafeRoom::OnExitTriggerBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
     UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-    if (OtherActor && OtherActor->ActorHasTag("Player"))
+    if (IsValid(OtherActor) && OtherActor->ActorHasTag("Player"))
     {
         if (AGunFireGameMode* GFGameMode = GetWorld() ?
         GetWorld()->GetAuthGameMode<AGunFireGameMode>() :
