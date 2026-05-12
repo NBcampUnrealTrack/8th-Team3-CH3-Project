@@ -9,6 +9,16 @@
 
 void AMinionEnemyAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 {
+    // 사망시 진입하면 안됨.
+    if (AEnemyBase* MyPawn = Cast<AEnemyBase>(GetPawn()))
+    {
+        if (MyPawn->bIsDead())
+        {
+            return;
+        }
+    }
+
+
     // 시야일경우만 진입
     if (Stimulus.Type != UAISense::GetSenseID<UAISense_Sight>())
         return;
@@ -38,6 +48,11 @@ void AMinionEnemyAIController::UpdateCombatTactics()
 {
     UBlackboardComponent* BBComp = GetBlackboardComponent();
     AEnemyBase* MyPawn = Cast<AEnemyBase>(GetPawn());
+
+    if (!MyPawn || MyPawn->bIsDead())
+    {
+        return;
+    }
 
     // 공격중일 시 무시
     if (!BBComp || !MyPawn || bIsAttacking)
@@ -83,6 +98,13 @@ void AMinionEnemyAIController::UpdateCombatTactics()
     BBComp->SetValueAsInt(TacticStateKey, (int32)DecidedTactic);
 }
 
+void AMinionEnemyAIController::StopEngaging()
+{
+    Super::StopEngaging();
+    GetWorld()->GetTimerManager().ClearTimer(RetreatTimerHandle);
+    GetWorld()->GetTimerManager().ClearTimer(EncircleTimerHandle);
+}
+
 ETacticState AMinionEnemyAIController::DetermineNextTactic(ETacticState CurrentState, float Distance, float HPPercent)
 {
     // 1. 강제 후퇴 (체력 일정 이하 최초 1회)
@@ -115,9 +137,9 @@ ETacticState AMinionEnemyAIController::DetermineNextTactic(ETacticState CurrentS
             // 전술을 Dash,Encircle, Flee 랜덤으로 선택
             float RandomValue = FMath::FRand();
 
-            GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Cyan,
-                FString::Printf(TEXT("Dice: %.2f | Dash: %.2f | Encircle: %.2f"),
-                    RandomValue, DashProbability, EncircleProbability));
+            //GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Cyan,
+            //    FString::Printf(TEXT("Dice: %.2f | Dash: %.2f | Encircle: %.2f"),
+            //        RandomValue, DashProbability, EncircleProbability));
 
             if (RandomValue <= DashProbability)
                 return ETacticState::Dash;
@@ -155,12 +177,18 @@ void AMinionEnemyAIController::ProcessEncircleLogic(bool bIsFirstEntry, FVector 
     {
         // 왼쪽? 오른쪽? 회전방향 결정
         EncircleDirection = FMath::RandBool() ? 1.0f : -1.0f;
-        GetWorld()->GetTimerManager().SetTimer(EncircleTimerHandle, this, &AMinionEnemyAIController::StopEncircle, EncircleDuration, false);
+
+        float RandomEncircleTime = EncircleDuration + FMath::RandRange(0.0f, EncircleRandomDeviation);
+        GetWorld()->GetTimerManager().SetTimer(EncircleTimerHandle, this, &AMinionEnemyAIController::StopEncircle, RandomEncircleTime, false);
     }
 
+    float CurrentRadius = FVector::Dist(MyLoc, TargetLoc);
     FVector FleeDir = (MyLoc - TargetLoc).GetSafeNormal();
+    FVector TangentDir = FVector::CrossProduct(FVector::UpVector, FleeDir);
 
-    //BBComp->SetValueAsVector(TacticalLocKey, TODO);
+    FVector NextLoc = TargetLoc + (FleeDir + TangentDir).GetSafeNormal() * CurrentRadius * EncircleDirection;
+
+    BBComp->SetValueAsVector(TacticalLocKey, NextLoc);
 
 }
 
@@ -175,7 +203,8 @@ void AMinionEnemyAIController::StartFleeing(FVector MyLoc, FVector TargetLoc)
     BBComp->SetValueAsVector(TacticalLocKey, FleeLoc);
 
     // 도주 타이머 세팅
-    GetWorld()->GetTimerManager().SetTimer(RetreatTimerHandle, this, &AMinionEnemyAIController::StopFleeing, RetreatDuration, false);
+    float RandomRetreatTime = RetreatDuration + FMath::RandRange(0.0f, RetreatRandomDeviation);
+    GetWorld()->GetTimerManager().SetTimer(RetreatTimerHandle, this, &AMinionEnemyAIController::StopFleeing, RandomRetreatTime, false);
 }
 
 void AMinionEnemyAIController::StopEncircle()
@@ -186,6 +215,7 @@ void AMinionEnemyAIController::StopEncircle()
     {
         // 포위 시간이 끝나면 다시 추적으로 변경
         BBComp->SetValueAsInt(TacticStateKey, (int32)ETacticState::Chase);
+        UpdateCombatTactics();
     }
 }
 
@@ -197,6 +227,7 @@ void AMinionEnemyAIController::StopFleeing()
     {
         // 도주가 끝나면 추격으로 변경
         BBComp->SetValueAsInt(TacticStateKey, (int32)ETacticState::Chase);
+        UpdateCombatTactics();
     }
 }
 

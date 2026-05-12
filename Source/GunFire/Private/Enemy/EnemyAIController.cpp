@@ -22,12 +22,14 @@ AEnemyAIController::AEnemyAIController()
     DashProbability = 0.4f; // 돌격 확률
     FleeProbability = 0.1f; // 후퇴 확률
     LowHealthThreshold = 0.3f; // 후퇴를 결심하는 체력 비율
-    RetreatDuration = 3.0f; // 후퇴 유지 시간
+    RetreatDuration = 2.0f; // 후퇴 유지 시간
+    RetreatRandomDeviation = 1.f;
     EncircleRadius = 600.0f; // 포위 반경
     AttackDistance = 200.0f; // 공격상태변경 거리
     confDistance = 600.0f; // 추적이후 다른상태 변경이될 거리
     ExitMargin = 600.f;
-    EncircleDuration = 4.f;
+    EncircleDuration = 3.f;
+    EncircleRandomDeviation = 2.f;
 
     // 블랙보드 키 이름
     TargetActorKey = FName("EnemyActor");
@@ -125,6 +127,15 @@ void AEnemyAIController::SetGroggy()
 
 void AEnemyAIController::SetDead()
 {
+    UBlackboardComponent* BBComp = GetBlackboardComponent();
+    if (BBComp)
+    {
+        // 사망상태로 변경
+        BBComp->SetValueAsInt(TacticStateKey, 0);
+
+        // 타이머, 타겟 정보 비우기
+        StopEngaging();
+    }
 }
 
 void AEnemyAIController::UpdateCombatTactics()

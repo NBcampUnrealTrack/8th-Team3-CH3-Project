@@ -1,4 +1,4 @@
-#include "StatComponent.h"
+﻿#include "StatComponent.h"
 
 UStatComponent::UStatComponent()
 {
@@ -165,6 +165,11 @@ bool UStatComponent::IsDead() const
 float UStatComponent::GetMaxHealth() const
 {
     return GetStatValue(ECombatStatType::MaxHealth);
+}
+
+float UStatComponent::GetCurrentHealth() const
+{
+    return CurrentHealth;
 }
 
 float UStatComponent::GetAttackPower() const

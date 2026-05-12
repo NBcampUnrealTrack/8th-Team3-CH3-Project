@@ -55,12 +55,12 @@ public:
     void ForceResetAttack();
 
     // 교전시작과 종료
-    void StartEngaging(AActor* Target);
-    void StopEngaging();
+    virtual void StartEngaging(AActor* Target);
+    virtual void StopEngaging();
 
     // 그로기나 사망
-    void SetGroggy();
-    void SetDead();
+    virtual void SetGroggy();
+    virtual void SetDead();
 protected:
     // 적 ai빙의시
     virtual void OnPossess(APawn* InPawn) override;
@@ -94,13 +94,19 @@ protected:
     float LowHealthThreshold; // 후퇴를 결심하는 체력 비율
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Combat")
-    float RetreatDuration; // 후퇴 유지 시간
+    float RetreatDuration; // 기본 후퇴 시간
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Combat")
+    float RetreatRandomDeviation; // 추가 후퇴시간 랜덤 범위
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Combat")
     float EncircleRadius; // 포위 반경
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Combat")
-    float EncircleDuration; // 포위 유지 시간
+    float EncircleDuration; // 기본 포위 시간
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Combat")
+    float EncircleRandomDeviation; // 추가 포위시간 랜덤 범위
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Combat")
     float AttackDistance; // 공격상태변경 거리

@@ -18,7 +18,7 @@ protected:
     UPROPERTY()
     TArray<UPrimitiveComponent*> WeaponCollisions;
 
-    UPROPERTY(EditAnywhere, Category = "Stats")
+    UPROPERTY(EditAnywhere, Category = "Animation")
     UAnimMontage* AttackMontage;
 
 protected:

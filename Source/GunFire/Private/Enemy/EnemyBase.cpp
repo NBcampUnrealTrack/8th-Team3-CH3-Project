@@ -5,6 +5,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Enemy/EnemyAIController.h"
 #include "Components/CapsuleComponent.h"
+#include "StatComponent.h"
 
 // Sets default values
 AEnemyBase::AEnemyBase()
@@ -12,8 +13,7 @@ AEnemyBase::AEnemyBase()
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
 
-    HP = 100.f;
-    AttackDamage = 10.f;
+    StatComponent = CreateDefaultSubobject<UStatComponent>(TEXT("StatComponent"));
     bDead = false;
 }
 
@@ -44,6 +44,15 @@ void AEnemyBase::DeactivateAttackCollision()
     //}
 }
 
+void AEnemyBase::OnDeathAnimationFinished()
+{
+    // 래그돌로 충돌되도록 변경
+    GetMesh()->SetCollisionProfileName(FName("Ragdoll"));
+
+    // 중력에 따라 래그돌 되도록 변경
+    GetMesh()->SetSimulatePhysics(true);
+}
+
 void AEnemyBase::Die()
 {
     // 중복 호출 방지용
@@ -53,9 +62,19 @@ void AEnemyBase::Die()
 
     UE_LOG(LogTemp, Warning, TEXT("Enemy Died!"));
 
+    // 사망시 처리할 요소들
+    IMDead();
+
     // 바인딩한 이벤트들에게 Broadcast
     // 바인딩한 함수들을 처리하고 뒤의 Destroy 호출함
     OnEnemyDead.Broadcast(this);
+
+    // 일정 시간뒤에 삭제
+    GetWorld()->GetTimerManager().SetTimer(DeathTimerHandle, this, &AEnemyBase::ExecuteDestroy, 10.0f, false);
+}
+
+void AEnemyBase::ExecuteDestroy()
+{
     Destroy();
 }
 
@@ -81,6 +100,29 @@ void AEnemyBase::BeginPlay()
     //        WeaponCollisions.Add(PrimitiveComp);
     //    }
     //}
+
+    if (StatComponent)
+    {
+        // 죽을 시 OnEnemyDeath 함수 실행
+        StatComponent->OnDead.AddDynamic(this, &AEnemyBase::OnEnemyDeath);
+        // 체력바뀔 시 OnEnemyHealthChanged 함수 실행
+        StatComponent->OnHealthChanged.AddDynamic(this, &AEnemyBase::OnEnemyHealthChanged);
+    }
+
+    // 사망 애니메이션 호출 테스트 용도
+    // 테스트 끝나면 삭제 필요
+    FTimerHandle DebugDeathTimer;
+    GetWorld()->GetTimerManager().SetTimer(DebugDeathTimer, this, &AEnemyBase::Die, 10.0f, false);
+}
+
+void AEnemyBase::OnEnemyDeath(AController* InstigatorController)
+{
+    Die();
+}
+
+void AEnemyBase::OnEnemyHealthChanged(float CurrentHealth, float MaxHealth)
+{
+    // 지금 당장은 ㅇ벗음
 }
 
 void AEnemyBase::SetWalkSpeed(float _speed)
@@ -93,8 +135,26 @@ void AEnemyBase::IMDead()
 {
     // 애니메이션 중단 및 사망 애니메이션/몽타주 재생
     //StopAnimMontage();
+
     // 콜리전 끄기
     GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+    // 사망 애니메이션 재생
+    if (DeathMontage)
+    {
+        // 1부터 5까지 랜덤 주사위 굴리기
+        int32 DiceRoll = FMath::RandRange(1, 5);
+
+        // Death1 ~ Death5중 무작위로 사망 매니메이션
+        FName SectionName = FName(*FString::Printf(TEXT("Death%d"), DiceRoll));
+        PlayAnimMontage(DeathMontage, 1.0f, SectionName);
+    }
+
+    if (AEnemyAIController* AIC = Cast<AEnemyAIController>(GetController()))
+    {
+        // 컨트롤러 사망 처리 호출
+        AIC->SetDead();
+    }
 }
 
 void AEnemyBase::IMGrogi()
@@ -146,24 +206,44 @@ void AEnemyBase::PlayAttack()
     //PlayAnimMontage(AttackMontage, 1.0f, SectionName);
 }
 
-float AEnemyBase::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+//float AEnemyBase::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+//{
+//    float ActualDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+//
+//    HP -= FMath::Max(ActualDamage - Defance, 0.f);
+//
+//    // AI 컨트롤러 가져오기
+//    AEnemyAIController* AIC = Cast<AEnemyAIController>(GetController());
+//
+//    if (HP <= 0)
+//    {
+//        Die();
+//    }
+//    // 그로기 테스트용
+//    else if (HP <= (MaxHP * 0.3f))
+//    {
+//        IMGrogi();
+//    }
+//
+//    return ActualDamage;
+//}
+
+float AEnemyBase::GetHP() const
 {
-    float ActualDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+    return StatComponent ? StatComponent->GetCurrentHealth() : 0.f;
+}
 
-    HP -= FMath::Max(ActualDamage - Defance, 0.f);
+float AEnemyBase::GetMaxHP() const
+{
+    return StatComponent ? StatComponent->GetMaxHealth() : 0.f;
+}
 
-    // AI 컨트롤러 가져오기
-    AEnemyAIController* AIC = Cast<AEnemyAIController>(GetController());
+float AEnemyBase::GetAttackDamage() const
+{
+    return StatComponent ? StatComponent->GetAttackPower() : 0.f;
+}
 
-    if (HP <= 0)
-    {
-        Die();
-    }
-    // 그로기 테스트용
-    else if (HP <= (MaxHP * 0.3f))
-    {
-        IMGrogi();
-    }
-
-    return ActualDamage;
+bool AEnemyBase::bIsDead() const
+{
+    return bDead;
 }

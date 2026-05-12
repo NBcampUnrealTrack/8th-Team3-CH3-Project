@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
@@ -30,6 +30,7 @@ public:
     bool IsDead() const;
 
     float GetMaxHealth() const;
+    float GetCurrentHealth() const;
     float GetAttackPower() const;
     float GetDefense() const;
     float GetMovementSpeed(bool bIsSprint) const;

@@ -67,7 +67,7 @@ void AMinionEnemy::OnWeaponOverlap(UPrimitiveComponent* OverlappedComponent, AAc
             // 데미지 처리
             UGameplayStatics::ApplyDamage(
                 OtherActor,                // 맞은 녀석 : 플레이어
-                AttackDamage,              // 데미지 수치 : TODO:상태컴포넌트 추가시 변경
+                GetAttackDamage(),              // 데미지 수치 : TODO:상태컴포넌트 추가시 변경
                 GetController(),           // 때린 녀석의 뇌 : AI 컨트롤러
                 this,                      // 때린 녀석의 몸통 : 무기를 쥔 나 자신
                 UDamageType::StaticClass() // 데미지 속성 : 기본 데미지

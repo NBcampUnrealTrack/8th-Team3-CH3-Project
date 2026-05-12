@@ -18,6 +18,8 @@ protected:
     virtual void OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus) override;
     virtual void UpdateCombatTactics() override;
 
+    virtual void StopEngaging() override;
+
     // 어떤 전술을 사용할지 결정
     ETacticState DetermineNextTactic(ETacticState CurrentState, float Distance, float HPPercent);
 
