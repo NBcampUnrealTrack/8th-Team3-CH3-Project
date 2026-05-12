@@ -22,6 +22,7 @@ UENUM(BlueprintType)
 enum class ERoomState : uint8
 {
     Waiting     UMETA(DisplayName = "대기"),
+    Prepared    UMETA(DisplayName = "준비됨"),
     InProgress  UMETA(DisplayName = "진행 중"),
     Cleared     UMETA(DisplayName = "클리어")
 };

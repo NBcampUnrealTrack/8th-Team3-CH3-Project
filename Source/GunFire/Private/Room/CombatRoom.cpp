@@ -1,5 +1,6 @@
 #include "Room/CombatRoom.h"
 
+#include "Components/BoxComponent.h"
 #include "Game/GunFireGameInstance.h"
 #include "Game/GunFireGameState.h"
 #include "Enemy/EnemyBase.h"
@@ -7,6 +8,12 @@
 
 ACombatRoom::ACombatRoom()
 {
+    PrepareTrigger = CreateDefaultSubobject<UBoxComponent>(TEXT("PrepareTrigger"));
+    PrepareTrigger->SetupAttachment(Scene);
+    PrepareTrigger->SetCollisionProfileName(TEXT("Trigger"));
+    StartTrigger->SetBoxExtent(FVector(600.f, 600.f, 150.f));
+    PrepareTrigger->OnComponentBeginOverlap.AddDynamic(this, &ACombatRoom::OnPrepareTriggerBeginOverlap);
+
     RoomType = ERoomType::Combat;
     SpawningEnemyCount = 1;
     Initialize();
@@ -37,6 +44,10 @@ void ACombatRoom::CompleteSelectReward()
     {
         GFGameMode->EndCurrentRoom();
     }
+}
+
+void ACombatRoom::OnPrepare(AGunFireGameMode* GFGameMode, AGunFireGameState* GFGameState)
+{
 }
 
 void ACombatRoom::OnStart(AGunFireGameMode* GFGameMode, AGunFireGameState* GFGameState)
@@ -106,6 +117,16 @@ void ACombatRoom::HandleEnemyDead(AEnemyBase* DeadEnemy)
     if (RemainingEnemyCount <= 0)
     {
         OnClearedCombat();
+    }
+}
+
+void ACombatRoom::OnPrepareTriggerBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+    UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+    // 플레이어와 충돌했다면
+    if (IsValid(OtherActor) && OtherActor->ActorHasTag(TEXT("Player")))
+    {
+
     }
 }
 

@@ -6,6 +6,8 @@
 
 
 class AEnemyBase;
+class UBoxComponent;
+class ADoorBase;
 
 UCLASS()
 class GUNFIRE_API ACombatRoom : public ARoomBase
@@ -26,6 +28,10 @@ public:
     void CompleteSelectReward();
 
 protected:
+    // 준비용 트리거박스, 몬스터 스폰
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Room|Component")
+    TObjectPtr<UBoxComponent> PrepareTrigger;
+
     // 생성할 적 클래스 목록
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Room|Combat")
     TArray<TSubclassOf<AEnemyBase>> EnemyClasses;
@@ -38,6 +44,10 @@ protected:
     UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Room|Combat")
     TArray<TObjectPtr<AEnemyBase>> Enemies;
 
+    // Prepare Trigger 발동 시 뒤로 못돌아가게 막는 문
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Room")
+    TArray<TObjectPtr<ADoorBase>> RestrictDoors;
+
     // 소환할 적의 수
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Room|Combat")
     int32 SpawningEnemyCount;
@@ -47,6 +57,7 @@ protected:
     int32 RemainingEnemyCount;
 
 protected:
+    virtual void OnPrepare(AGunFireGameMode* GFGameMode, AGunFireGameState* GFGameState);
     virtual void OnStart(AGunFireGameMode* GFGameMode, AGunFireGameState* GFGameState) override;
     virtual void OnEnd(AGunFireGameMode* GFGameMode, AGunFireGameState* GFGameState) override;
 
@@ -57,8 +68,20 @@ protected:
     UFUNCTION(BlueprintNativeEvent, Category = "Room|Combat|Reward")
     void StartSelectReward();
 
+    // 몬스터 사망시 호출되는 이벤트
     UFUNCTION()
     void HandleEnemyDead(AEnemyBase* DeadEnemy);
+
+    // PrePare 트리거의 오버랩 이벤트 함수
+    UFUNCTION()
+    void OnPrepareTriggerBeginOverlap(
+        UPrimitiveComponent* OverlappedComponent,
+        AActor* OtherActor,
+        UPrimitiveComponent* OtherComp,
+        int32 OtherBodyIndex,
+        bool bFromSweep,
+        const FHitResult& SweepResult
+        );
 
 private:
     void SpawnEnemies();

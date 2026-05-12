@@ -5,7 +5,7 @@
 #include "CombatStat.h"
 #include "StatComponent.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDamagedSignature, float, ActualDamage);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FDamagedSignature, float, ActualDamage, AController*, Instigator);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FHealedSignature, float, HealAmount);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDeadSignature, AController*, Instigator);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FHealthChangedSignature, float, CurrentHealth, float, MaxHealth);

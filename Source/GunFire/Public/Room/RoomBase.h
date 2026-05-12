@@ -26,6 +26,7 @@ public:
     ERoomState GetRoomState() const;
 
     bool IsWaiting() const;
+    bool IsPrepared() const;
     bool IsInProgress() const;
     bool IsCleared() const;
 
@@ -50,17 +51,18 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Room")
     ERoomState RoomState;
 
-    // 방과 연결된 문들
+    // 방에 완전히 들어왔을 때 닫힐 문들
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Room")
-    TArray<TObjectPtr<ADoorBase>> ConnectedDoors;
+    TArray<TObjectPtr<ADoorBase>> EntranceDoors;
 
 
 protected:
-    // 시작, 종료 시 각각의 방에서 처리해야 할 함수
+    // 시작시 방에서 처리해야할 함수
     virtual void OnStart(AGunFireGameMode* GFGameMode, AGunFireGameState* GFGameState);
+    // 종료 시 방에서 처리해야할 함수
     virtual void OnEnd(AGunFireGameMode* GFGameMode, AGunFireGameState* GFGameState);
 
-    // 트리거 박스 오버랩 합수
+    // 방에 완전히 들어갔는지 판정하는 트리거 박스 오버랩 합수
     UFUNCTION()
     void OnEntryTriggerBeginOverlap(
         UPrimitiveComponent* OverlappedComponent,

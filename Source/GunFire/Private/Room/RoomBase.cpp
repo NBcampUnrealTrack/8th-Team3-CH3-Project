@@ -14,6 +14,7 @@ ARoomBase::ARoomBase()
     StartTrigger = CreateDefaultSubobject<UBoxComponent>(TEXT("EntryTrigger"));
     StartTrigger->SetupAttachment(Scene);
     StartTrigger->SetCollisionProfileName(TEXT("Trigger"));
+    StartTrigger->SetBoxExtent(FVector(400.f, 400.f, 100.f));
     StartTrigger->OnComponentBeginOverlap.AddDynamic(this, &ARoomBase::OnEntryTriggerBeginOverlap);
 
     RoomID = NAME_None;
@@ -30,7 +31,7 @@ void ARoomBase::StartRoom(AGunFireGameMode* GFGameMode, AGunFireGameState* GFGam
     }
 
     // 방과 연결된 문 닫기
-    for (const auto& Door : ConnectedDoors)
+    for (const auto& Door : EntranceDoors)
     {
         if (IsValid(Door))
         {
@@ -55,7 +56,7 @@ void ARoomBase::EndRoom(AGunFireGameMode* GFGameMode, AGunFireGameState* GFGameS
     }
 
     // 방과 연결된 문 열기
-    for (const auto& Door : ConnectedDoors)
+    for (const auto& Door : EntranceDoors)
     {
         if (IsValid(Door))
         {
@@ -89,6 +90,11 @@ ERoomState ARoomBase::GetRoomState() const
 bool ARoomBase::IsWaiting() const
 {
     return RoomState == ERoomState::Waiting;
+}
+
+bool ARoomBase::IsPrepared() const
+{
+    return RoomState == ERoomState::Prepared;
 }
 
 bool ARoomBase::IsInProgress() const
