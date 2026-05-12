@@ -22,7 +22,7 @@ APlayerCharacter::APlayerCharacter()
     ThirdPersonCameraComponent->bUsePawnControlRotation = false;
 
     // 대쉬 설정
-    bcanDash = true;
+    CanDash = true;
     DashStrength = 2000.0f;
     DashCooldown = 3.0f;
 
@@ -33,11 +33,22 @@ APlayerCharacter::APlayerCharacter()
     GetCharacterMovement()->MaxWalkSpeed = NormalSpeed;
 
     // 조준
-    bIsAiming = false;
+    IsAiming = false;
     DefaultFOV = ThirdPersonCameraComponent->FieldOfView;
     AimFOV = 70.0f;
     DefaultSocketOffset = ThirdPersonCameraComponent->GetComponentLocation();
 
+    // 사격
+    MaxAmmo = 4;
+    TotalAmmo = 12;
+    CurrentAmmo = MaxAmmo;
+    AmmoPerFire = 1;
+    CanFire = true;
+    Rof = 1.0f;
+
+    // 재장전
+    IsReloading = false;
+    ReloadTime = 2.0f;
 }
 
 void APlayerCharacter::BeginPlay()
@@ -53,9 +64,12 @@ void APlayerCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-    float TargetFOV = bIsAiming ? AimFOV : DefaultFOV;
-    FVector TargetOffset = bIsAiming ? AimSocketOffset : DefaultSocketOffset;
-    float TargetArmLength = bIsAiming ? 150.f : 300.f;
+    // 시야각
+    float TargetFOV = IsAiming ? AimFOV : DefaultFOV;
+    // 카메라 위치
+    FVector TargetOffset = IsAiming ? AimSocketOffset : DefaultSocketOffset;
+    // 스프링암 길이
+    float TargetArmLength = IsAiming ? 150.f : 300.f;
 
     // 부드럽게 보간 (FInterpTo 사용)
     ThirdPersonCameraComponent->FieldOfView = FMath::FInterpTo(ThirdPersonCameraComponent->FieldOfView, TargetFOV, DeltaTime, 10.f);
@@ -102,8 +116,7 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
             // 달리기
             if (PlayerController->RunAction)
             {
-                EnhancedInputComponent->BindAction(PlayerController->RunAction, ETriggerEvent::Started, this, &APlayerCharacter::Run);
-                EnhancedInputComponent->BindAction(PlayerController->RunAction, ETriggerEvent::Completed, this, &APlayerCharacter::StopRun);
+                EnhancedInputComponent->BindAction(PlayerController->RunAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Run);
             }
 
             // 사격
@@ -115,8 +128,6 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
             // 조준
             if (PlayerController->AimingAction)
             {
-                //EnhancedInputComponent->BindAction(PlayerController->AimingAction, ETriggerEvent::Started, this, &APlayerCharacter::Aiming);
-                //EnhancedInputComponent->BindAction(PlayerController->AimingAction, ETriggerEvent::Completed, this, &APlayerCharacter::StopAiming);
                 EnhancedInputComponent->BindAction(PlayerController->AimingAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Aiming);
             }
 
@@ -193,45 +204,49 @@ void APlayerCharacter::Dash(const FInputActionValue& Value)
 {
     if (!Controller) return;
 
-    if (!bcanDash)
+    if (!CanDash)
     {
         UE_LOG(LogTemp, Log, TEXT("Dash Cooldown"));
         return;
     }
 
-    if (bcanDash)
+    UCharacterMovementComponent* MoveComp = GetCharacterMovement();
+
+    // 공중 상태 확인
+    if (MoveComp && MoveComp->IsFalling())
     {
-        UCharacterMovementComponent* MoveComp = GetCharacterMovement();
-
-        // 대쉬 방향 결정 (입력 방향 위주)
-        FVector DashDirection = MoveComp->GetLastInputVector();
-
-        // 만약 이동 입력이 없다면(가만히 있을 때) 캐릭터의 전방으로 대쉬
-        if (DashDirection.IsNearlyZero())
-        {
-            DashDirection = GetActorForwardVector();
-        }
-
-        // 현재의 마찰력 설정값 저장
-        DefaultGroundFriction = MoveComp->GroundFriction;
-        DefaultBrakingDeceleration = MoveComp->BrakingDecelerationWalking;
-
-        // 마찰력과 제동력을 0으로 설정
-        MoveComp->GroundFriction = 0.f;
-        MoveComp->BrakingDecelerationWalking = 0.f;
-
-        // 즉각적인 속도 부여
-        MoveComp->Velocity = DashDirection.GetSafeNormal() * DashStrength;
-
-        // 마찰력 복구
-        GetWorldTimerManager().SetTimer(DashStopTimerHandle, this, &APlayerCharacter::StopDash, 0.15f, false);
-
-        UE_LOG(LogTemp, Log, TEXT("Dash Start"));
-        bcanDash = false;
-
-        // 쿨타임 이후에 대쉬 다시 사용가능
-        GetWorldTimerManager().SetTimer(DashCooldownTimerHandle, this, &APlayerCharacter::ResetDash, DashCooldown, false);
+        //공중이면 함수 종료
+        return;
     }
+
+    // 대쉬 방향 결정 (입력 방향 위주)
+    FVector DashDirection = MoveComp->GetLastInputVector();
+
+    // 만약 이동 입력이 없다면(가만히 있을 때) 캐릭터의 전방으로 대쉬
+    if (DashDirection.IsNearlyZero())
+    {
+        DashDirection = GetActorForwardVector();
+    }
+
+    // 현재의 마찰력 설정값 저장
+    DefaultGroundFriction = MoveComp->GroundFriction;
+    DefaultBrakingDeceleration = MoveComp->BrakingDecelerationWalking;
+
+    // 마찰력과 제동력을 0으로 설정
+    MoveComp->GroundFriction = 0.f;
+    MoveComp->BrakingDecelerationWalking = 0.f;
+
+    // 즉각적인 속도 부여
+    MoveComp->Velocity = DashDirection.GetSafeNormal() * DashStrength;
+
+    // 마찰력 복구
+    GetWorldTimerManager().SetTimer(DashStopTimerHandle, this, &APlayerCharacter::StopDash, 0.15f, false);
+
+    UE_LOG(LogTemp, Log, TEXT("Dash Start"));
+    CanDash = false;
+
+    // 쿨타임 이후에 대쉬 다시 사용가능
+    GetWorldTimerManager().SetTimer(DashCooldownTimerHandle, this, &APlayerCharacter::ResetDash, DashCooldown, false);
 }
 
 void APlayerCharacter::StopDash()
@@ -249,7 +264,7 @@ void APlayerCharacter::ResetDash()
 {
     UCharacterMovementComponent* MoveComp = GetCharacterMovement();
     if (!MoveComp) return;
-    bcanDash = true;
+    CanDash = true;
     UE_LOG(LogTemp, Log, TEXT("Dash On"));
 }
 
@@ -257,7 +272,14 @@ void APlayerCharacter::Run(const FInputActionValue& Value)
 {
     if (GetCharacterMovement())
     {
-        GetCharacterMovement()->MaxWalkSpeed = RunSpeed;
+        if (Value.Get<bool>())
+        {
+            GetCharacterMovement()->MaxWalkSpeed = RunSpeed;
+        }
+        else
+        {
+            GetCharacterMovement()->MaxWalkSpeed = NormalSpeed;
+        }
     }
 }
 
@@ -269,25 +291,20 @@ void APlayerCharacter::StopRun()
     }
 }
 
-void APlayerCharacter::Shot(const FInputActionValue& Value)
-{
-
-}
-
 void APlayerCharacter::Aiming(const FInputActionValue& Value)
 {
     if (!Controller) return;
 
-    if (!bIsAiming)
+    if (!IsAiming)
     {
-        bIsAiming = true;
+        IsAiming = true;
         GetCharacterMovement()->bOrientRotationToMovement = false; // 이동 방향 회전 끄기
         bUseControllerRotationYaw = true;
     }
     else
     {
-        bIsAiming = false;
-        GetCharacterMovement()->bOrientRotationToMovement = true; // 이동 방향 회전 끄기
+        IsAiming = false;
+        GetCharacterMovement()->bOrientRotationToMovement = true; // 이동 방향 회전
         bUseControllerRotationYaw = false;
     }
 }
@@ -296,12 +313,82 @@ void APlayerCharacter::StopAiming()
 {
     if (!Controller) return;
 
-    bIsAiming = false;
+    IsAiming = false;
+}
+
+void APlayerCharacter::Shot(const FInputActionValue& Value)
+{
+    if (!Controller) return;
+
+    if (!IsAiming || !CanFire || IsReloading) return;
+
+    UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+
+    if (CurrentAmmo > 0 && AnimInstance && !AnimInstance->Montage_IsPlaying(FireMontage) && !AnimInstance->Montage_IsPlaying(FireDelayMontage))
+    {
+        GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Green, TEXT("Fire"));
+
+        CurrentAmmo -= AmmoPerFire;
+        CanFire = false;
+
+        AnimInstance->Montage_Play(FireMontage);
+
+        GetWorldTimerManager().SetTimer(ShotDelayTimerHandle, this, &APlayerCharacter::ShotDelay, 0.5f, false);
+    }
+    else
+    {
+        GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, TEXT("Ammo Empty OR Delay"));
+    }
+}
+
+void APlayerCharacter::ShotDelay()
+{
+    GetWorld()->GetTimerManager().ClearTimer(ShotDelayTimerHandle);
+    CanFire = true;
+
+    UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+    if (AnimInstance && FireDelayMontage)
+    {
+        AnimInstance->Montage_Play(FireDelayMontage);
+    }
 }
 
 void APlayerCharacter::Reload(const FInputActionValue& Value)
 {
+    if (!Controller) return;
 
+    if (CurrentAmmo == MaxAmmo || !CanFire || IsReloading) return;
+
+    IsReloading = true;
+    CanFire = false;
+    GetWorldTimerManager().SetTimer(ReloadTimerHandle, this, &APlayerCharacter::Reloading, ReloadTime, false);
+    GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Green, TEXT("Reload"));
+
+    UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+    if (AnimInstance && ReloadMontage)
+    {
+        AnimInstance->Montage_Play(ReloadMontage);
+    }
+}
+
+void APlayerCharacter::Reloading()
+{
+    GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Green, TEXT("Reloading"));
+    TotalAmmo -= MaxAmmo - CurrentAmmo;
+    if (TotalAmmo <= 0)
+    {
+        return;
+    }
+    else if (TotalAmmo < MaxAmmo)
+    {
+        CurrentAmmo = TotalAmmo;
+    }
+    else
+    {
+        CurrentAmmo = MaxAmmo;
+    }
+    CanFire = true;
+    IsReloading = false;
 }
 
 void APlayerCharacter::MeleeAttack(const FInputActionValue& Value)
