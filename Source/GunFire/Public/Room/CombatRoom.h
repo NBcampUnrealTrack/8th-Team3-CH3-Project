@@ -19,6 +19,9 @@ public:
 
     void Initialize();
 
+    // 방을 준비하는 함수, 스폰처리 및 State 변경
+    void PrepareRoom(AGunFireGameMode* GFGameMode, AGunFireGameState* GFGameState);
+
     // 테스트용 적 한마리 처치하는 함수
     UFUNCTION(BlueprintCallable, Category = "Room|Combat|Debug")
     void KillEnemyForTest();
@@ -57,8 +60,9 @@ protected:
     int32 RemainingEnemyCount;
 
 protected:
+    // 실제로 몬스터 스폰이 일어나는 함수
     virtual void OnPrepare(AGunFireGameMode* GFGameMode, AGunFireGameState* GFGameState);
-    virtual void OnStart(AGunFireGameMode* GFGameMode, AGunFireGameState* GFGameState) override;
+    // 남아있는 몬스터 정리, 방 정리하는 함수
     virtual void OnEnd(AGunFireGameMode* GFGameMode, AGunFireGameState* GFGameState) override;
 
     // 전투가 끝났을 때 호출됨, 기본 CombatRoom은 보상 선택으로 넘어감

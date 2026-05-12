@@ -110,6 +110,32 @@ void AGunFireGameMode::EndStartRoom()
     EndCurrentRoom();
 }
 
+// 다음 방 준비 시도, 전투방일때만 사용
+void AGunFireGameMode::TryPrepareRoom(ACombatRoom* EnteredRoom)
+{
+    if (!IsValid(EnteredRoom)) return;
+    if (!EnteredRoom->IsWaiting()) return;
+
+    // 현재 방이 진행중이지만 다른 방에 넘어가려할 경우 막음
+    if (IsValid(CurrentRoom) && CurrentRoom->IsInProgress()) return;
+
+    // 이미 다른 방을 준비 중이면 준비된 방이 아닌 방으로 진입하지 못하게 막음
+    if (IsValid(CurrentRoom) && CurrentRoom->IsPrepared() && CurrentRoom != EnteredRoom) return;
+
+
+    AGunFireGameState* GFGameState = GetGameState<AGunFireGameState>();
+    if (!GFGameState) return;
+
+    CurrentRoom = EnteredRoom;
+
+    GFGameState->SetCurrentRoomType(CurrentRoom->GetRoomType());
+    GFGameState->SetCurrentRoomState(ERoomState::Prepared);
+    GFGameState->SetCurrentRoomID(CurrentRoom->GetRoomID());
+    GFGameState->SetRemainingEnemyCount(0);
+
+    EnteredRoom->PrepareRoom(this, GFGameState);
+}
+
 // 다음 방으로 진입 시도
 void AGunFireGameMode::TryEnterRoom(ARoomBase* EnteredRoom)
 {
@@ -131,7 +157,6 @@ void AGunFireGameMode::StartCurrentRoom()
     GFGameState->SetCurrentRoomType(CurrentRoom->GetRoomType());
     GFGameState->SetCurrentRoomState(ERoomState::InProgress);
     GFGameState->SetCurrentRoomID(CurrentRoom->GetRoomID());
-    GFGameState->SetRemainingEnemyCount(0);
 
     // 현재 방을 시작처리함
     CurrentRoom->StartRoom(this, GFGameState);
@@ -279,12 +304,16 @@ bool AGunFireGameMode::CanEnterRoom(const ARoomBase* EnteredRoom)
 {
     if (!IsValid(EnteredRoom)) return false;
 
-    // 대기중인 방만 시작 가능
+    // 대기중이거나 준비된 방만 시작 가능
     // 진행중 or 클리어된 방은 시작 X
-    if (!EnteredRoom->IsWaiting()) return false;
+    if (!EnteredRoom->IsWaiting() && !EnteredRoom->IsPrepared()) return false;
 
     // 현재 방이 진행중이지만 다른 방에 넘어갔을 경우 시작 못하게 막음
     if (IsValid(CurrentRoom) && CurrentRoom->IsInProgress()) return false;
+
+    // 이미 다른 방을 준비 중이면 준비된 방이 아닌 방으로 진입하지 못하게 막음
+    if (IsValid(CurrentRoom) && CurrentRoom->IsPrepared() && CurrentRoom != EnteredRoom) return false;
+
 
     return true;
 }

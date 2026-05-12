@@ -4,13 +4,13 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
-#include "Room/RoomTypes.h"
 #include "GunFireGameMode.generated.h"
 
 enum class ESessionResult : uint8;
 class AStartRoom;
 class AGunFireGameState;
 class ARoomBase;
+class ACombatRoom;
 
 UCLASS(minimalapi)
 class AGunFireGameMode : public AGameModeBase
@@ -29,6 +29,9 @@ public:
 
     UFUNCTION(BlueprintCallable, Category = "Room")
     void EndStartRoom();
+
+    UFUNCTION(BlueprintCallable, Category = "Room")
+    void TryPrepareRoom(ACombatRoom* EnteredRoom);
 
     UFUNCTION(BlueprintCallable, Category = "Room")
     void TryEnterRoom(ARoomBase* EnteredRoom);

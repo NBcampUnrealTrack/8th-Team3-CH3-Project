@@ -1,5 +1,6 @@
 #include "Room/RandomRoom.h"
 
+#include "Game/GunFireGameState.h"
 #include "GunFire/GunFireGameMode.h"
 
 ARandomRoom::ARandomRoom()
@@ -8,18 +9,32 @@ ARandomRoom::ARandomRoom()
     RoomMode = ERandomRoomMode::Relic;
 }
 
-void ARandomRoom::OnStart(AGunFireGameMode* GFGameMode, AGunFireGameState* GFGameState)
+void ARandomRoom::OnPrepare(AGunFireGameMode* GFGameMode, AGunFireGameState* GFGameState)
 {
     RoomMode = DecideRoomMode();
 
     if (RoomMode == ERandomRoomMode::EliteCombat)
     {
         // CombatRoom의 전투 로직 그대로 사용
-        Super::OnStart(GFGameMode, GFGameState);
+        Super::OnPrepare(GFGameMode, GFGameState);
         return;
     }
 
-    StartSelectReward();
+    Initialize();
+    GFGameState->SetRemainingEnemyCount(0);
+    UE_LOG(LogTemp, Warning, TEXT("랜덤방, 유물 준비"));
+}
+
+void ARandomRoom::OnStart(AGunFireGameMode* GFGameMode, AGunFireGameState* GFGameState)
+{
+    if (RoomMode == ERandomRoomMode::Relic)
+    {
+        StartSelectReward();
+        return;
+    }
+
+    // 엘리트 전투는 전투 가능하게 부모 OnStart 호출
+    Super::OnStart(GFGameMode, GFGameState);
 }
 
 void ARandomRoom::OnClearedCombat()

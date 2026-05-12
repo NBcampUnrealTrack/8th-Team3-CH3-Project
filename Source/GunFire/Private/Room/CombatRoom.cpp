@@ -5,13 +5,14 @@
 #include "Game/GunFireGameState.h"
 #include "Enemy/EnemyBase.h"
 #include "GunFire/GunFireGameMode.h"
+#include "Room/DoorBase.h"
 
 ACombatRoom::ACombatRoom()
 {
     PrepareTrigger = CreateDefaultSubobject<UBoxComponent>(TEXT("PrepareTrigger"));
     PrepareTrigger->SetupAttachment(Scene);
     PrepareTrigger->SetCollisionProfileName(TEXT("Trigger"));
-    StartTrigger->SetBoxExtent(FVector(600.f, 600.f, 150.f));
+    PrepareTrigger->SetBoxExtent(FVector(600.f, 600.f, 150.f));
     PrepareTrigger->OnComponentBeginOverlap.AddDynamic(this, &ACombatRoom::OnPrepareTriggerBeginOverlap);
 
     RoomType = ERoomType::Combat;
@@ -48,11 +49,9 @@ void ACombatRoom::CompleteSelectReward()
 
 void ACombatRoom::OnPrepare(AGunFireGameMode* GFGameMode, AGunFireGameState* GFGameState)
 {
-}
-
-void ACombatRoom::OnStart(AGunFireGameMode* GFGameMode, AGunFireGameState* GFGameState)
-{
     Initialize();
+
+    UE_LOG(LogTemp, Log, TEXT("준비 단계 : 몬스터 스폰 처리"));
 
     SpawnEnemies();
     GFGameState->SetRemainingEnemyCount(RemainingEnemyCount);
@@ -81,6 +80,31 @@ void ACombatRoom::OnEnd(AGunFireGameMode* GFGameMode, AGunFireGameState* GFGameS
     }
     Enemies.Empty();
     GFGameState->SetRemainingEnemyCount(0);
+
+    for (const auto& Door : RestrictDoors)
+    {
+        if (IsValid(Door))
+        {
+            Door->OpenDoor();
+        }
+    }
+}
+
+void ACombatRoom::PrepareRoom(AGunFireGameMode* GFGameMode, AGunFireGameState* GFGameState)
+{
+    if (!GFGameMode || !GFGameState) return;
+    if (!IsWaiting()) return;
+
+    for (const auto& Door : RestrictDoors)
+    {
+        if (IsValid(Door))
+        {
+            Door->CloseDoor();
+        }
+    }
+
+    RoomState = ERoomState::Prepared;
+    OnPrepare(GFGameMode, GFGameState);
 }
 
 // 적 사망 시 호출할 함수
@@ -126,7 +150,13 @@ void ACombatRoom::OnPrepareTriggerBeginOverlap(UPrimitiveComponent* OverlappedCo
     // 플레이어와 충돌했다면
     if (IsValid(OtherActor) && OtherActor->ActorHasTag(TEXT("Player")))
     {
-
+        if (AGunFireGameMode* GFGameMode = GetWorld() ?
+                 GetWorld()->GetAuthGameMode<AGunFireGameMode>() :
+                 nullptr)
+        {
+            // 게임모드에서 현재 방 준비
+            GFGameMode->TryPrepareRoom(this);
+        }
     }
 }
 

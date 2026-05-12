@@ -24,6 +24,7 @@ protected:
     ERandomRoomMode RoomMode;
 
 protected:
+    virtual void OnPrepare(AGunFireGameMode* GFGameMode, AGunFireGameState* GFGameState) override;
     virtual void OnStart(AGunFireGameMode* GFGameMode, AGunFireGameState* GFGameState) override;
     virtual void OnClearedCombat() override;
 
