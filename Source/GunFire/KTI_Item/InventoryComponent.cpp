@@ -4,9 +4,9 @@
 UInventoryComponent::UInventoryComponent()
 {
     PrimaryComponentTick.bCanEverTick = false;
-    UpgradeMaterialCount = 0;
 }
 
+// 패시브 옵션 가져오기
 TArray<FGF_PassiveItemData> UInventoryComponent::GetRandomPassiveOptions(int32 Count)
 {
     TArray<FGF_PassiveItemData> Result;
@@ -48,6 +48,7 @@ TArray<FGF_PassiveItemData> UInventoryComponent::GetRandomPassiveOptions(int32 C
     return Result;
 }
 
+// 액티브 옵션 가져오기
 TArray<FGF_ActiveItemData> UInventoryComponent::GetRandomActiveOptions(int32 Count)
 {
     TArray<FGF_ActiveItemData> Result;
@@ -89,29 +90,65 @@ TArray<FGF_ActiveItemData> UInventoryComponent::GetRandomActiveOptions(int32 Cou
     return Result;
 }
 
-
+// 패시브 추가 
 void UInventoryComponent::AddPassive(FGF_PassiveItemData NewData)
 {
-    /* for (const FGF_PassiveItemData& OwnedItem : OwnedPassives)
+    bool bFound = false;
+
+    for (FGF_PassiveItemData& OwnedItem : OwnedPassives)
     {
-        if (NewData.ItemName.EqualTo(OwnedItem.ItemName)) return;
+        if (NewData.ItemName.EqualTo(OwnedItem.ItemName))
+        {
+            OwnedItem.StackCount += NewData.StackCount;
+            bFound = true;
+            break;
+        }
     }
-    */
-    OwnedPassives.Add(NewData);
+
+    if (!bFound)
+    {
+        OwnedPassives.Add(NewData);
+    }
 }
 
+// 액티브 추가
 void UInventoryComponent::AddActive(FGF_ActiveItemData NewData)
 {
-    /*
-    for (const FGF_ActiveItemData& OwnedItem : OwnedActives)
+    bool bFound = false;
+
+    for (FGF_ActiveItemData& OwnedItem : OwnedActives)
     {
-        if (NewData.ItemName.EqualTo(OwnedItem.ItemName)) return;
+        if (NewData.ItemName.EqualTo(OwnedItem.ItemName))
+        {
+            OwnedItem.StackCount += NewData.StackCount;
+            bFound = true;
+            break;
+        }
     }
-    */
-    OwnedActives.Add(NewData);
+
+    if (!bFound)
+    {
+        OwnedActives.Add(NewData);
+    }
 }
 
-void UInventoryComponent::AddMaterial(int32 Amount)
+// 재료 추가 
+void UInventoryComponent::AddMaterial(FGF_PassiveItemData NewData)
 {
-    UpgradeMaterialCount += Amount;
+    bool bFound = false;
+
+    for (FGF_PassiveItemData& OwnedItem : OwnedMaterials)
+    {
+        if (NewData.ItemName.EqualTo(OwnedItem.ItemName))
+        {
+            OwnedItem.StackCount += NewData.StackCount;
+            bFound = true;
+            break;
+        }
+    }
+
+    if (!bFound)
+    {
+        OwnedMaterials.Add(NewData);
+    }
 }

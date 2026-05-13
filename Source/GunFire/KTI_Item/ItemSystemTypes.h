@@ -39,6 +39,9 @@ struct FGF_ItemBase : public FTableRowBase
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
     int32 CurrentLevel = 0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
+    int32 StackCount = 1; 
 };
 
 // 패시브 아이템 
