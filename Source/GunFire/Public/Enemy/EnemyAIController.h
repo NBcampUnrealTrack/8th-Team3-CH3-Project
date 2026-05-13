@@ -61,6 +61,11 @@ public:
     // 그로기나 사망
     virtual void SetGroggy();
     virtual void SetDead();
+
+    // 피격 알람용
+    virtual void OnHitDamage(APawn* Enemy);
+    virtual void AlertAlly(APawn* Target);
+    virtual void ReceiveAlert(APawn* Target);
 protected:
     // 적 ai빙의시
     virtual void OnPossess(APawn* InPawn) override;
@@ -116,6 +121,9 @@ protected:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Combat")
     float ExitMargin; // 전술 유지 마진
+
+    UPROPERTY(EditAnywhere)
+    TEnumAsByte<ECollisionChannel> TraceChannel;
 
     //UPROPERTY(EditDefaultsOnly, Category = "AI|Combat")
     //float TraceSpeed; // 추적 속도

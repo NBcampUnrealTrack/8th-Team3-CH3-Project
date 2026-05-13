@@ -72,15 +72,19 @@ void AMinionEnemyAIController::UpdateCombatTactics()
     FVector MyLoc = MyPawn->GetActorLocation();
     FVector TargetLoc = EnemyTarget->GetActorLocation();
     float Distance = FVector::Dist(MyLoc, TargetLoc);
-    //float HPPercent;
+    float HPPercent = 1.0f;
+    if (MyPawn->GetMaxHP() > 0.f)
+    {
+        HPPercent = MyPawn->GetHP() / MyPawn->GetMaxHP();
+    }
 
     BBComp->SetValueAsFloat(DistanceKey, Distance);
 
-    GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Cyan, FString::Printf(TEXT("대상과의 거리 : %.1f"), Distance));
+    //GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Cyan, FString::Printf(TEXT("대상과의 거리 : %.1f"), Distance));
 
     // 상태 전환 판단
     // TODO : 상태 컴포넌트 추가시 체력비율 넣기
-    ETacticState DecidedTactic = DetermineNextTactic(CurrentState, Distance, 1);
+    ETacticState DecidedTactic = DetermineNextTactic(CurrentState, Distance, HPPercent);
 
     // 포위상태일 경우 어디로 이동할지 결정
     if (DecidedTactic == ETacticState::Encircle)
@@ -114,7 +118,11 @@ ETacticState AMinionEnemyAIController::DetermineNextTactic(ETacticState CurrentS
         return ETacticState::Flee;
     }
 
-    // 2. 공격 거리 진입
+    // 2. 후퇴중에는 공격진입하지않음
+    if (CurrentState == ETacticState::Flee)
+        return ETacticState::Flee;
+
+    // 3. 공격 거리 진입
     if (Distance <= AttackDistance)
     {
         GetWorld()->GetTimerManager().ClearTimer(RetreatTimerHandle);
@@ -122,13 +130,11 @@ ETacticState AMinionEnemyAIController::DetermineNextTactic(ETacticState CurrentS
         return ETacticState::Attack;
     }
 
-    // 후퇴와 포위중에는 공격외에 다른상태로 변경을 막기
-    if (CurrentState == ETacticState::Flee)
-        return ETacticState::Flee;
+    // 4. 포위중에는 공격외에 다른상태로 변경을 막기
     if (CurrentState == ETacticState::Encircle)
         return ETacticState::Encircle;
 
-    // 3. 전술 구역 진입
+    // 5. 전술 구역 진입
     if (Distance <= confDistance)
     {
         // 기존상태가 추격일 경우 전술판단
@@ -159,13 +165,13 @@ ETacticState AMinionEnemyAIController::DetermineNextTactic(ETacticState CurrentS
         return ETacticState::Chase;
     }
 
-    // 4. 거리가 멀어짐
+    // 6. 대시중일시 상대가 대시거리에잇나확인
     if (CurrentState == ETacticState::Dash && Distance <= (confDistance + ExitMargin))
     {
         // 이미 마진 안이면 Dash 유지
         return ETacticState::Dash;
     }
-    // 기본은 추적, 너무멀면 추적상태
+    // 7. 이도저도 아니면 추적
     return ETacticState::Chase;
 }
 

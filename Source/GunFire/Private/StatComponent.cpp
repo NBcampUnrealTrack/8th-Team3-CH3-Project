@@ -212,6 +212,8 @@ void UStatComponent::TakeDamage(AActor* DamagedActor, float Damage, const UDamag
     OnDamaged.Broadcast(ActualDamage, Instigator);
     OnHealthChanged.Broadcast(CurrentHealth, GetMaxHealth());
 
+    GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("피해 적용 완료! 남은 체력: %.1f"), CurrentHealth));
+
     if (IsDead())
     {
         // 사망 이벤트 발생

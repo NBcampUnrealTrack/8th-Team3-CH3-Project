@@ -8,6 +8,7 @@ void AMinionEnemy::BeginPlay()
 {
     Super::BeginPlay();
 
+    // 공격충돌체 등록
     TArray<UActorComponent*> FoundComps = GetComponentsByTag(UPrimitiveComponent::StaticClass(), FName("DamageBox"));
     for (UActorComponent* Comp : FoundComps)
     {
@@ -52,7 +53,7 @@ void AMinionEnemy::PlayAttack()
     }
 
     // 결정된 섹션 이름으로 몽타주 재생
-    PlayAnimMontage(AttackMontage, 1.0f, SectionName);
+    PlayAnimMontage(AttackMontage, AttackSpeedRate, SectionName);
 }
 
 void AMinionEnemy::OnWeaponOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)

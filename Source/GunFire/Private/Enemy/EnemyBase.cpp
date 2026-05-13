@@ -5,6 +5,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Enemy/EnemyAIController.h"
 #include "Components/CapsuleComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "StatComponent.h"
 
 // Sets default values
@@ -15,6 +16,59 @@ AEnemyBase::AEnemyBase()
 
     StatComponent = CreateDefaultSubobject<UStatComponent>(TEXT("StatComponent"));
     bDead = false;
+    AttackSpeedRate = 1.0f;
+}
+
+void AEnemyBase::BeginPlay()
+{
+    Super::BeginPlay();
+
+    //TArray<UActorComponent*> FoundComps = GetComponentsByTag(UPrimitiveComponent::StaticClass(), FName("DamageBox"));
+    //
+    //for (UActorComponent* Comp : FoundComps)
+    //{
+    //    UPrimitiveComponent* PrimitiveComp = Cast<UPrimitiveComponent>(Comp);
+    //    if (PrimitiveComp)
+    //    {
+    //        // 오버랩 함수 연결
+    //        PrimitiveComp->OnComponentBeginOverlap.AddDynamic(this, &AEnemyBase::OnWeaponOverlap);
+    //
+    //        // 평소엔 꺼두기
+    //        PrimitiveComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    //
+    //        // 관리용 배열에 추가 (나중에 켜고 끌 때 사용)
+    //        WeaponCollisions.Add(PrimitiveComp);
+    //    }
+    //}
+
+    if (StatComponent)
+    {
+        // 죽을 시 OnEnemyDeath 함수 실행
+        StatComponent->OnDead.AddDynamic(this, &AEnemyBase::OnEnemyDeath);
+        // 체력바뀔 시 OnEnemyHealthChanged 함수 실행
+        StatComponent->OnDamaged.AddDynamic(this, &AEnemyBase::OnEnemyHealthChanged);
+    }
+
+    // 사망 애니메이션 호출 테스트 용도
+    // 테스트 끝나면 삭제 필요
+    //FTimerHandle DebugDeathTimer;
+    //GetWorld()->GetTimerManager().SetTimer(DebugDeathTimer, this, &AEnemyBase::Die, 10.0f, false);
+
+    // 테스트용
+    if (bIsDebugTestTarget)
+    {
+        FTimerHandle DebugHitTimer;
+        GetWorld()->GetTimerManager().SetTimer(DebugHitTimer, FTimerDelegate::CreateLambda([this]()
+            {
+                APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
+                AController* PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+
+                if (PlayerPawn && PlayerController && !bDead)
+                {
+                    UGameplayStatics::ApplyDamage(this, 30.0f, PlayerController, PlayerPawn, nullptr);
+                }
+            }), 3.0f, true);
+    }
 }
 
 void AEnemyBase::OnWeaponOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -78,51 +132,27 @@ void AEnemyBase::ExecuteDestroy()
     Destroy();
 }
 
-// Called when the game starts or when spawned
-void AEnemyBase::BeginPlay()
-{
-	Super::BeginPlay();
-
-    //TArray<UActorComponent*> FoundComps = GetComponentsByTag(UPrimitiveComponent::StaticClass(), FName("DamageBox"));
-    //
-    //for (UActorComponent* Comp : FoundComps)
-    //{
-    //    UPrimitiveComponent* PrimitiveComp = Cast<UPrimitiveComponent>(Comp);
-    //    if (PrimitiveComp)
-    //    {
-    //        // 오버랩 함수 연결
-    //        PrimitiveComp->OnComponentBeginOverlap.AddDynamic(this, &AEnemyBase::OnWeaponOverlap);
-    //
-    //        // 평소엔 꺼두기
-    //        PrimitiveComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-    //
-    //        // 관리용 배열에 추가 (나중에 켜고 끌 때 사용)
-    //        WeaponCollisions.Add(PrimitiveComp);
-    //    }
-    //}
-
-    if (StatComponent)
-    {
-        // 죽을 시 OnEnemyDeath 함수 실행
-        StatComponent->OnDead.AddDynamic(this, &AEnemyBase::OnEnemyDeath);
-        // 체력바뀔 시 OnEnemyHealthChanged 함수 실행
-        StatComponent->OnHealthChanged.AddDynamic(this, &AEnemyBase::OnEnemyHealthChanged);
-    }
-
-    // 사망 애니메이션 호출 테스트 용도
-    // 테스트 끝나면 삭제 필요
-    FTimerHandle DebugDeathTimer;
-    GetWorld()->GetTimerManager().SetTimer(DebugDeathTimer, this, &AEnemyBase::Die, 10.0f, false);
-}
-
 void AEnemyBase::OnEnemyDeath(AController* InstigatorController)
 {
     Die();
 }
 
-void AEnemyBase::OnEnemyHealthChanged(float CurrentHealth, float MaxHealth)
+void AEnemyBase::OnEnemyHealthChanged(float ActualDamage, AController* EventInstigator)
 {
-    // 지금 당장은 ㅇ벗음
+    // 공격당햇음을 알림
+    if (EventInstigator)
+    {
+        // 공격자 폰을 가져옴
+        APawn* AttackerPawn = EventInstigator->GetPawn();
+        if (AttackerPawn)
+        {
+            if (AEnemyAIController* AIC = Cast<AEnemyAIController>(GetController()))
+            {
+                // AI 컨트롤러에게 피격당햇음을 알림
+                AIC->OnHitDamage(AttackerPawn);
+            }
+        }
+    }
 }
 
 void AEnemyBase::SetWalkSpeed(float _speed)

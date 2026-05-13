@@ -21,6 +21,7 @@ class GUNFIRE_API AEnemyBase : public ACharacter
 
 public:
 	AEnemyBase();
+    virtual void BeginPlay() override;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     UStatComponent* StatComponent;
@@ -47,33 +48,26 @@ public:
     virtual void OnDeathAnimationFinished();
 
     UFUNCTION()
-    void Die();
+    virtual void Die();
     UFUNCTION()
     void ExecuteDestroy();
 
 protected:
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
+    float AttackSpeedRate;
 
-    //UPROPERTY(EditAnywhere, Category = "Stats")
-    //float HP;
-    //UPROPERTY(EditAnywhere, Category = "Stats")
-    //float MaxHP;
-    //
-    //UPROPERTY(EditAnywhere, Category = "Stats")
-    //float Defance;
-    //
-    //UPROPERTY(EditAnywhere, Category = "Stats")
-    //float AttackDamage;
-    //
     UPROPERTY(VisibleAnywhere, Category = "Stats")
     bool bDead;
 
-	virtual void BeginPlay() override;
+    // 디버그 테스트용 스위치
+    UPROPERTY(EditAnywhere, Category = "Debug")
+    bool bIsDebugTestTarget = false;
 
     UFUNCTION()
-    void OnEnemyDeath(AController* InstigatorController);
+    virtual void OnEnemyDeath(AController* InstigatorController);
 
     UFUNCTION()
-    void OnEnemyHealthChanged(float CurrentHealth, float MaxHealth);
+    virtual void OnEnemyHealthChanged(float ActualDamage, AController* EventInstigator);
 
 public:
     // 이동속도 변경
