@@ -2,6 +2,7 @@
 
 UCombatComponent::UCombatComponent()
 {
+    PrimaryComponentTick.bCanEverTick = false;
 }
 
 void UCombatComponent::BeginPlay()

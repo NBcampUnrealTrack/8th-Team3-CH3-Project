@@ -6,7 +6,6 @@
 
 AGunBase::AGunBase()
 {
-    AttachSocketName = TEXT("LeftGrip");
     DamageRate = 0.3f;
 
     ReloadSound = nullptr;

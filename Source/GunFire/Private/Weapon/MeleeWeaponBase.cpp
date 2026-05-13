@@ -2,7 +2,6 @@
 
 AMeleeWeaponBase::AMeleeWeaponBase()
 {
-    AttachSocketName = TEXT("RightGrip");
     DamageRate = 1.f;
     TraceStartSocketName = TEXT("TraceStart");
     TraceEndSocketName = TEXT("TraceEnd");

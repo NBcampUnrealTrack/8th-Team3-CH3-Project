@@ -1,7 +1,6 @@
 #include "Weapon/WeaponBase.h"
 
 #include "GameFramework/Character.h"
-#include "Kismet/GameplayStatics.h"
 
 
 AWeaponBase::AWeaponBase()
@@ -17,7 +16,6 @@ AWeaponBase::AWeaponBase()
 
     AttackSound = nullptr;
     AttackAnimation = nullptr;
-    AttachSocketName = NAME_None;
     bEquipped = false;
     DamageRate = 1.f;
 
@@ -29,7 +27,7 @@ void AWeaponBase::Attack()
 {
 }
 
-void AWeaponBase::Equip(ACharacter* Character, USceneComponent* AttachComponent)
+void AWeaponBase::Equip(ACharacter* Character, USceneComponent* AttachComponent, FName SocketName)
 {
     if (!IsValid(Character) || !IsValid(AttachComponent) || IsEquipped()) return;
 
@@ -45,7 +43,7 @@ void AWeaponBase::Equip(ACharacter* Character, USceneComponent* AttachComponent)
     AttachToComponent(
         AttachComponent,
         FAttachmentTransformRules::SnapToTargetNotIncludingScale,
-        AttachSocketName);
+        SocketName);
 }
 
 void AWeaponBase::UnEquip()

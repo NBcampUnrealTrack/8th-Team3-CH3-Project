@@ -4,8 +4,23 @@
 #include "Components/ActorComponent.h"
 #include "WeaponComponent.generated.h"
 
+class AGunBase;
+class AMeleeWeaponBase;
+class AWeaponBase;
+class ACharacter;
+class UInputMappingContext;
 
-// 무기 장착, 획득 담당
+
+UENUM(BlueprintType)
+enum class EWeaponSlot : uint8
+{
+    LeftHand    UMETA(DisplayName = "왼손"),
+    RightHand   UMETA(DisplayName = "오른손"),
+    Count       UMETA(Hidden)
+};
+
+
+// 무기 관리 클래스
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class GUNFIRE_API UWeaponComponent : public UActorComponent
@@ -15,13 +30,56 @@ class GUNFIRE_API UWeaponComponent : public UActorComponent
 public:
 	UWeaponComponent();
 
-    void EquipWeapon();
+    UFUNCTION(BlueprintCallable, Category = "Weapon")
+    AWeaponBase* EquipWeapon(TSubclassOf<AWeaponBase> WeaponClass, EWeaponSlot Slot);
+
+    UFUNCTION(BlueprintCallable, Category = "Weapon")
+    void UnEquipWeapon(EWeaponSlot Slot);
+
+    UFUNCTION(BlueprintPure, Category = "Weapon")
+    AWeaponBase* GetWeapon(EWeaponSlot Slot) const;
+
+    UFUNCTION(BlueprintPure, Category = "Weapon")
+    AGunBase* GetCurrentGun() const;
+
+    UFUNCTION(BlueprintPure, Category = "Weapon")
+    AMeleeWeaponBase* GetCurrentMeleeWeapon() const;
+
+    UFUNCTION(BlueprintPure, Category = "Weapon")
+    bool HasGun() const;
+
+    UFUNCTION(BlueprintPure, Category = "Weapon")
+    bool HasMeleeWeapon() const;
+
+    UFUNCTION(BlueprintPure, Category = "Weapon")
+    bool HasWeapon(EWeaponSlot Slot) const;
 
 protected:
 	virtual void BeginPlay() override;
 
 protected:
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
+    TArray<TObjectPtr<AWeaponBase>> Weapons;
 
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Input")
+    TObjectPtr<UInputMappingContext> WeaponMappingContext;
 
+    // IMC 매핑 우선순위
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Input")
+    int32 MappingPriority;
 
+    // IMC가 추가되었는지 확인하는 변수
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon|Input")
+    bool bIsAddedMappingContext;
+
+private:
+    ACharacter* GetOwnerCharacter() const;
+    USceneComponent* GetAttachComponent() const;
+    AWeaponBase* SpawnWeapon(TSubclassOf<AWeaponBase> WeaponClass);
+
+    FName GetAttachSocketName(EWeaponSlot Slot) const;
+    void SetWeapon(EWeaponSlot Slot, AWeaponBase* NewWeapon);
+
+    void AddWeaponMappingContext();
+    void RemoveWeaponMappingContext();
 };

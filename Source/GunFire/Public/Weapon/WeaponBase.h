@@ -19,13 +19,12 @@ public:
 
     // 캐릭터와 붙일 부위를 받아서 무기를 장착하는 함수
     UFUNCTION(BlueprintCallable)
-    void Equip(ACharacter* Character, USceneComponent* AttachComponent);
+    void Equip(ACharacter* Character, USceneComponent* AttachComponent, FName SocketName);
 
     // 장착 해제
     UFUNCTION(BlueprintCallable)
     void UnEquip();
 
-    // 장착중인지
     UFUNCTION(BlueprintPure)
     UStaticMeshComponent* GetMesh() const;
 
@@ -65,10 +64,6 @@ protected:
     // 공격 애니메이션
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
     TObjectPtr<UAnimMontage> AttackAnimation;
-
-    // 부착할 소켓 이름
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
-    FName AttachSocketName;
 
     // 장착 상태인지
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
