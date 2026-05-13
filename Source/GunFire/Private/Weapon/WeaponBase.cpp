@@ -1,0 +1,107 @@
+#include "Weapon/WeaponBase.h"
+
+#include "GameFramework/Character.h"
+#include "Kismet/GameplayStatics.h"
+
+
+AWeaponBase::AWeaponBase()
+{
+	PrimaryActorTick.bCanEverTick = false;
+
+    Scene = CreateDefaultSubobject<USceneComponent>("Scene");
+    SetRootComponent(Scene);
+
+    StaticMesh = CreateDefaultSubobject<UStaticMeshComponent>("StaticMesh");
+    StaticMesh->SetCollisionProfileName(TEXT("NoCollision"));
+    StaticMesh->SetupAttachment(Scene);
+
+    AttackSound = nullptr;
+    AttackAnimation = nullptr;
+    AttachSocketName = NAME_None;
+    bEquipped = false;
+    DamageRate = 1.f;
+
+    CurrentUpgradeLevel = 0;
+    MaxUpgradeLevel = 5;
+}
+
+void AWeaponBase::Attack()
+{
+}
+
+void AWeaponBase::Equip(ACharacter* Character, USceneComponent* AttachComponent)
+{
+    if (!IsValid(Character) || !IsValid(AttachComponent) || IsEquipped()) return;
+
+    SetOwner(Character);
+    SetInstigator(Cast<APawn>(Character));
+    bEquipped = true;
+
+    if (IsValid(StaticMesh))
+    {
+        StaticMesh->SetVisibility(true);
+    }
+
+    AttachToComponent(
+        AttachComponent,
+        FAttachmentTransformRules::SnapToTargetNotIncludingScale,
+        AttachSocketName);
+}
+
+void AWeaponBase::UnEquip()
+{
+    DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+    SetOwner(nullptr);
+    SetInstigator(nullptr);
+    bEquipped = false;
+
+    if (IsValid(StaticMesh))
+    {
+        StaticMesh->SetVisibility(false);
+    }
+}
+
+UStaticMeshComponent* AWeaponBase::GetMesh() const
+{
+    return StaticMesh.Get();
+}
+
+USoundBase* AWeaponBase::GetAttackSound() const
+{
+    return AttackSound.Get();
+}
+
+UAnimMontage* AWeaponBase::GetAttackAnimation() const
+{
+    return AttackAnimation.Get();
+}
+
+bool AWeaponBase::IsEquipped() const
+{
+    return bEquipped;
+}
+
+ACharacter* AWeaponBase::GetOwnerCharacter() const
+{
+    return Cast<ACharacter>(GetOwner());
+}
+
+float AWeaponBase::GetDamageRate() const
+{
+    return DamageRate;
+}
+
+int32 AWeaponBase::GetCurrentUpgradeLevel() const
+{
+    return CurrentUpgradeLevel;
+}
+
+void AWeaponBase::UpgradeWeapon()
+{
+    if (CurrentUpgradeLevel >= MaxUpgradeLevel)
+    {
+        return;
+    }
+    ++CurrentUpgradeLevel;
+}
+
