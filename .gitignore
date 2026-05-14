@@ -6,6 +6,7 @@ Build/
 Content/Resources/
 Content/ParagonMinions/
 *.uproject.local
+Content/ParagonRevenant/
 
 
 # 비주얼 스튜디오 (Visual Studio)

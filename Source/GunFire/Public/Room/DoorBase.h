@@ -14,20 +14,13 @@ public:
 
     virtual void BeginPlay() override;
 
-    // cpp, 블루프린트에서 호출하는 함수
-    UFUNCTION(BlueprintCallable)
+    // cpp, 블루프린트에서 호출하는 이벤트, 문 열림
+    UFUNCTION(BlueprintNativeEvent)
     void OpenDoor();
 
-    UFUNCTION(BlueprintCallable)
+    // cpp, 블루프린트에서 호출하는 이벤트, 문 닫힘
+    UFUNCTION(BlueprintNativeEvent)
     void CloseDoor();
-
-    // 실제 문의 열림을 처리할 함수
-    UFUNCTION(BlueprintNativeEvent)
-    void OnOpenDoor();
-
-    // 실제 문의 닫힘을 처리할 함수
-    UFUNCTION(BlueprintNativeEvent)
-    void OnCloseDoor();
 
 protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Door|Component")

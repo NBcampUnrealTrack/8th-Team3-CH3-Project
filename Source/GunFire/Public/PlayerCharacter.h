@@ -4,6 +4,7 @@
 #include "GameFramework/Character.h"
 #include "PlayerCharacter.generated.h"
 
+class UCombatComponent;
 class USkeletalMeshComponent;
 class USpringArmComponent;
 class UCameraComponent;
@@ -71,11 +72,25 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Aiming", meta = (AllowPrivateAccess = "true"))
     FVector AimSocketOffset;
 
+    // 근접 공격
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attack")
+    float HeavyAttackHoldTime;
+
+    bool bHeavyAttackTriggered;
+
+    FTimerHandle HeavyAttackTimerHandle;
+
+
+    // 컴포넌트
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Component")
+    TObjectPtr<UCombatComponent> CombatComponent;
+
 protected:
     // 이동
     void Move(const FInputActionValue& Value);
     // 시점
     void Look(const FInputActionValue& Value);
+    virtual void Jump() override;
     // 대쉬(회피)
     void Dash(const FInputActionValue& Value);
     void StopDash();
@@ -99,4 +114,8 @@ protected:
 
     // 디버그용 몬스터 처치 함수
     void KillEnemyForDebug();
+
+    void MeleeAttackStarted();
+    void MeleeAttackReleased();
+    void OnHeavyAttack();
 };

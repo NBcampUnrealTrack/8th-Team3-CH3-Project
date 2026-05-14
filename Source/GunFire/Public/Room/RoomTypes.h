@@ -4,8 +4,7 @@
 #include "RoomTypes.generated.h"
 
 
-// 방의 타입 : 정비, 전투, 보스
-// 이후에 선택 추가 : 함정, 보물방
+// 방의 타입 : 시작, 전투, 랜덤, 보스
 UENUM(BlueprintType)
 enum class ERoomType : uint8
 {
@@ -17,7 +16,7 @@ enum class ERoomType : uint8
     Safe        UMETA(DisplayName = "휴식방")
 };
 
-// 방의 상태 : 시작 전 대기, 진행 중, 클리어
+// 방의 상태 : 시작 전 대기, 준비됨, 진행 중, 클리어
 UENUM(BlueprintType)
 enum class ERoomState : uint8
 {

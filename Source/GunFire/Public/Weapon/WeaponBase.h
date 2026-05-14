@@ -45,6 +45,9 @@ public:
     float GetDamageRate() const;
 
     UFUNCTION(BlueprintPure)
+    float GetStaminaCost() const;
+
+    UFUNCTION(BlueprintPure)
     int32 GetCurrentUpgradeLevel() const;
 
     UFUNCTION(BlueprintCallable)
@@ -72,6 +75,9 @@ protected:
     // 캐릭터 최종 공격력에 곱할 무기 데미지 배율
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
     float DamageRate;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Stamina")
+    float StaminaCost;
 
     // 현재 강화 레벨
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")

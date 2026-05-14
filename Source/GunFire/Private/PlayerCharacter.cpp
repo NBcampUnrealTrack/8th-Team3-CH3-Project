@@ -3,6 +3,7 @@
 #include "Camera/CameraComponent.h"
 #include "GunFirePlayerController.h"
 #include "EnhancedInputComponent.h"
+#include "Combat/CombatComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GunFire/GunFireGameMode.h"
 
@@ -38,6 +39,9 @@ APlayerCharacter::APlayerCharacter()
     AimFOV = 70.0f;
     DefaultSocketOffset = ThirdPersonCameraComponent->GetComponentLocation();
 
+    // 공격
+    HeavyAttackHoldTime = 0.5f;
+    bHeavyAttackTriggered = false;
 }
 
 void APlayerCharacter::BeginPlay()
@@ -47,6 +51,8 @@ void APlayerCharacter::BeginPlay()
     //DefaultSocketOffset = ThirdPersonCameraComponent->GetComponentLocation();
     DefaultSocketOffset = FVector(0.f, 0.f, 60.f);
     AimSocketOffset = FVector(0.f, 50.f, 60.f);
+
+    CombatComponent = FindComponentByClass<UCombatComponent>();
 }
 
 void APlayerCharacter::Tick(float DeltaTime)
@@ -129,7 +135,14 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
             // 근접 공격
             if (PlayerController->MeleeAttackAction)
             {
-                EnhancedInputComponent->BindAction(PlayerController->MeleeAttackAction, ETriggerEvent::Triggered, this, &APlayerCharacter::MeleeAttack);
+                EnhancedInputComponent->BindAction(PlayerController->MeleeAttackAction,
+                    ETriggerEvent::Started, this, &APlayerCharacter::MeleeAttackStarted);
+
+                EnhancedInputComponent->BindAction(PlayerController->MeleeAttackAction,
+                    ETriggerEvent::Completed, this, &APlayerCharacter::MeleeAttackReleased);
+
+                EnhancedInputComponent->BindAction(PlayerController->MeleeAttackAction,
+                    ETriggerEvent::Canceled, this, &APlayerCharacter::MeleeAttackReleased);
             }
 
             // 스킬
@@ -162,6 +175,8 @@ void APlayerCharacter::Move(const FInputActionValue& Value)
 {
     if (!Controller) return;
 
+    if (CombatComponent && !CombatComponent->CanMove()) return;
+
     FVector2D MovementVector = Value.Get<FVector2D>();
 
     if (MovementVector.IsNearlyZero())   return;
@@ -187,6 +202,13 @@ void APlayerCharacter::Look(const FInputActionValue& Value)
         AddControllerYawInput(LookAxisVector.X);
         AddControllerPitchInput(LookAxisVector.Y);
     }
+}
+
+void APlayerCharacter::Jump()
+{
+    if (CombatComponent && !CombatComponent->CanMove()) return;
+
+    Super::Jump();
 }
 
 void APlayerCharacter::Dash(const FInputActionValue& Value)
@@ -278,6 +300,8 @@ void APlayerCharacter::Aiming(const FInputActionValue& Value)
 {
     if (!Controller) return;
 
+    if (CombatComponent && !CombatComponent->CanMove()) return;
+
     if (!bIsAiming)
     {
         bIsAiming = true;
@@ -326,5 +350,51 @@ void APlayerCharacter::KillEnemyForDebug()
     {
         UE_LOG(LogTemp, Warning, TEXT("Kill 1 Enemy for Test"));
         GFGameMode->KillEnemyForTest();
+    }
+}
+
+void APlayerCharacter::MeleeAttackStarted()
+{
+    bHeavyAttackTriggered = false;
+
+    UE_LOG(LogTemp, Warning, TEXT("키 입력"));
+
+    // 기존에 타이머 남아있다면 제거
+    GetWorldTimerManager().ClearTimer(HeavyAttackTimerHandle);
+
+    // 시간이 지나면 자동으로 강공격 발동하게
+    GetWorldTimerManager().SetTimer(
+        HeavyAttackTimerHandle,
+        this,
+        &APlayerCharacter::OnHeavyAttack,
+        HeavyAttackHoldTime,
+        false
+        );
+}
+
+void APlayerCharacter::MeleeAttackReleased()
+{
+    bool bWatingHeavyAttack =
+        GetWorldTimerManager().IsTimerActive(HeavyAttackTimerHandle);
+
+    GetWorldTimerManager().ClearTimer(HeavyAttackTimerHandle);
+
+    // 강공격이 이미 발동한 상태에서 키를 떼면 동작 X
+    if (bHeavyAttackTriggered) return;
+
+    if (bWatingHeavyAttack && IsValid(CombatComponent))
+    {
+        CombatComponent->TryLightAttack();
+    }
+}
+
+
+void APlayerCharacter::OnHeavyAttack()
+{
+    bHeavyAttackTriggered = true;
+
+    if (IsValid(CombatComponent))
+    {
+        CombatComponent->TryHeavyAttack();
     }
 }

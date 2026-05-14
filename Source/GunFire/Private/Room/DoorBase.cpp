@@ -17,22 +17,12 @@ void ADoorBase::BeginPlay()
     OpenDoor();
 }
 
-void ADoorBase::OpenDoor()
-{
-    OnOpenDoor();
-}
-
-void ADoorBase::CloseDoor()
-{
-    OnCloseDoor();
-}
-
-void ADoorBase::OnCloseDoor_Implementation()
+void ADoorBase::OpenDoor_Implementation()
 {
     // C++ 동작이 필요하면 작성
 }
 
-void ADoorBase::OnOpenDoor_Implementation()
+void ADoorBase::CloseDoor_Implementation()
 {
     // C++ 동작이 필요하면 작성
 }

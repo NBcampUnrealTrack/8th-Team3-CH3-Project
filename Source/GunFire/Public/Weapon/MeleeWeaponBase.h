@@ -20,10 +20,16 @@ public:
     UAnimMontage* GetLightComboAnimation(int32 ComboIndex) const;
 
     UFUNCTION(BlueprintPure)
+    float GetHeavyAttackStaminaCost() const;
+
+    UFUNCTION(BlueprintPure)
     FName GetTraceStartSocketName() const;
 
     UFUNCTION(BlueprintPure)
     FName GetTraceEndSocketName() const;
+
+    UFUNCTION(BlueprintPure)
+    float GetTraceRadius() const;
 
 protected:
     // 강공격 콤보 애니메이션
@@ -34,6 +40,9 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Melee")
     TArray<TObjectPtr<UAnimMontage>> LightComboAnimations;
 
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Stamina")
+    float HeavyAttackStaminaCost;
+
     // 무기 손잡이
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Melee")
     FName TraceStartSocketName;
@@ -41,4 +50,8 @@ protected:
     // 무기 끝
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Melee")
     FName TraceEndSocketName;
+
+    // 무기 두께
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Melee")
+    float TraceRadius;
 };

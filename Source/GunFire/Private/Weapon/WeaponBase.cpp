@@ -18,6 +18,7 @@ AWeaponBase::AWeaponBase()
     AttackAnimation = nullptr;
     bEquipped = false;
     DamageRate = 1.f;
+    StaminaCost = 0.f;
 
     CurrentUpgradeLevel = 0;
     MaxUpgradeLevel = 5;
@@ -87,6 +88,11 @@ ACharacter* AWeaponBase::GetOwnerCharacter() const
 float AWeaponBase::GetDamageRate() const
 {
     return DamageRate;
+}
+
+float AWeaponBase::GetStaminaCost() const
+{
+    return StaminaCost;
 }
 
 int32 AWeaponBase::GetCurrentUpgradeLevel() const

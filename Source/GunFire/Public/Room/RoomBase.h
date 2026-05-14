@@ -47,7 +47,7 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Room")
     ERoomType RoomType;
 
-    // 방 상태 (Waiting, InProgress, Cleared)
+    // 방 상태 (Waiting, Prepare, InProgress, Cleared)
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Room")
     ERoomState RoomState;
 

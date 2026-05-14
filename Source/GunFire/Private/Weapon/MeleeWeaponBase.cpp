@@ -3,6 +3,10 @@
 AMeleeWeaponBase::AMeleeWeaponBase()
 {
     DamageRate = 1.f;
+    StaminaCost = 10.f;
+    HeavyAttackStaminaCost = 20.f;
+    TraceRadius = 20.f;
+
     TraceStartSocketName = TEXT("TraceStart");
     TraceEndSocketName = TEXT("TraceEnd");
 }
@@ -14,7 +18,7 @@ UAnimMontage* AMeleeWeaponBase::GetHeavyComboAnimation(int32 ComboIndex) const
         return HeavyComboAnimations[ComboIndex].Get();
     }
 
-    return AttackAnimation.Get();
+    return nullptr;
 }
 
 UAnimMontage* AMeleeWeaponBase::GetLightComboAnimation(int32 ComboIndex) const
@@ -24,7 +28,12 @@ UAnimMontage* AMeleeWeaponBase::GetLightComboAnimation(int32 ComboIndex) const
         return LightComboAnimations[ComboIndex].Get();
     }
 
-    return AttackAnimation.Get();
+    return nullptr;
+}
+
+float AMeleeWeaponBase::GetHeavyAttackStaminaCost() const
+{
+    return HeavyAttackStaminaCost;
 }
 
 FName AMeleeWeaponBase::GetTraceStartSocketName() const
@@ -35,4 +44,9 @@ FName AMeleeWeaponBase::GetTraceStartSocketName() const
 FName AMeleeWeaponBase::GetTraceEndSocketName() const
 {
     return TraceEndSocketName;
+}
+
+float AMeleeWeaponBase::GetTraceRadius() const
+{
+    return TraceRadius;
 }

@@ -52,34 +52,34 @@ public:
 
 protected:
     // 현재 방의 타입
-    UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
+    UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly)
     ERoomType CurrentRoomType;
 
     // 현재 방의 상태
-    UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
+    UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly)
     ERoomState CurrentRoomState;
 
     // 현재 방 ID
-    UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
+    UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly)
     FName CurrentRoomID;
 
     // 남은 적의 수
-    UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
+    UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly)
     int32 RemainingEnemyCount;
 
     // 현재 층
-    UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
+    UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly)
     int32 CurrentFloor;
 
     // 포탈 활성화 상태
-    UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
+    UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly)
     bool bPortalActivated;
 
     // 다음 층으로 이동하는데 필요한 전투방 클리어 횟수
-    UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
+    UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly)
     int32 RequiredCombatRoomCount;
 
     // 현재 클리어한 전투방 횟수
-    UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
+    UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly)
     int32 ClearedCombatRoomCount;
 };
