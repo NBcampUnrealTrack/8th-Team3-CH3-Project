@@ -5,6 +5,12 @@
 #include "EnhancedInputComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GunFire/GunFireGameMode.h"
+#include "Interactables/InteractableInterface.h"
+#include "Engine/World.h"
+#include "Engine/OverlapResult.h"
+#include "CollisionQueryParams.h"
+#include "WorldCollision.h"
+#include "GameFramework/Actor.h"
 
 APlayerCharacter::APlayerCharacter()
 {
@@ -13,7 +19,7 @@ APlayerCharacter::APlayerCharacter()
     // 스프링암 생성
     SpringArmComponent = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
     SpringArmComponent->SetupAttachment(RootComponent);
-    SpringArmComponent->TargetArmLength = 300.0f;
+    SpringArmComponent->TargetArmLength = 500.0f;
     SpringArmComponent->bUsePawnControlRotation = true;
 
     // 카메라
@@ -49,6 +55,14 @@ APlayerCharacter::APlayerCharacter()
     // 재장전
     IsReloading = false;
     ReloadTime = 2.0f;
+
+    // 체력
+    MaxHealth = 100;
+    CurrentHealth = MaxHealth;
+
+    // 스태미나
+    MaxStamina = 100;
+    CurrentStamina = MaxStamina;
 }
 
 void APlayerCharacter::BeginPlay()
@@ -58,18 +72,23 @@ void APlayerCharacter::BeginPlay()
     //DefaultSocketOffset = ThirdPersonCameraComponent->GetComponentLocation();
     DefaultSocketOffset = FVector(0.f, 0.f, 60.f);
     AimSocketOffset = FVector(0.f, 50.f, 60.f);
+
+    GetWorldTimerManager().SetTimer(InteractionCheckTimerHandle, this, &APlayerCharacter::CheckInteractablesRamge, 0.2f, true);
+    GetWorldTimerManager().SetTimer(NaturalHealingStaminaTimerHandle, this, &APlayerCharacter::NaturalHealingStamina, 0.2f, true);
 }
 
 void APlayerCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+    //CheckForInteractables();
+
     // 시야각
     float TargetFOV = IsAiming ? AimFOV : DefaultFOV;
     // 카메라 위치
     FVector TargetOffset = IsAiming ? AimSocketOffset : DefaultSocketOffset;
     // 스프링암 길이
-    float TargetArmLength = IsAiming ? 150.f : 300.f;
+    float TargetArmLength = IsAiming ? 400.f : 500.f;
 
     // 부드럽게 보간 (FInterpTo 사용)
     ThirdPersonCameraComponent->FieldOfView = FMath::FInterpTo(ThirdPersonCameraComponent->FieldOfView, TargetFOV, DeltaTime, 10.f);
@@ -191,13 +210,12 @@ void APlayerCharacter::Move(const FInputActionValue& Value)
 
 void APlayerCharacter::Look(const FInputActionValue& Value)
 {
+    if (!Controller) return;
+
     FVector2D LookAxisVector = Value.Get<FVector2D>();
 
-    if (Controller != nullptr)
-    {
-        AddControllerYawInput(LookAxisVector.X);
-        AddControllerPitchInput(LookAxisVector.Y);
-    }
+    AddControllerYawInput(LookAxisVector.X);
+    AddControllerPitchInput(LookAxisVector.Y);
 }
 
 void APlayerCharacter::Dash(const FInputActionValue& Value)
@@ -219,6 +237,9 @@ void APlayerCharacter::Dash(const FInputActionValue& Value)
         return;
     }
 
+    if (CurrentStamina < 20) return;
+
+    CurrentStamina = FMath::Clamp(CurrentStamina - 20, 0, MaxStamina);
     // 대쉬 방향 결정 (입력 방향 위주)
     FVector DashDirection = MoveComp->GetLastInputVector();
 
@@ -274,7 +295,9 @@ void APlayerCharacter::Run(const FInputActionValue& Value)
     {
         if (Value.Get<bool>())
         {
+            if (CurrentStamina <= 0) return;
             GetCharacterMovement()->MaxWalkSpeed = RunSpeed;
+            CurrentStamina = FMath::Clamp(CurrentStamina - 1, 0, MaxStamina);
         }
         else
         {
@@ -403,7 +426,114 @@ void APlayerCharacter::Skill(const FInputActionValue& Value)
 
 void APlayerCharacter::Interaction(const FInputActionValue& Value)
 {
+    if (TargetedActor)
+    {
+        IInteractableInterface::Execute_Interact(TargetedActor, this);
 
+        TargetedActor = nullptr;
+    }
+}
+
+void APlayerCharacter::CheckForInteractables()
+{
+    // 캐릭터의 눈 위치 또는 카메라 위치 반환
+    FVector Start = GetPawnViewLocation();
+    FVector End = Start + (GetViewRotation().Vector() * 300.0f);
+
+    FHitResult HitResult;
+    FCollisionQueryParams Params;
+    Params.AddIgnoredActor(this);
+
+    // 트레이스 확인
+    if (GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Visibility, Params))
+    {
+        AActor* HitActor = HitResult.GetActor();
+
+        // 트레이스에 맞은 액터가 UInteractableInterface를 가지고 있는지 확인
+        if (HitActor && HitActor->GetClass()->ImplementsInterface(UInteractableInterface::StaticClass()))
+        {
+            if (TargetedActor != HitActor)
+            {
+                if (TargetedActor)
+                {
+                    // 해당 액터를 보고있지 않으면 UI비활성화
+                    IInteractableInterface::Execute_LookAway(TargetedActor);
+                }
+
+                TargetedActor = HitActor;
+                // 해당 액터를 보고있으면 UI 활성화
+                IInteractableInterface::Execute_LookAt(TargetedActor);
+                GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Green, TEXT("InteractActor"));
+            }
+            return;
+        }
+    }
+
+    if (TargetedActor != nullptr)
+    {
+        IInteractableInterface::Execute_LookAway(TargetedActor);
+        TargetedActor = nullptr;
+    }
+}
+
+void APlayerCharacter::CheckInteractablesRamge()
+{
+    FVector Center = GetActorLocation();
+    float Radius = 200.0f;
+
+    // 범위 안에 오버랩된 액터 저장
+    TArray<FOverlapResult> OverlapResults;
+    FCollisionShape Sphere = FCollisionShape::MakeSphere(Radius);
+    FCollisionQueryParams Params;
+    Params.AddIgnoredActor(this);
+
+    // 범위 확인용 나중에 삭제
+    DrawDebugSphere(
+        GetWorld(),
+        Center,          // 구체 중심
+        Radius,          // 반경
+        12,              // 세그먼트 (숫자가 높을수록 부드러운 구체가 됨)
+        FColor::Green,   // 선 색상
+        false,           // 매 프레임 새로 그릴 것이므로 false (Persistent)
+        -1.f,            // 지속 시간 (-1은 이번 프레임만)
+        0,               // Depth Priority
+        1.f              // 선 두께
+    );
+
+    bool bHit = GetWorld()->OverlapMultiByChannel(
+        OverlapResults,
+        Center,
+        FQuat::Identity,
+        ECC_Visibility,
+        Sphere,
+        Params
+    );
+
+    AActor* ClosestActor = nullptr;
+    float MinDistance = Radius;
+
+    if (bHit)
+    {
+        for (auto& Result : OverlapResults)
+        {
+            // 상호작용 가능한 액터인지 확인
+            AActor* PotentialTarget = Result.GetActor();
+            if (PotentialTarget && PotentialTarget->GetClass()->ImplementsInterface(UInteractableInterface::StaticClass()))
+            {
+                // 시선과 상관없이 '거리'만으로 판단
+                ClosestActor = PotentialTarget;
+                break; // 가장 먼저 찾아진 것 
+            }
+        }
+    }
+
+    // UI 온/오프
+    if (ClosestActor != TargetedActor)
+    {
+        if (TargetedActor) IInteractableInterface::Execute_LookAway(TargetedActor);
+        TargetedActor = ClosestActor;
+        if (TargetedActor) IInteractableInterface::Execute_LookAt(TargetedActor);
+    }
 }
 
 void APlayerCharacter::KillEnemyForDebug()
@@ -414,4 +544,59 @@ void APlayerCharacter::KillEnemyForDebug()
         UE_LOG(LogTemp, Warning, TEXT("Kill 1 Enemy for Test"));
         GFGameMode->KillEnemyForTest();
     }
+}
+
+void APlayerCharacter::DamageForDebug()
+{
+    CurrentHealth = FMath::Clamp(CurrentHealth - 10, 0, MaxHealth);
+}
+
+void APlayerCharacter::AddHealthForDebug()
+{
+    CurrentHealth = FMath::Clamp(CurrentHealth + 30, 0, MaxHealth);
+}
+
+void APlayerCharacter::NaturalHealingStamina()
+{
+    CurrentStamina = FMath::Clamp(CurrentStamina + 1, 0, MaxStamina);
+}
+
+int32 APlayerCharacter::GetCurrentHealth() const
+{
+    return CurrentHealth;
+}
+
+int32 APlayerCharacter::GetCurrentStamina() const
+{
+    return CurrentStamina;
+}
+
+void APlayerCharacter::SetCurrentHealth(int32 Amount)
+{
+    CurrentHealth += Amount;
+}
+
+void APlayerCharacter::SetCurrentStamina(int32 Amount)
+{
+    CurrentStamina += Amount;
+}
+
+int32 APlayerCharacter::GetMaxHealth() const
+{
+    return MaxHealth;
+}
+
+int32 APlayerCharacter::GetMaxStamina() const
+{
+    return MaxStamina;
+}
+
+void APlayerCharacter::SetMaxHealth(int32 Amount)
+{
+    MaxHealth += Amount;
+}
+
+void APlayerCharacter::SetMaxStamina(int32 Amount)
+{
+    MaxStamina += Amount;
 }
