@@ -10,10 +10,10 @@ AGunFirePlayerController::AGunFirePlayerController()
         RunAction(nullptr),
         ShotAction(nullptr),
         MeleeAttackAction(nullptr),
-        ReloadAction(nullptr),
-        AimingAction(nullptr),
         InteractionAction(nullptr),
+        ReloadAction(nullptr),
         SkillAction(nullptr),
+        AimingAction(nullptr),
         KillTestAction(nullptr)
 {
 }

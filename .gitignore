@@ -5,8 +5,9 @@ DerivedDataCache/
 Build/
 Content/Resources/
 Content/ParagonMinions/
-*.uproject.local
 Content/ParagonRevenant/
+*.uproject.local
+
 
 
 # 비주얼 스튜디오 (Visual Studio)
