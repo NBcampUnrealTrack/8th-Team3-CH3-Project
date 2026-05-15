@@ -25,11 +25,18 @@ public:
     virtual void ActivateAttackCollision(FName WeaponTag) override;
     virtual void DeactivateAttackCollision() override;
 
+    // 애니메이션 재생함수들
+    virtual void PlayRoarAnimation();
+
 protected:
 
     // [상태 변화] 
     // 체력 변화
     virtual void OnEnemyHealthChanged(float ActualDamage, AController* EventInstigator) override;
+
+    // 포효
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss | Action")
+    UAnimMontage* RoarMontage;
 
     // 사망
     virtual void Die() override;

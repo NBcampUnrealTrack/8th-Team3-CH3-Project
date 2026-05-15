@@ -13,6 +13,7 @@
 
 void ABossEnemy::BeginPlay()
 {
+    Super::BeginPlay();
 }
 
 void ABossEnemy::PlayAttack()
@@ -31,10 +32,20 @@ void ABossEnemy::OnEnemyHealthChanged(float ActualDamage, AController* EventInst
 {
 }
 
+void ABossEnemy::PlayRoarAnimation()
+{
+    if (RoarMontage)
+    {
+        PlayAnimMontage(RoarMontage);
+    }
+}
+
 void ABossEnemy::Die()
 {
+    Super::Die();
 }
 
 void ABossEnemy::IMDead()
 {
+    Super::IMDead();
 }

@@ -162,7 +162,7 @@ void AEnemyAIController::OnHitDamage(APawn* Enemy)
     FRotator NewRotation = FRotator(0.f, TargetRot.Yaw, 0.f);
     MyPawn->SetActorRotation(NewRotation);
 
-    GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("테스트 타겟 피격! 동료들을 부릅니다!"));
+    //GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("테스트 타겟 피격! 동료들을 부릅니다!"));
     // 반경 내 동료에게 알람
     AlertAlly(Enemy);
 }

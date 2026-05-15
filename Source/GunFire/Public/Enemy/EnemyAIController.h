@@ -51,6 +51,10 @@ public:
     UPROPERTY(BlueprintAssignable, Category = "AI|Combat")
     FOnAttackFinishedDelegate OnAttackFinishedDispatcher;
 
+    // 타이머
+    FTimerHandle CombatUpdateTimerHandle; // 전투생각을 위한 타이머
+    FTimerHandle LoseSightTimerHandle;  // 시야에 벗어날 시 순찰로 복귀한느 시간
+
     // 공격 강제 종료
     void ForceResetAttack();
 
@@ -142,9 +146,6 @@ protected:
     FName TacticalLocKey = FName("TacticalLocation");
     FName HasLineOfSightKey = FName("HasLineOfSight");
 
-    // 타이머
-    FTimerHandle CombatUpdateTimerHandle; // 전투생각을 위한 타이머
-    FTimerHandle LoseSightTimerHandle;  // 시야에 벗어날 시 순찰로 복귀한느 시간
 
     // 퍼셉션 이벤트 감지
     UFUNCTION()
