@@ -26,22 +26,13 @@ struct FGF_ItemBase : public FTableRowBase
     FText ItemDescription;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
-    FText UpgradeItemName;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (MultiLine = true))
-    FText UpgradeItemDescription;
+    class UTexture2D* ItemIcon;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
-    class UTexture2D* ItemIcon = nullptr;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
-    EGF_ItemType ItemType = EGF_ItemType::Passive;
+    EGF_ItemType ItemType;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
     int32 CurrentLevel = 0;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
-    int32 StackCount = 1; 
 };
 
 // 패시브 아이템 
@@ -50,11 +41,13 @@ struct FGF_PassiveItemData : public FGF_ItemBase
 {
     GENERATED_BODY()
 
+    // 스탯 태그 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Passive")
     FName StatTag;
 
+    // 수치
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Passive")
-    float StatValue = 0.0f;
+    float StatValue;
 };
 
 // 액티브 아이템 
@@ -64,8 +57,8 @@ struct FGF_ActiveItemData : public FGF_ItemBase
     GENERATED_BODY()
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Active")
-    float Cooldown = 0.0f;
+    float Cooldown;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Active")
-    float Duration = 0.0f;
+    float Duration;
 };

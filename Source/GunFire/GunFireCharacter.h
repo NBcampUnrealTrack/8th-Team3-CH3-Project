@@ -16,59 +16,61 @@ struct FInputActionValue;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
 
-UCLASS(config = Game)
+UCLASS(config=Game)
 class AGunFireCharacter : public ACharacter
 {
-    GENERATED_BODY()
+	GENERATED_BODY()
 
-    /** Pawn mesh: 1st person view (arms; seen only by self) */
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh, meta = (AllowPrivateAccess = "true"))
-    USkeletalMeshComponent* Mesh1P;
+	/** Pawn mesh: 1st person view (arms; seen only by self) */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Mesh, meta = (AllowPrivateAccess = "true"))
+	USkeletalMeshComponent* Mesh1P;
 
-    /** First person camera */
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
-    UCameraComponent* FirstPersonCameraComponent;
+	/** First person camera */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	UCameraComponent* FirstPersonCameraComponent;
 
-    /** MappingContext */
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-    UInputMappingContext* DefaultMappingContext;
+	/** MappingContext */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputMappingContext* DefaultMappingContext;
 
-    /** Jump Input Action */
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-    UInputAction* JumpAction;
+	/** Jump Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta=(AllowPrivateAccess = "true"))
+	UInputAction* JumpAction;
 
-    /** Move Input Action */
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-    UInputAction* MoveAction;
+	/** Move Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta=(AllowPrivateAccess = "true"))
+	UInputAction* MoveAction;
 
-    /** Look Input Action */
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-    class UInputAction* LookAction;
+	/** Look Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	class UInputAction* LookAction;
 
-    /** 테스트용 액션 변수는 유지하되 호출부는 제거합니다 */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
     class UInputAction* KillTestAction;
 
 public:
-    AGunFireCharacter();
+	AGunFireCharacter();
 
 protected:
-    /** Called for movement input */
-    void Move(const FInputActionValue& Value);
+	/** Called for movement input */
+	void Move(const FInputActionValue& Value);
 
-    /** Called for looking input */
-    void Look(const FInputActionValue& Value);
+	/** Called for looking input */
+	void Look(const FInputActionValue& Value);
+
+    void KillTest();
 
 protected:
-    // APawn interface
-    virtual void NotifyControllerChanged() override;
-    virtual void SetupPlayerInputComponent(UInputComponent* InputComponent) override;
-    // End of APawn interface
+	// APawn interface
+	virtual void NotifyControllerChanged() override;
+	virtual void SetupPlayerInputComponent(UInputComponent* InputComponent) override;
+	// End of APawn interface
 
 public:
-    /** Returns Mesh1P subobject **/
-    USkeletalMeshComponent* GetMesh1P() const { return Mesh1P; }
-    /** Returns FirstPersonCameraComponent subobject **/
-    UCameraComponent* GetFirstPersonCameraComponent() const { return FirstPersonCameraComponent; }
+	/** Returns Mesh1P subobject **/
+	USkeletalMeshComponent* GetMesh1P() const { return Mesh1P; }
+	/** Returns FirstPersonCameraComponent subobject **/
+	UCameraComponent* GetFirstPersonCameraComponent() const { return FirstPersonCameraComponent; }
 
 };
+

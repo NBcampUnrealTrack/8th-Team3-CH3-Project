@@ -69,12 +69,11 @@ void AGunFireCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 		// Looking
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AGunFireCharacter::Look);
 
-	    /* // Kill Test Binding
+	    // Kill Test Binding
 	    if (KillTestAction)
 	    {
 	        EnhancedInputComponent->BindAction(KillTestAction, ETriggerEvent::Started, this, &AGunFireCharacter::KillTest);
 	    }
-        */
 	}
 	else
 	{
@@ -109,4 +108,12 @@ void AGunFireCharacter::Look(const FInputActionValue& Value)
 	}
 }
 
-
+void AGunFireCharacter::KillTest()
+{
+    // 테스트로 현재 방의 적을 처치함
+    if (AGunFireGameMode* GFGameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AGunFireGameMode>() : nullptr)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Kill Test 1 Enemy"));
+        GFGameMode->KillEnemyForTest();
+    }
+}
