@@ -5,6 +5,5 @@
 ABossRoom::ABossRoom()
 {
     RoomType = ERoomType::Boss;
-    SpawningEnemyCount = 1;
     Initialize();
 }

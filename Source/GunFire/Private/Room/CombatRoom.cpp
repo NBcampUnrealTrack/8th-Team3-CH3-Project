@@ -16,7 +16,6 @@ ACombatRoom::ACombatRoom()
     PrepareTrigger->OnComponentBeginOverlap.AddDynamic(this, &ACombatRoom::OnPrepareTriggerBeginOverlap);
 
     RoomType = ERoomType::Combat;
-    SpawningEnemyCount = 1;
     Initialize();
 }
 
@@ -186,38 +185,25 @@ void ACombatRoom::SpawnEnemies()
     UWorld* World = GetWorld();
     if (!World) return;
 
-    if (EnemyClasses.IsEmpty()) return;
-
-    for (int32 i = 0; i < SpawningEnemyCount; ++i)
+    for (const FEnemySpawnGroup& SpawnGroup : EnemySpawnGroups)
     {
-        // 스폰 포인트 확인
-        if (i >= EnemySpawnPoints.Num()) break;
+        if (!SpawnGroup.EnemyClass) continue;
 
-        AActor* SpawnPoint = EnemySpawnPoints[i].Get();
-        if (!IsValid(SpawnPoint))
+        for (const TObjectPtr<AActor>& SpawnPointActor : SpawnGroup.SpawnPoints)
         {
-            UE_LOG(LogTemp, Warning, TEXT("스폰 포인트 찾기 실패!"));
-            continue;
-        }
+            AActor* SpawnPoint = SpawnPointActor.Get();
+            if (!IsValid(SpawnPoint)) continue;
 
-        // 소환할 적 클래스 확인
-        TSubclassOf<AEnemyBase> EnemyClass = EnemyClasses[i % EnemyClasses.Num()];
-        if (!EnemyClass)
-        {
-            UE_LOG(LogTemp, Warning, TEXT("지정한 적 클래스가 없습니다!"));
-            continue;
-        }
+            AEnemyBase* SpawnedEnemy = World->SpawnActor<AEnemyBase>(
+                SpawnGroup.EnemyClass,
+                SpawnPoint->GetActorTransform()
+                );
 
-        AEnemyBase* SpawnedEnemy = World->SpawnActor<AEnemyBase>(
-            EnemyClass,
-            SpawnPoint->GetActorTransform()
-            );
-
-        // 생성한 적 컨테이너에 추가
-        if (IsValid(SpawnedEnemy))
-        {
-            SpawnedEnemy->OnEnemyDead.AddDynamic(this, &ACombatRoom::HandleEnemyDead);
-            Enemies.Add(SpawnedEnemy);
+            if (IsValid(SpawnedEnemy))
+            {
+                SpawnedEnemy->OnEnemyDead.AddDynamic(this, &ACombatRoom::HandleEnemyDead);
+                Enemies.Add(SpawnedEnemy);
+            }
         }
     }
 
