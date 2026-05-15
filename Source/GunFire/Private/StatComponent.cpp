@@ -1,4 +1,4 @@
-﻿#include "StatComponent.h"
+#include "StatComponent.h"
 
 UStatComponent::UStatComponent()
 {
@@ -211,8 +211,6 @@ void UStatComponent::TakeDamage(AActor* DamagedActor, float Damage, const UDamag
     // 피격 처리 이벤트, 체력 변경 이벤트 발생
     OnDamaged.Broadcast(ActualDamage, Instigator);
     OnHealthChanged.Broadcast(CurrentHealth, GetMaxHealth());
-
-    GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("피해 적용 완료! 남은 체력: %.1f"), CurrentHealth));
 
     if (IsDead())
     {

@@ -12,7 +12,6 @@ class AEnemyBase;
 // Delegate/Event 방식으로 몬스터 사망시 Room 에 알리기 위함
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEnemyDied, AEnemyBase*, DeadEnemy);
 
-class UStatComponent;
 
 UCLASS()
 class GUNFIRE_API AEnemyBase : public ACharacter
@@ -21,53 +20,44 @@ class GUNFIRE_API AEnemyBase : public ACharacter
 
 public:
 	AEnemyBase();
-    virtual void BeginPlay() override;
-
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-    UStatComponent* StatComponent;
 
     // 델리게이트 타입의 변수 생성
     UPROPERTY(BlueprintAssignable, Category = "Enemy")
     FOnEnemyDied OnEnemyDead;
 
-    // 사망 애니메이션 몽타주
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
-    UAnimMontage* DeathMontage;
-
-    // 삭제를 위한 타이머
-    FTimerHandle DeathTimerHandle;
-
 
     UFUNCTION()
     virtual void OnWeaponOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
     UFUNCTION(BlueprintCallable, Category = "Combat")
-    virtual void ActivateAttackCollision(FName WeaponTag);
+    virtual void ActivateAttackCollision();
     UFUNCTION(BlueprintCallable, Category = "Combat")
     virtual void DeactivateAttackCollision();
-    UFUNCTION(BlueprintCallable, Category = "Combat")
-    virtual void OnDeathAnimationFinished();
 
     UFUNCTION()
-    virtual void Die();
-    UFUNCTION()
-    void ExecuteDestroy();
+    void Die();
 
 protected:
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
-    float AttackSpeedRate;
+    UPROPERTY()
+    TArray<UPrimitiveComponent*> WeaponCollisions;
+
+    UPROPERTY(EditAnywhere, Category = "Stats")
+    UAnimMontage* AttackMontage;
+
+    UPROPERTY(EditAnywhere, Category = "Stats")
+    float HP;
+    UPROPERTY(EditAnywhere, Category = "Stats")
+    float MaxHP;
+
+    UPROPERTY(EditAnywhere, Category = "Stats")
+    float Defance;
+
+    UPROPERTY(EditAnywhere, Category = "Stats")
+    float AttackDamage;
 
     UPROPERTY(VisibleAnywhere, Category = "Stats")
     bool bDead;
 
-    // 디버그 테스트용 스위치
-    UPROPERTY(EditAnywhere, Category = "Debug")
-    bool bIsDebugTestTarget = false;
-
-    UFUNCTION()
-    virtual void OnEnemyDeath(AController* InstigatorController);
-
-    UFUNCTION()
-    virtual void OnEnemyHealthChanged(float ActualDamage, AController* EventInstigator);
+	virtual void BeginPlay() override;
 
 public:
     // 이동속도 변경
@@ -84,12 +74,9 @@ public:
     UFUNCTION(BlueprintCallable, Category = "AI|Combat")
     virtual void PlayAttack();
 
-    //// 피해 처리
-    //UFUNCTION(BlueprintCallable, Category = "Health")
-    //virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
+    // 피해 처리
+    UFUNCTION(BlueprintCallable, Category = "Health")
+    virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 
-    float GetHP() const;
-    float GetMaxHP() const;
-    float GetAttackDamage() const;
-    bool bIsDead() const;
+
 };

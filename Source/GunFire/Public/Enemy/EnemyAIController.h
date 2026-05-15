@@ -51,25 +51,16 @@ public:
     UPROPERTY(BlueprintAssignable, Category = "AI|Combat")
     FOnAttackFinishedDelegate OnAttackFinishedDispatcher;
 
-    // 타이머
-    FTimerHandle CombatUpdateTimerHandle; // 전투생각을 위한 타이머
-    FTimerHandle LoseSightTimerHandle;  // 시야에 벗어날 시 순찰로 복귀한느 시간
-
     // 공격 강제 종료
     void ForceResetAttack();
 
     // 교전시작과 종료
-    virtual void StartEngaging(AActor* Target);
-    virtual void StopEngaging();
+    void StartEngaging(AActor* Target);
+    void StopEngaging();
 
     // 그로기나 사망
-    virtual void SetGroggy();
-    virtual void SetDead();
-
-    // 피격 알람용
-    virtual void OnHitDamage(APawn* Enemy);
-    virtual void AlertAlly(APawn* Target);
-    virtual void ReceiveAlert(APawn* Target);
+    void SetGroggy();
+    void SetDead();
 protected:
     // 적 ai빙의시
     virtual void OnPossess(APawn* InPawn) override;
@@ -99,23 +90,14 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Combat")
     float FleeProbability; // 후퇴 확률
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Combat")
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Config")
     float LowHealthThreshold; // 후퇴를 결심하는 체력 비율
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Combat")
-    float RetreatDuration; // 기본 후퇴 시간
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Combat")
-    float RetreatRandomDeviation; // 추가 후퇴시간 랜덤 범위
+    float RetreatDuration; // 후퇴 유지 시간
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Combat")
     float EncircleRadius; // 포위 반경
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Combat")
-    float EncircleDuration; // 기본 포위 시간
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Combat")
-    float EncircleRandomDeviation; // 추가 포위시간 랜덤 범위
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Combat")
     float AttackDistance; // 공격상태변경 거리
@@ -125,9 +107,6 @@ protected:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Combat")
     float ExitMargin; // 전술 유지 마진
-
-    UPROPERTY(EditAnywhere)
-    TEnumAsByte<ECollisionChannel> TraceChannel;
 
     //UPROPERTY(EditDefaultsOnly, Category = "AI|Combat")
     //float TraceSpeed; // 추적 속도
@@ -146,6 +125,9 @@ protected:
     FName TacticalLocKey = FName("TacticalLocation");
     FName HasLineOfSightKey = FName("HasLineOfSight");
 
+    // 타이머
+    FTimerHandle CombatUpdateTimerHandle; // 전투생각을 위한 타이머
+    FTimerHandle LoseSightTimerHandle;  // 시야에 벗어날 시 순찰로 복귀한느 시간
 
     // 퍼셉션 이벤트 감지
     UFUNCTION()
@@ -153,7 +135,7 @@ protected:
 
     // 타겟을 놓치고 일정 시간 뒤 호출될 이벤트
     UFUNCTION()
-    virtual void StartEnemyTimer();
+    void StartEnemyTimer();
 
     // 핵심 전술 판단 로직
     // 전투시 0.5초마다 실행됨. Combat노드에서 들어와야 실행되도록 해야함(HasLineOfSightKey가 true)
