@@ -6,6 +6,12 @@
 #include "Combat/CombatComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GunFire/GunFireGameMode.h"
+#include "Interactables/InteractableInterface.h"
+#include "Engine/World.h"
+#include "Engine/OverlapResult.h"
+#include "CollisionQueryParams.h"
+#include "WorldCollision.h"
+#include "GameFramework/Actor.h"
 
 APlayerCharacter::APlayerCharacter()
 {
@@ -23,7 +29,7 @@ APlayerCharacter::APlayerCharacter()
     ThirdPersonCameraComponent->bUsePawnControlRotation = false;
 
     // 대쉬 설정
-    bcanDash = true;
+    CanDash = true;
     DashStrength = 2000.0f;
     DashCooldown = 3.0f;
 
@@ -34,10 +40,30 @@ APlayerCharacter::APlayerCharacter()
     GetCharacterMovement()->MaxWalkSpeed = NormalSpeed;
 
     // 조준
-    bIsAiming = false;
+    IsAiming = false;
     DefaultFOV = ThirdPersonCameraComponent->FieldOfView;
     AimFOV = 70.0f;
     DefaultSocketOffset = ThirdPersonCameraComponent->GetComponentLocation();
+
+    // 사격
+    MaxAmmo = 4;
+    TotalAmmo = 12;
+    CurrentAmmo = MaxAmmo;
+    AmmoPerFire = 1;
+    CanFire = true;
+    Rof = 1.0f;
+
+    // 재장전
+    IsReloading = false;
+    ReloadTime = 2.0f;
+
+    // 체력
+    MaxHealth = 100;
+    CurrentHealth = MaxHealth;
+
+    // 스태미나
+    MaxStamina = 100;
+    CurrentStamina = MaxStamina;
 
     // 공격
     HeavyAttackHoldTime = 0.5f;
@@ -48,9 +74,13 @@ void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-    //DefaultSocketOffset = ThirdPersonCameraComponent->GetComponentLocation();
-    DefaultSocketOffset = FVector(0.f, 0.f, 60.f);
-    AimSocketOffset = FVector(0.f, 50.f, 60.f);
+    DefaultSocketOffset = FVector(0.f, 0.f, 0.f);
+    AimSocketOffset = FVector(0.f, 50.f, 0.f);
+
+    // 상호작용 범위 감지 0.2마다 실행
+    GetWorldTimerManager().SetTimer(InteractionCheckTimerHandle, this, &APlayerCharacter::CheckInteractablesRamge, 0.2f, true);
+    // 디버그용 스태미너 회복
+    GetWorldTimerManager().SetTimer(NaturalHealingStaminaTimerHandle, this, &APlayerCharacter::NaturalHealingStamina, 1.0f, true);
 
     CombatComponent = FindComponentByClass<UCombatComponent>();
 }
@@ -59,9 +89,14 @@ void APlayerCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-    float TargetFOV = bIsAiming ? AimFOV : DefaultFOV;
-    FVector TargetOffset = bIsAiming ? AimSocketOffset : DefaultSocketOffset;
-    float TargetArmLength = bIsAiming ? 150.f : 300.f;
+    //CheckForInteractables();
+
+    // 시야각
+    float TargetFOV = IsAiming ? AimFOV : DefaultFOV;
+    // 카메라 위치
+    FVector TargetOffset = IsAiming ? AimSocketOffset : DefaultSocketOffset;
+    // 스프링암 길이
+    float TargetArmLength = IsAiming ? 450.f : 500.f;
 
     // 부드럽게 보간 (FInterpTo 사용)
     ThirdPersonCameraComponent->FieldOfView = FMath::FInterpTo(ThirdPersonCameraComponent->FieldOfView, TargetFOV, DeltaTime, 10.f);
@@ -108,8 +143,7 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
             // 달리기
             if (PlayerController->RunAction)
             {
-                EnhancedInputComponent->BindAction(PlayerController->RunAction, ETriggerEvent::Started, this, &APlayerCharacter::Run);
-                EnhancedInputComponent->BindAction(PlayerController->RunAction, ETriggerEvent::Completed, this, &APlayerCharacter::StopRun);
+                EnhancedInputComponent->BindAction(PlayerController->RunAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Run);
             }
 
             // 사격
@@ -121,8 +155,6 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
             // 조준
             if (PlayerController->AimingAction)
             {
-                //EnhancedInputComponent->BindAction(PlayerController->AimingAction, ETriggerEvent::Started, this, &APlayerCharacter::Aiming);
-                //EnhancedInputComponent->BindAction(PlayerController->AimingAction, ETriggerEvent::Completed, this, &APlayerCharacter::StopAiming);
                 EnhancedInputComponent->BindAction(PlayerController->AimingAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Aiming);
             }
 
@@ -195,13 +227,12 @@ void APlayerCharacter::Move(const FInputActionValue& Value)
 
 void APlayerCharacter::Look(const FInputActionValue& Value)
 {
+    if (!Controller) return;
+
     FVector2D LookAxisVector = Value.Get<FVector2D>();
 
-    if (Controller != nullptr)
-    {
-        AddControllerYawInput(LookAxisVector.X);
-        AddControllerPitchInput(LookAxisVector.Y);
-    }
+    AddControllerYawInput(LookAxisVector.X);
+    AddControllerPitchInput(LookAxisVector.Y);
 }
 
 void APlayerCharacter::Jump()
@@ -215,45 +246,52 @@ void APlayerCharacter::Dash(const FInputActionValue& Value)
 {
     if (!Controller) return;
 
-    if (!bcanDash)
+    if (!CanDash)
     {
         UE_LOG(LogTemp, Log, TEXT("Dash Cooldown"));
         return;
     }
 
-    if (bcanDash)
+    UCharacterMovementComponent* MoveComp = GetCharacterMovement();
+
+    // 공중 상태 확인
+    if (MoveComp && MoveComp->IsFalling())
     {
-        UCharacterMovementComponent* MoveComp = GetCharacterMovement();
-
-        // 대쉬 방향 결정 (입력 방향 위주)
-        FVector DashDirection = MoveComp->GetLastInputVector();
-
-        // 만약 이동 입력이 없다면(가만히 있을 때) 캐릭터의 전방으로 대쉬
-        if (DashDirection.IsNearlyZero())
-        {
-            DashDirection = GetActorForwardVector();
-        }
-
-        // 현재의 마찰력 설정값 저장
-        DefaultGroundFriction = MoveComp->GroundFriction;
-        DefaultBrakingDeceleration = MoveComp->BrakingDecelerationWalking;
-
-        // 마찰력과 제동력을 0으로 설정
-        MoveComp->GroundFriction = 0.f;
-        MoveComp->BrakingDecelerationWalking = 0.f;
-
-        // 즉각적인 속도 부여
-        MoveComp->Velocity = DashDirection.GetSafeNormal() * DashStrength;
-
-        // 마찰력 복구
-        GetWorldTimerManager().SetTimer(DashStopTimerHandle, this, &APlayerCharacter::StopDash, 0.15f, false);
-
-        UE_LOG(LogTemp, Log, TEXT("Dash Start"));
-        bcanDash = false;
-
-        // 쿨타임 이후에 대쉬 다시 사용가능
-        GetWorldTimerManager().SetTimer(DashCooldownTimerHandle, this, &APlayerCharacter::ResetDash, DashCooldown, false);
+        //공중이면 함수 종료
+        return;
     }
+
+    if (CurrentStamina < 20) return;
+
+    CurrentStamina = FMath::Clamp(CurrentStamina - 20, 0, MaxStamina);
+    // 대쉬 방향 결정 (입력 방향 위주)
+    FVector DashDirection = MoveComp->GetLastInputVector();
+
+    // 만약 이동 입력이 없다면(가만히 있을 때) 캐릭터의 전방으로 대쉬
+    if (DashDirection.IsNearlyZero())
+    {
+        DashDirection = GetActorForwardVector();
+    }
+
+    // 현재의 마찰력 설정값 저장
+    DefaultGroundFriction = MoveComp->GroundFriction;
+    DefaultBrakingDeceleration = MoveComp->BrakingDecelerationWalking;
+
+    // 마찰력과 제동력을 0으로 설정
+    MoveComp->GroundFriction = 0.f;
+    MoveComp->BrakingDecelerationWalking = 0.f;
+
+    // 즉각적인 속도 부여
+    MoveComp->Velocity = DashDirection.GetSafeNormal() * DashStrength;
+
+    // 마찰력 복구
+    GetWorldTimerManager().SetTimer(DashStopTimerHandle, this, &APlayerCharacter::StopDash, 0.15f, false);
+
+    UE_LOG(LogTemp, Log, TEXT("Dash Start"));
+    CanDash = false;
+
+    // 쿨타임 이후에 대쉬 다시 사용가능
+    GetWorldTimerManager().SetTimer(DashCooldownTimerHandle, this, &APlayerCharacter::ResetDash, DashCooldown, false);
 }
 
 void APlayerCharacter::StopDash()
@@ -271,7 +309,7 @@ void APlayerCharacter::ResetDash()
 {
     UCharacterMovementComponent* MoveComp = GetCharacterMovement();
     if (!MoveComp) return;
-    bcanDash = true;
+    CanDash = true;
     UE_LOG(LogTemp, Log, TEXT("Dash On"));
 }
 
@@ -279,7 +317,16 @@ void APlayerCharacter::Run(const FInputActionValue& Value)
 {
     if (GetCharacterMovement())
     {
-        GetCharacterMovement()->MaxWalkSpeed = RunSpeed;
+        if (Value.Get<bool>())
+        {
+            if (CurrentStamina <= 0) return;
+            GetCharacterMovement()->MaxWalkSpeed = RunSpeed;
+            CurrentStamina = FMath::Clamp(CurrentStamina - 1, 0, MaxStamina);
+        }
+        else
+        {
+            GetCharacterMovement()->MaxWalkSpeed = NormalSpeed;
+        }
     }
 }
 
@@ -291,27 +338,22 @@ void APlayerCharacter::StopRun()
     }
 }
 
-void APlayerCharacter::Shot(const FInputActionValue& Value)
-{
-
-}
-
 void APlayerCharacter::Aiming(const FInputActionValue& Value)
 {
     if (!Controller) return;
 
     if (CombatComponent && !CombatComponent->CanMove()) return;
 
-    if (!bIsAiming)
+    if (!IsAiming)
     {
-        bIsAiming = true;
+        IsAiming = true;
         GetCharacterMovement()->bOrientRotationToMovement = false; // 이동 방향 회전 끄기
         bUseControllerRotationYaw = true;
     }
     else
     {
-        bIsAiming = false;
-        GetCharacterMovement()->bOrientRotationToMovement = true; // 이동 방향 회전 끄기
+        IsAiming = false;
+        GetCharacterMovement()->bOrientRotationToMovement = true; // 이동 방향 회전
         bUseControllerRotationYaw = false;
     }
 }
@@ -320,12 +362,81 @@ void APlayerCharacter::StopAiming()
 {
     if (!Controller) return;
 
-    bIsAiming = false;
+    IsAiming = false;
+}
+
+void APlayerCharacter::Shot(const FInputActionValue& Value)
+{
+    if (!Controller) return;
+
+    if (CombatComponent && !CombatComponent->CanMove()) return;
+
+    if (!IsAiming || !CanFire || IsReloading) return;
+
+    UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+
+    if (CurrentAmmo > 0 && AnimInstance && !AnimInstance->Montage_IsPlaying(FireMontage) && !AnimInstance->Montage_IsPlaying(FireDelayMontage))
+    {
+        GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Green, TEXT("Fire"));
+
+        CurrentAmmo -= AmmoPerFire;
+        CanFire = false;
+
+        AnimInstance->Montage_Play(FireMontage);
+
+        GetWorldTimerManager().SetTimer(ShotDelayTimerHandle, this, &APlayerCharacter::ShotDelay, 0.5f, false);
+    }
+    else
+    {
+        GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, TEXT("Ammo Empty OR Delay"));
+    }
+}
+
+void APlayerCharacter::ShotDelay()
+{
+    GetWorld()->GetTimerManager().ClearTimer(ShotDelayTimerHandle);
+    CanFire = true;
+
+    UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+    if (AnimInstance && FireDelayMontage)
+    {
+        AnimInstance->Montage_Play(FireDelayMontage);
+    }
 }
 
 void APlayerCharacter::Reload(const FInputActionValue& Value)
 {
+    if (!Controller) return;
 
+    if (CurrentAmmo == MaxAmmo || !CanFire || IsReloading || TotalAmmo <= 0) return;
+
+    IsReloading = true;
+    CanFire = false;
+    GetWorldTimerManager().SetTimer(ReloadTimerHandle, this, &APlayerCharacter::Reloading, ReloadTime, false);
+    GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Green, TEXT("Reload"));
+
+    UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+    if (AnimInstance && ReloadMontage)
+    {
+        AnimInstance->Montage_Play(ReloadMontage);
+    }
+}
+
+void APlayerCharacter::Reloading()
+{
+    GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Green, TEXT("Reloading"));
+    TotalAmmo = FMath::Clamp(TotalAmmo - (MaxAmmo - CurrentAmmo), 0, 30);
+
+    if (TotalAmmo < MaxAmmo)
+    {
+        CurrentAmmo = TotalAmmo;
+    }
+    else
+    {
+        CurrentAmmo = MaxAmmo;
+    }
+    CanFire = true;
+    IsReloading = false;
 }
 
 void APlayerCharacter::MeleeAttack(const FInputActionValue& Value)
@@ -340,7 +451,119 @@ void APlayerCharacter::Skill(const FInputActionValue& Value)
 
 void APlayerCharacter::Interaction(const FInputActionValue& Value)
 {
+    if (TargetedActor)
+    {
+        IInteractableInterface::Execute_Interact(TargetedActor, this);
 
+        TargetedActor = nullptr;
+    }
+}
+
+void APlayerCharacter::CheckForInteractables()
+{
+    // 캐릭터의 눈 위치 또는 카메라 위치 반환
+    FVector Start = GetPawnViewLocation();
+    FVector End = Start + (GetViewRotation().Vector() * 300.0f);
+
+    FHitResult HitResult;
+    FCollisionQueryParams Params;
+    Params.AddIgnoredActor(this);
+
+    // 트레이스 확인
+    if (GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Visibility, Params))
+    {
+        AActor* HitActor = HitResult.GetActor();
+
+        // 트레이스에 맞은 액터가 UInteractableInterface를 가지고 있는지 확인
+        if (HitActor && HitActor->GetClass()->ImplementsInterface(UInteractableInterface::StaticClass()))
+        {
+            if (TargetedActor != HitActor)
+            {
+                if (TargetedActor)
+                {
+                    // 해당 액터를 보고있지 않으면 UI비활성화
+                    IInteractableInterface::Execute_LookAway(TargetedActor);
+                }
+
+                TargetedActor = HitActor;
+                // 해당 액터를 보고있으면 UI 활성화
+                IInteractableInterface::Execute_LookAt(TargetedActor);
+                GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Green, TEXT("InteractActor"));
+            }
+            return;
+        }
+    }
+
+    if (TargetedActor != nullptr)
+    {
+        IInteractableInterface::Execute_LookAway(TargetedActor);
+        TargetedActor = nullptr;
+    }
+}
+
+void APlayerCharacter::CheckInteractablesRamge()
+{
+    FVector Center = GetActorLocation();
+    float Radius = 200.0f;
+
+    // 범위 안에 오버랩된 액터 저장
+    TArray<FOverlapResult> OverlapResults;
+    FCollisionShape Sphere = FCollisionShape::MakeSphere(Radius);
+    FCollisionQueryParams Params;
+    Params.AddIgnoredActor(this);
+
+    // 범위 확인용 나중에 삭제
+    DrawDebugSphere(
+        GetWorld(),
+        Center,          // 구체 중심
+        Radius,          // 반경
+        12,              // 세그먼트 (숫자가 높을수록 부드러운 구체가 됨)
+        FColor::Green,   // 선 색상
+        false,           // 매 프레임 새로 그릴 것이므로 false (Persistent)
+        -1.f,            // 지속 시간 (-1은 이번 프레임만)
+        0,               // Depth Priority
+        1.f              // 선 두께
+    );
+
+    bool bHit = GetWorld()->OverlapMultiByChannel(
+        OverlapResults,
+        Center,
+        FQuat::Identity,
+        ECC_Visibility,
+        Sphere,
+        Params
+    );
+
+    AActor* ClosestActor = nullptr;
+    float MinDistance = Radius;
+
+    if (bHit)
+    {
+        for (auto& Result : OverlapResults)
+        {
+            // 상호작용 가능한 액터인지 확인
+            AActor* PotentialTarget = Result.GetActor();
+            if (PotentialTarget && PotentialTarget->GetClass()->ImplementsInterface(UInteractableInterface::StaticClass()))
+            {
+                float Distance = FVector::Dist(Center, PotentialTarget->GetActorLocation());
+                if (Distance < MinDistance)
+                {
+                    // 시선과 상관없이 '거리'만으로 판단
+                    MinDistance = Distance;
+                    // 가장 가까운 아이템
+                    ClosestActor = PotentialTarget;
+                }
+            }
+        }
+    }
+
+    // UI 온/오프
+    if (ClosestActor != TargetedActor)
+    {
+        if (TargetedActor) IInteractableInterface::Execute_LookAway(TargetedActor);
+        TargetedActor = ClosestActor;
+        if (TargetedActor) IInteractableInterface::Execute_LookAt(TargetedActor);
+    }
 }
 
 void APlayerCharacter::KillEnemyForDebug()
@@ -351,6 +574,61 @@ void APlayerCharacter::KillEnemyForDebug()
         UE_LOG(LogTemp, Warning, TEXT("Kill 1 Enemy for Test"));
         GFGameMode->KillEnemyForTest();
     }
+}
+
+void APlayerCharacter::DamageForDebug()
+{
+    CurrentHealth = FMath::Clamp(CurrentHealth - 10, 0, MaxHealth);
+}
+
+void APlayerCharacter::AddHealthForDebug()
+{
+    CurrentHealth = FMath::Clamp(CurrentHealth + 30, 0, MaxHealth);
+}
+
+void APlayerCharacter::NaturalHealingStamina()
+{
+    CurrentStamina = FMath::Clamp(CurrentStamina + 1, 0, MaxStamina);
+}
+
+int32 APlayerCharacter::GetCurrentHealth() const
+{
+    return CurrentHealth;
+}
+
+int32 APlayerCharacter::GetCurrentStamina() const
+{
+    return CurrentStamina;
+}
+
+void APlayerCharacter::SetCurrentHealth(int32 Amount)
+{
+    CurrentHealth += Amount;
+}
+
+void APlayerCharacter::SetCurrentStamina(int32 Amount)
+{
+    CurrentStamina += Amount;
+}
+
+int32 APlayerCharacter::GetMaxHealth() const
+{
+    return MaxHealth;
+}
+
+int32 APlayerCharacter::GetMaxStamina() const
+{
+    return MaxStamina;
+}
+
+void APlayerCharacter::SetMaxHealth(int32 Amount)
+{
+    MaxHealth += Amount;
+}
+
+void APlayerCharacter::SetMaxStamina(int32 Amount)
+{
+    MaxStamina += Amount;
 }
 
 void APlayerCharacter::MeleeAttackStarted()
