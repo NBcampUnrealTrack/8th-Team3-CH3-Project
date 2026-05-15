@@ -149,7 +149,9 @@ protected:
     // 디버그용 몬스터 처치 함수
     void KillEnemyForDebug();
     // 디버그용 데미지, 힐
+    UFUNCTION(BlueprintCallable)
     void DamageForDebug();
+    UFUNCTION(BlueprintCallable)
     void AddHealthForDebug();
     void NaturalHealingStamina();
 private:

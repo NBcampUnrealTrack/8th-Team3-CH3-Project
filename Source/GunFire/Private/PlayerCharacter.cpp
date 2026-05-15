@@ -70,11 +70,13 @@ void APlayerCharacter::BeginPlay()
 	Super::BeginPlay();
 
     //DefaultSocketOffset = ThirdPersonCameraComponent->GetComponentLocation();
-    DefaultSocketOffset = FVector(0.f, 0.f, 60.f);
-    AimSocketOffset = FVector(0.f, 50.f, 60.f);
+    DefaultSocketOffset = FVector(0.f, 0.f, 0.f);
+    AimSocketOffset = FVector(0.f, 50.f, 0.f);
 
+    // 상호작용 범위 감지 0.2마다 실행
     GetWorldTimerManager().SetTimer(InteractionCheckTimerHandle, this, &APlayerCharacter::CheckInteractablesRamge, 0.2f, true);
-    GetWorldTimerManager().SetTimer(NaturalHealingStaminaTimerHandle, this, &APlayerCharacter::NaturalHealingStamina, 0.2f, true);
+    // 디버그용 스태미너 회복
+    GetWorldTimerManager().SetTimer(NaturalHealingStaminaTimerHandle, this, &APlayerCharacter::NaturalHealingStamina, 1.0f, true);
 }
 
 void APlayerCharacter::Tick(float DeltaTime)
@@ -88,7 +90,7 @@ void APlayerCharacter::Tick(float DeltaTime)
     // 카메라 위치
     FVector TargetOffset = IsAiming ? AimSocketOffset : DefaultSocketOffset;
     // 스프링암 길이
-    float TargetArmLength = IsAiming ? 400.f : 500.f;
+    float TargetArmLength = IsAiming ? 450.f : 500.f;
 
     // 부드럽게 보간 (FInterpTo 사용)
     ThirdPersonCameraComponent->FieldOfView = FMath::FInterpTo(ThirdPersonCameraComponent->FieldOfView, TargetFOV, DeltaTime, 10.f);
@@ -380,7 +382,7 @@ void APlayerCharacter::Reload(const FInputActionValue& Value)
 {
     if (!Controller) return;
 
-    if (CurrentAmmo == MaxAmmo || !CanFire || IsReloading) return;
+    if (CurrentAmmo == MaxAmmo || !CanFire || IsReloading || TotalAmmo <= 0) return;
 
     IsReloading = true;
     CanFire = false;
@@ -397,12 +399,9 @@ void APlayerCharacter::Reload(const FInputActionValue& Value)
 void APlayerCharacter::Reloading()
 {
     GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Green, TEXT("Reloading"));
-    TotalAmmo -= MaxAmmo - CurrentAmmo;
-    if (TotalAmmo <= 0)
-    {
-        return;
-    }
-    else if (TotalAmmo < MaxAmmo)
+    TotalAmmo = FMath::Clamp(TotalAmmo - (MaxAmmo - CurrentAmmo), 0, 30);
+
+    if (TotalAmmo < MaxAmmo)
     {
         CurrentAmmo = TotalAmmo;
     }
@@ -520,9 +519,14 @@ void APlayerCharacter::CheckInteractablesRamge()
             AActor* PotentialTarget = Result.GetActor();
             if (PotentialTarget && PotentialTarget->GetClass()->ImplementsInterface(UInteractableInterface::StaticClass()))
             {
-                // 시선과 상관없이 '거리'만으로 판단
-                ClosestActor = PotentialTarget;
-                break; // 가장 먼저 찾아진 것 
+                float Distance = FVector::Dist(Center, PotentialTarget->GetActorLocation());
+                if (Distance < MinDistance)
+                {
+                    // 시선과 상관없이 '거리'만으로 판단
+                    MinDistance = Distance;
+                    // 가장 가까운 아이템
+                    ClosestActor = PotentialTarget;
+                }
             }
         }
     }
