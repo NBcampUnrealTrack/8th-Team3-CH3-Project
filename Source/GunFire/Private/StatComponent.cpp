@@ -216,6 +216,7 @@ void UStatComponent::TakeDamage(AActor* DamagedActor, float Damage, const UDamag
 
     if (IsDead())
     {
+        UE_LOG(LogTemp, Warning, TEXT("%s 사망"), *this->GetName());
         // 사망 이벤트 발생
         OnDead.Broadcast(Instigator);
     }

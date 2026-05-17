@@ -56,6 +56,10 @@ void UCombatComponent::TryLightAttack()
         {
             return Weapon->GetStaminaCost();
         },
+        [this](AMeleeWeaponBase* Weapon)
+        {
+            return MeleeCombatComponent->CanAcceptAttackInput(Weapon, EMeleeAttackType::Light);
+        },
         [this](AMeleeWeaponBase* Weapon, float AttackPower)
         {
             return MeleeCombatComponent->TryLightAttack(Weapon, AttackPower);
@@ -69,6 +73,10 @@ void UCombatComponent::TryHeavyAttack()
         [](const AMeleeWeaponBase* Weapon)
         {
             return Weapon->GetHeavyAttackStaminaCost();
+        },
+        [this](AMeleeWeaponBase* Weapon)
+        {
+            return MeleeCombatComponent->CanAcceptAttackInput(Weapon, EMeleeAttackType::Heavy);
         },
         [this](AMeleeWeaponBase* Weapon, float AttackPower)
         {
@@ -219,7 +227,9 @@ bool UCombatComponent::CanMove() const
 
 void UCombatComponent::TryMeleeAttack(
     TFunctionRef<float(const AMeleeWeaponBase*)> GetStaminaCost,
-    TFunctionRef<bool(AMeleeWeaponBase*, float)> AttackFunc)
+    TFunctionRef<bool(AMeleeWeaponBase*)> CanComboAttackFunc,
+    TFunctionRef<bool(AMeleeWeaponBase*, float)> AttackFunc
+    )
 {
     if (!IsValid(MeleeCombatComponent)) return;
     if (!IsValid(WeaponComponent)) return;
@@ -229,17 +239,33 @@ void UCombatComponent::TryMeleeAttack(
     AMeleeWeaponBase* MeleeWeapon = WeaponComponent->GetCurrentMeleeWeapon();
     if (!IsValid(MeleeWeapon)) return;
 
-    // 근접 무기 공격을 처리할 수 있는지 확인
-    if (!MeleeCombatComponent->CanStartAttack(MeleeWeapon)) return;
+    // 공격중인지 확인
+    bool bIsMeleeAttackInProgress =
+        CurrentActionState == ECombatActionState::Attacking
+        && MeleeCombatComponent->IsAttackInProgress();
 
-    // 공격 상태로 바꿀 수 있는지 확인하고 가능하면 공격 상태로 전환
-    if (!TrySetActionState(ECombatActionState::Attacking)) return;
+    // 공격 상태에 진입했지만 공격중이 아니라면 return
+    if (CurrentActionState == ECombatActionState::Attacking && !bIsMeleeAttackInProgress) return;
 
-    // 스태미너 사용 처리, 실패하면 행동도 되돌림
+    // 다음 콤보 입력이 가능한지 확인
+    if (!CanComboAttackFunc(MeleeWeapon)) return;
+
+    // 첫번째 공격이라면 공격 상태로 전환이 가능한지 확인
+    if (!bIsMeleeAttackInProgress)
+    {
+        if (!TrySetActionState(ECombatActionState::Attacking)) return;
+    }
+
+    // 스태미너 사용 시도
     const float Cost = GetStaminaCost(MeleeWeapon);
     if (!StatComponent->TryConsumeStamina(Cost))
     {
-        ClearActionState(ECombatActionState::Attacking);
+        // 첫 공격에 실패했다면 행동 되돌림
+        // 콤보 공격에 실패는 Attacking 상태 그대로라 ClearActionState를 호출하면 안됨
+        if (!bIsMeleeAttackInProgress)
+        {
+            ClearActionState(ECombatActionState::Attacking);
+        }
         return;
     }
 
@@ -248,7 +274,11 @@ void UCombatComponent::TryMeleeAttack(
     // 근접무기로 공격
     if (!AttackFunc(MeleeWeapon, FinalAttackPower))
     {
-        ClearActionState(ECombatActionState::Attacking);
+        // 첫 공격에 실패했다면 행동 되돌림
+        if (!bIsMeleeAttackInProgress)
+        {
+            ClearActionState(ECombatActionState::Attacking);
+        }
     }
 }
 

@@ -155,7 +155,9 @@ private:
     // 실행할 함수를 람다로 받아서 처리하는 근접 공격 공통 처리 함수
     void TryMeleeAttack(
         TFunctionRef<float(const AMeleeWeaponBase*)> GetStaminaCost,
-        TFunctionRef<bool(AMeleeWeaponBase*, float)> AttackFunc);
+        TFunctionRef<bool(AMeleeWeaponBase*)> CanComboAttackFunc,
+        TFunctionRef<bool(AMeleeWeaponBase*, float)> AttackFunc
+        );
 
     void SetActionState(ECombatActionState NewState);
 

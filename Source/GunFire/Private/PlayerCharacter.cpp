@@ -635,8 +635,6 @@ void APlayerCharacter::MeleeAttackStarted()
 {
     bHeavyAttackTriggered = false;
 
-    UE_LOG(LogTemp, Warning, TEXT("키 입력"));
-
     // 기존에 타이머 남아있다면 제거
     GetWorldTimerManager().ClearTimer(HeavyAttackTimerHandle);
 
