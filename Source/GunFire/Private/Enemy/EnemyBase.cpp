@@ -71,6 +71,19 @@ void AEnemyBase::BeginPlay()
     }
 }
 
+void AEnemyBase::PlayHitReaction()
+{
+    if (bDead || !HitMontage)
+        return;
+
+    // 현재 재생 중인 몽타주 등이 있다면 중단
+    UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+    if (AnimInstance)
+    {
+        AnimInstance->Montage_Play(HitMontage);
+    }
+}
+
 void AEnemyBase::OnWeaponOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
     // 공격 처리

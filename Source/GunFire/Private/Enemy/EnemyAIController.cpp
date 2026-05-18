@@ -61,11 +61,14 @@ void AEnemyAIController::OnPossess(APawn* InPawn)
 {
     Super::OnPossess(InPawn);
 
-    // 에디터에서 BT를 제대로 넣었는지 확인(블랙보드랑 연동은 필수)
-    if (BTEnemy != nullptr)
+    // 내가 빙의한 몸통이 EnemyBase인지 확인
+    AEnemyBase* MyEnemy = Cast<AEnemyBase>(InPawn);
+
+    if (BTEnemy != nullptr && MyEnemy)
     {
-        // 이 함수가 내부적으로 블랙보드까지 세팅하고 트리를 가동
         RunBehaviorTree(BTEnemy);
+        // 패트롤 값 블랙보드에 전달
+        GetBlackboardComponent()->SetValueAsBool(IsPatrolKey, MyEnemy->GetIsPatrol());
     }
 }
 
@@ -143,9 +146,23 @@ void AEnemyAIController::SetDead()
 void AEnemyAIController::OnHitDamage(APawn* Enemy)
 {
     UBlackboardComponent* BBComp = GetBlackboardComponent();
-    APawn* MyPawn = GetPawn();
-    if (!BBComp || !Enemy)
+    AEnemyBase* MyPawn = Cast<AEnemyBase>(GetPawn());
+    if (!BBComp || !Enemy || !MyPawn)
         return;
+
+    // 공격 중이 아닐 때 경직 처리
+    if (MyPawn->GetCanBeStunned() && !bIsAttacking)
+    {
+        // 상태를 Groggy로 변경
+        BBComp->SetValueAsInt(TacticStateKey, (int32)ETacticState::Groggy);
+
+        // 설정된 경직 시간만큼 타이머 작동
+        GetWorld()->GetTimerManager().ClearTimer(HitStunTimerHandle);
+        GetWorld()->GetTimerManager().SetTimer(HitStunTimerHandle, this, &AEnemyAIController::EndHitStun, MyPawn->GetHitStunDuration(), false);
+
+        // 피격 몽타주 재생 및 이동 정지
+        MyPawn->PlayHitReaction();
+    }
 
     // 블랙보드에 타겟 등록 및 시야 확보 처리
     BBComp->SetValueAsObject(TargetActorKey, Enemy);
@@ -247,19 +264,29 @@ void AEnemyAIController::ReceiveAlert(APawn* Target)
     StartEngaging(Target);
 }
 
+void AEnemyAIController::EndHitStun()
+{
+    UBlackboardComponent* BBComp = GetBlackboardComponent();
+    if (BBComp)
+    {
+        // 전술 업데이트 실행
+        BBComp->SetValueAsInt(TacticStateKey, (int32)ETacticState::Chase);
+        UpdateCombatTactics();
+    }
+}
+
 void AEnemyAIController::UpdateCombatTactics()
 {
     UBlackboardComponent* BBComp = GetBlackboardComponent();
     if (!BBComp || !GetPawn())
         return;
 
-    // 사망상태와 그로기시는 무시
-    //if (MyPawn->IsDead() || MyPawn->IsGroggy())
-    //{
-    //    bIsAttacking = false; // 공격 잠금 강제 해제
-    //    BBComp->SetValueAsInt(TacticStateKey, MyPawn->IsDead() ? 0 : 1);
-    //    return;
-    //}
+    // 경직중에는 행동 무시
+    ETacticState CurrentState = (ETacticState)BBComp->GetValueAsInt(TacticStateKey);
+    if (CurrentState == ETacticState::Groggy)
+    {
+        return;
+    }
 
     // 공격 중일시 무시
     if (bIsAttacking)
@@ -279,20 +306,19 @@ void AEnemyAIController::UpdateCombatTactics()
     //GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("TargetDistance : %f"), Distance));
 
     // 블랙보드에 저장된 상태 가져옴
-    int32 CurrentState = BBComp->GetValueAsInt(TacticStateKey);
-    ETacticState DecidedTactic = (ETacticState)CurrentState;
+    ETacticState DecidedTactic = CurrentState;
 
     // 전술 변경
     // 공격 거리(AttackDistance) 안인가?
     if (Distance <= AttackDistance)
     {
         DecidedTactic = ETacticState::Attack; // Attack (Enum 순서: 0:Dead, 1:Groggy, 2:Chase, 3:Encircle, 4:Flee, 5:Dash, 6:Attack)
-        //bIsAttacking = true;
+        bIsAttacking = true;
     }
     else
     {
         // [전술] 이미 전술 상태인 경우
-        if (CurrentState == (int32)ETacticState::Dash)
+        if (CurrentState == ETacticState::Dash)
         {
             // 전술 진입 거리(600) + 마진(200) = 800을 넘어가야만 추적으로 바꿈
             if (Distance > (confDistance + ExitMargin))

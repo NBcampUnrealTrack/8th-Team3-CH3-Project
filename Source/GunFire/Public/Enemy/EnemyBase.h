@@ -34,9 +34,24 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
     UAnimMontage* DeathMontage;
 
+    // 피격 시 재생할 몽타주
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+    UAnimMontage* HitMontage;
+
     // 삭제를 위한 타이머
     FTimerHandle DeathTimerHandle;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI | Combat")
+    bool bIsPatrol = true; // 패트롤 여부
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI | Combat")
+    bool bCanBeStunned = true; // 피격 시 경직 허용 여부
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI | Combat")
+    float HitStunDuration = 1.5f; // 경직 지속 시간
+
+    // 피격 재생
+    virtual void PlayHitReaction();
 
     UFUNCTION()
     virtual void OnWeaponOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
@@ -81,7 +96,7 @@ public:
 
     // 공격애니메이션 재생
     // 부모에 구현된 코드는 예시코드임
-    UFUNCTION(BlueprintCallable, Category = "AI|Combat")
+    UFUNCTION(BlueprintCallable, Category = "Combat")
     virtual void PlayAttack();
 
     //// 피해 처리
@@ -92,4 +107,7 @@ public:
     float GetMaxHP() const;
     float GetAttackDamage() const;
     bool bIsDead() const;
+    bool GetIsPatrol() const { return bIsPatrol; }
+    bool GetCanBeStunned() const { return bCanBeStunned; }
+    float GetHitStunDuration() const { return HitStunDuration; }
 };
