@@ -88,7 +88,7 @@ void AMinionEnemy::ActivateAttackCollision(FName WeaponTag)
                 Comp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 
                 // 확인용 디버그 로그
-                GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Cyan, FString::Printf(TEXT("%s 손 판정 ON!"), *WeaponTag.ToString()));
+                //GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Cyan, FString::Printf(TEXT("%s 손 판정 ON!"), *WeaponTag.ToString()));
             }
         }
     }

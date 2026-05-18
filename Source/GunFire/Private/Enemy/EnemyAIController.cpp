@@ -160,26 +160,28 @@ void AEnemyAIController::OnHitDamage(APawn* Enemy)
         GetWorld()->GetTimerManager().ClearTimer(HitStunTimerHandle);
         GetWorld()->GetTimerManager().SetTimer(HitStunTimerHandle, this, &AEnemyAIController::EndHitStun, MyPawn->GetHitStunDuration(), false);
 
-        // 피격 몽타주 재생 및 이동 정지
-        MyPawn->PlayHitReaction();
+        // 피격 몽타주 재생
+        MyPawn->PlayHitReaction(Enemy);
     }
 
     // 블랙보드에 타겟 등록 및 시야 확보 처리
     BBComp->SetValueAsObject(TargetActorKey, Enemy);
     BBComp->SetValueAsBool(HasLineOfSightKey, true);
 
-
-    // 맞자마자 타겟으로 방향전환연산
-    FVector Direction = Enemy->GetActorLocation() - MyPawn->GetActorLocation();
-
-    // 방향 벡터를 변환
-    FRotator TargetRot = Direction.Rotation();
-
-    // 회전값(어차피 z축 회전이면될것)
-    FRotator NewRotation = FRotator(0.f, TargetRot.Yaw, 0.f);
-    MyPawn->SetActorRotation(NewRotation);
+    // 경직을 줄거고 HasLineOfSightKey가 true이니 자동으로 그쪽을 볼거임
+    //// 맞자마자 타겟으로 방향전환연산
+    //FVector Direction = Enemy->GetActorLocation() - MyPawn->GetActorLocation();
+    //
+    //// 방향 벡터를 변환
+    //FRotator TargetRot = Direction.Rotation();
+    //
+    //// 회전값(어차피 z축 회전이면될것)
+    //FRotator NewRotation = FRotator(0.f, TargetRot.Yaw, 0.f);
+    //MyPawn->SetActorRotation(NewRotation);
 
     //GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("테스트 타겟 피격! 동료들을 부릅니다!"));
+
+
     // 반경 내 동료에게 알람
     AlertAlly(Enemy);
 }

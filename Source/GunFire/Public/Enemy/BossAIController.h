@@ -59,7 +59,7 @@ protected:
     const FName BossStateKey = FName("BossState");
     const FName IsCooldownKey = FName("IsCooldown");
     const FName AttackPatternKey = FName("AttackPattern");
-    const FName TacticPatternKey = FName("TacticPAttern");
+    const FName TacticPatternKey = FName("TacticPattern");
 
 
     // 쿨타임 (딜레이) 랜덤 범위

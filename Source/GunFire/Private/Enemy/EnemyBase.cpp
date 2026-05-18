@@ -17,6 +17,7 @@ AEnemyBase::AEnemyBase()
     StatComponent = CreateDefaultSubobject<UStatComponent>(TEXT("StatComponent"));
     bDead = false;
     AttackSpeedRate = 1.0f;
+    bCanBeStunned = false;
 }
 
 void AEnemyBase::BeginPlay()
@@ -71,17 +72,55 @@ void AEnemyBase::BeginPlay()
     }
 }
 
-void AEnemyBase::PlayHitReaction()
+void AEnemyBase::PlayHitReaction(APawn* Attacker)
 {
-    if (bDead || !HitMontage)
+    if (bDead || !HitMontage || !Attacker)
         return;
 
-    // 현재 재생 중인 몽타주 등이 있다면 중단
     UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-    if (AnimInstance)
+    if (!AnimInstance)
+        return;
+
+    // 공격자와 나를 향하는 벡터 (2차원으로만 계산)
+    FVector DirToAttacker = (Attacker->GetActorLocation() - GetActorLocation()).GetSafeNormal();
+    DirToAttacker.Z = 0.f;
+
+    FVector MyForward = GetActorForwardVector();
+    FVector MyRight = GetActorRightVector();
+
+    // 내적 계산
+    float ForwardDot = FVector::DotProduct(MyForward, DirToAttacker);
+    float RightDot = FVector::DotProduct(MyRight, DirToAttacker);
+
+    FName SectionName = FName("Hit_F");
+
+    // 방향 판정, 절댓값이 크다 = 해당벡터와가까움
+    // 양수 : 예각, 음수 : 둔각
+    // 앞뒤에서 맞은거
+    if (FMath::Abs(ForwardDot) >= FMath::Abs(RightDot))
     {
-        AnimInstance->Montage_Play(HitMontage);
+        // 예각 = 정면
+        if (ForwardDot > 0.f)
+            // 앞에서 맞음
+            SectionName = FName("Hit_F");
+        else
+            // 뒤에서 맞음
+            SectionName = FName("Hit_B");
     }
+    // 좌우에서 맞은 것
+    else
+    {
+        // 예각 = 오른쪽
+        if (RightDot > 0.f)
+            // 오른쪽에서 맞음
+            SectionName = FName("Hit_R");
+        else
+            // 왼쪽에서 맞음
+            SectionName = FName("Hit_L");
+    }
+
+    PlayAnimMontage(HitMontage, 1.0f, SectionName);
+
 }
 
 void AEnemyBase::OnWeaponOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
