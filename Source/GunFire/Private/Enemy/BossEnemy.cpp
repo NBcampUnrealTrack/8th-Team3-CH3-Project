@@ -16,6 +16,8 @@ void ABossEnemy::BeginPlay()
 {
     Super::BeginPlay();
 
+    bCanBeStunned = false;
+
     // 공격충돌체 등록
     TArray<UActorComponent*> FoundComps = GetComponentsByTag(UPrimitiveComponent::StaticClass(), FName("DamageBox"));
     for (UActorComponent* Comp : FoundComps)
