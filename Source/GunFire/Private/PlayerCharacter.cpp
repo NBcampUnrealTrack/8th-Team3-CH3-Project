@@ -10,6 +10,7 @@
 #include "Engine/World.h"
 #include "Engine/OverlapResult.h"
 #include "CollisionQueryParams.h"
+#include "StatComponent.h"
 #include "WorldCollision.h"
 #include "GameFramework/Actor.h"
 
@@ -57,14 +58,6 @@ APlayerCharacter::APlayerCharacter()
     IsReloading = false;
     ReloadTime = 2.0f;
 
-    // 체력
-    MaxHealth = 100;
-    CurrentHealth = MaxHealth;
-
-    // 스태미나
-    MaxStamina = 100;
-    CurrentStamina = MaxStamina;
-
     // 공격
     HeavyAttackHoldTime = 0.5f;
     bHeavyAttackTriggered = false;
@@ -79,10 +72,9 @@ void APlayerCharacter::BeginPlay()
 
     // 상호작용 범위 감지 0.2마다 실행
     GetWorldTimerManager().SetTimer(InteractionCheckTimerHandle, this, &APlayerCharacter::CheckInteractablesRamge, 0.2f, true);
-    // 디버그용 스태미너 회복
-    GetWorldTimerManager().SetTimer(NaturalHealingStaminaTimerHandle, this, &APlayerCharacter::NaturalHealingStamina, 1.0f, true);
+    // // 디버그용 스태미너 회복
+    // GetWorldTimerManager().SetTimer(NaturalHealingStaminaTimerHandle, this, &APlayerCharacter::NaturalHealingStamina, 1.0f, true);
 
-    CombatComponent = FindComponentByClass<UCombatComponent>();
 }
 
 void APlayerCharacter::Tick(float DeltaTime)
@@ -203,6 +195,24 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
     }
 }
 
+void APlayerCharacter::PostInitializeComponents()
+{
+    Super::PostInitializeComponents();
+
+    CombatComponent = FindComponentByClass<UCombatComponent>();
+    StatComponent = FindComponentByClass<UStatComponent>();
+
+    // 스탯 컴포넌트의 델리게이트 이벤트 바인딩
+    if (IsValid(StatComponent))
+    {
+        StatComponent->OnDamaged.AddDynamic(this, &APlayerCharacter::HandleDamaged);
+        StatComponent->OnHealed.AddDynamic(this, &APlayerCharacter::HandleHealed);
+        StatComponent->OnDead.AddDynamic(this, &APlayerCharacter::HandleDead);
+        StatComponent->OnHealthChanged.AddDynamic(this, &APlayerCharacter::HandleHealthChanged);
+        StatComponent->OnStaminaChanged.AddDynamic(this, &APlayerCharacter::HandleStaminaChanged);
+    }
+}
+
 void APlayerCharacter::Move(const FInputActionValue& Value)
 {
     if (!Controller) return;
@@ -261,9 +271,9 @@ void APlayerCharacter::Dash(const FInputActionValue& Value)
         return;
     }
 
-    if (CurrentStamina < 20) return;
+    //if (CurrentStamina < 20) return;
 
-    CurrentStamina = FMath::Clamp(CurrentStamina - 20, 0, MaxStamina);
+    //CurrentStamina = FMath::Clamp(CurrentStamina - 20, 0, MaxStamina);
     // 대쉬 방향 결정 (입력 방향 위주)
     FVector DashDirection = MoveComp->GetLastInputVector();
 
@@ -319,9 +329,9 @@ void APlayerCharacter::Run(const FInputActionValue& Value)
     {
         if (Value.Get<bool>())
         {
-            if (CurrentStamina <= 0) return;
+            //if (CurrentStamina <= 0) return;
             GetCharacterMovement()->MaxWalkSpeed = RunSpeed;
-            CurrentStamina = FMath::Clamp(CurrentStamina - 1, 0, MaxStamina);
+            //CurrentStamina = FMath::Clamp(CurrentStamina - 1, 0, MaxStamina);
         }
         else
         {
@@ -566,6 +576,31 @@ void APlayerCharacter::CheckInteractablesRamge()
     }
 }
 
+void APlayerCharacter::HandleDamaged(float ActualDamage, AController* DamagedInstigator)
+{
+    // C++ 코드 처리
+}
+
+void APlayerCharacter::HandleHealed(float HealAmount)
+{
+    // C++ 코드 처리
+}
+
+void APlayerCharacter::HandleDead(AController* DamagedInstigator)
+{
+    // C++ 코드 처리
+}
+
+void APlayerCharacter::HandleHealthChanged(float CurrentHealth, float MaxHealth)
+{
+    // C++ 코드 처리
+}
+
+void APlayerCharacter::HandleStaminaChanged(float CurrentStamina, float MaxStamina)
+{
+    // C++ 코드 처리
+}
+
 void APlayerCharacter::KillEnemyForDebug()
 {
     // 테스트로 현재 방의 적을 처치함
@@ -574,61 +609,6 @@ void APlayerCharacter::KillEnemyForDebug()
         UE_LOG(LogTemp, Warning, TEXT("Kill 1 Enemy for Test"));
         GFGameMode->KillEnemyForTest();
     }
-}
-
-void APlayerCharacter::DamageForDebug()
-{
-    CurrentHealth = FMath::Clamp(CurrentHealth - 10, 0, MaxHealth);
-}
-
-void APlayerCharacter::AddHealthForDebug()
-{
-    CurrentHealth = FMath::Clamp(CurrentHealth + 30, 0, MaxHealth);
-}
-
-void APlayerCharacter::NaturalHealingStamina()
-{
-    CurrentStamina = FMath::Clamp(CurrentStamina + 1, 0, MaxStamina);
-}
-
-int32 APlayerCharacter::GetCurrentHealth() const
-{
-    return CurrentHealth;
-}
-
-int32 APlayerCharacter::GetCurrentStamina() const
-{
-    return CurrentStamina;
-}
-
-void APlayerCharacter::SetCurrentHealth(int32 Amount)
-{
-    CurrentHealth += Amount;
-}
-
-void APlayerCharacter::SetCurrentStamina(int32 Amount)
-{
-    CurrentStamina += Amount;
-}
-
-int32 APlayerCharacter::GetMaxHealth() const
-{
-    return MaxHealth;
-}
-
-int32 APlayerCharacter::GetMaxStamina() const
-{
-    return MaxStamina;
-}
-
-void APlayerCharacter::SetMaxHealth(int32 Amount)
-{
-    MaxHealth += Amount;
-}
-
-void APlayerCharacter::SetMaxStamina(int32 Amount)
-{
-    MaxStamina += Amount;
 }
 
 void APlayerCharacter::MeleeAttackStarted()

@@ -256,9 +256,9 @@ void UCombatComponent::TryMeleeAttack(
         if (!TrySetActionState(ECombatActionState::Attacking)) return;
     }
 
-    // 스태미너 사용 시도
+    // 스태미너 사용 가능한지 확인
     const float Cost = GetStaminaCost(MeleeWeapon);
-    if (!StatComponent->TryConsumeStamina(Cost))
+    if (!StatComponent->CanConsumeStamina(Cost))
     {
         // 첫 공격에 실패했다면 행동 되돌림
         // 콤보 공격에 실패는 Attacking 상태 그대로라 ClearActionState를 호출하면 안됨
@@ -279,7 +279,11 @@ void UCombatComponent::TryMeleeAttack(
         {
             ClearActionState(ECombatActionState::Attacking);
         }
+        return;
     }
+
+    // 공격이 성공해야 실제 스태미너 소모
+    StatComponent->TryConsumeStamina(Cost);
 }
 
 void UCombatComponent::SetActionState(ECombatActionState NewState)

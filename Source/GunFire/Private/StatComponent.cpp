@@ -37,19 +37,25 @@ void UStatComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
     Super::EndPlay(EndPlayReason);
 }
 
+bool UStatComponent::CanConsumeStamina(float Cost) const
+{
+    // 스태미너 소모하지 않거나 코스트가 0이라면 true 리턴
+    if (!bUseStamina || Cost <= 0.f) return true;
+
+    return CurrentStamina >= Cost;
+}
+
 bool UStatComponent::TryConsumeStamina(float Cost)
 {
-    // 스태미너 소모하지 않는 액터이면 true 리턴
-    if (!bUseStamina) return true;
-    // 코스트가 0 이하라면 바로 true 리턴
-    if (Cost <= 0.f) return true;
+    // 스태미너 소모하지 않거나 코스트가 0이라면 아래 스태미너 소모 처리 X
+    if (!bUseStamina || Cost <= 0.f) return true;
 
     UWorld* World = GetWorld();
     if (!World) return false;
 
-    if (CurrentStamina < Cost) return false;
-
     CurrentStamina -= Cost;
+
+    UE_LOG(LogTemp, Warning, TEXT("Stamina: %f"), CurrentStamina);
 
     // 스태미너 변경 이벤트 발생
     OnStaminaChanged.Broadcast(CurrentStamina, GetMaxStamina());
@@ -74,6 +80,7 @@ bool UStatComponent::TryConsumeStamina(float Cost)
         StaminaRegenDelayTime,
         false
         );
+
 
     return true;
 }
@@ -192,6 +199,11 @@ float UStatComponent::GetMovementSpeed(bool bIsSprint) const
 float UStatComponent::GetMaxStamina() const
 {
     return GetStatValue(ECombatStatType::MaxStamina);
+}
+
+float UStatComponent::GetCurrentStamina() const
+{
+    return CurrentStamina;
 }
 
 void UStatComponent::TakeDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType,

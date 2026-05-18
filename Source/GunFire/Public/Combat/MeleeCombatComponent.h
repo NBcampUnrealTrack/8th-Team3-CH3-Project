@@ -7,7 +7,6 @@
 class AEnemyBase;
 class ACharacter;
 class AMeleeWeaponBase;
-class UAnimInstance;
 class UAnimMontage;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FAttackFinishedSignature);
@@ -120,14 +119,6 @@ private:
 
     // 현재 콤보 인덱스에 해당하는 콤보 공격 섹션 가져오는 함수
     FName GetComboSectionName(AMeleeWeaponBase* MeleeWeapon, EMeleeAttackType AttackType, int32 ComboIndex) const;
-    // 콤보 공격이 몇개까지 있는지 가져오는 함수
-    int32 GetComboCount(AMeleeWeaponBase* MeleeWeapon, EMeleeAttackType AttackType) const;
-
-    // 다음 섹션에 연결되지 않도록 비우는 함수
-    void ClearComboNextSection(UAnimInstance* AnimInstance, UAnimMontage* AttackMontage, FName SectionName);
-    // 현재 섹션과 다음 섹션을 연결해주는 함수
-    void PrepareComboSectionLink(UAnimInstance* AnimInstance, UAnimMontage* AttackMontage,
-        FName CurrentSectionName, FName NextSectionName = NAME_None);
 
     // 공격 상태 초기화하는 함수
     void ResetAttackState();

@@ -19,6 +19,7 @@ class GUNFIRE_API UStatComponent : public UActorComponent
 public:
 	UStatComponent();
 
+    bool CanConsumeStamina(float Cost) const;
     bool TryConsumeStamina(float Cost);
     void Heal(float Amount);
     void AddBaseStat(ECombatStatType StatType, float AddValue);
@@ -29,12 +30,20 @@ public:
     float GetStatValue(ECombatStatType StatType) const;
     bool IsDead() const;
 
+    UFUNCTION(BlueprintPure)
     float GetMaxHealth() const;
+    UFUNCTION(BlueprintPure)
     float GetCurrentHealth() const;
+    UFUNCTION(BlueprintPure)
     float GetAttackPower() const;
+    UFUNCTION(BlueprintPure)
     float GetDefense() const;
+    UFUNCTION(BlueprintPure)
     float GetMovementSpeed(bool bIsSprint) const;
+    UFUNCTION(BlueprintPure)
     float GetMaxStamina() const;
+    UFUNCTION(BlueprintPure)
+    float GetCurrentStamina() const;
 
 public:
     // 델리게이트

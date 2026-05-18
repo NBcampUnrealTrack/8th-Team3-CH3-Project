@@ -4,6 +4,7 @@
 #include "GameFramework/Character.h"
 #include "PlayerCharacter.generated.h"
 
+class UStatComponent;
 class UCombatComponent;
 class USkeletalMeshComponent;
 class USpringArmComponent;
@@ -40,23 +41,9 @@ public:
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-    UFUNCTION(BlueprintPure, Category = "Stats")
-    int32 GetCurrentHealth() const;
-    UFUNCTION(BlueprintPure, Category = "Stats")
-    int32 GetCurrentStamina() const;
-    UFUNCTION(BlueprintCallable, Category = "Stats")
-    void SetCurrentHealth(int32 Amount);
-    UFUNCTION(BlueprintCallable, Category = "Stats")
-    void SetCurrentStamina(int32 Amount);
+    // BeginPlay 전에 컴포넌트를 준비할 수 있는 함수
+    virtual void PostInitializeComponents() override;
 
-    UFUNCTION(BlueprintPure, Category = "Stats")
-    int32 GetMaxHealth() const;
-    UFUNCTION(BlueprintPure, Category = "Stats")
-    int32 GetMaxStamina() const;
-    UFUNCTION(BlueprintCallable, Category = "Stats")
-    void SetMaxHealth(int32 Amount);
-    UFUNCTION(BlueprintCallable, Category = "Stats")
-    void SetMaxStamina(int32 Amount);
 
 protected:
 
@@ -132,9 +119,14 @@ protected:
     FTimerHandle HeavyAttackTimerHandle;
 
 
-    // 컴포넌트
+    /* 컴포넌트 */
+
+    // 전투 관리 컴포넌트
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Component")
     TObjectPtr<UCombatComponent> CombatComponent;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Component")
+    TObjectPtr<UStatComponent> StatComponent;
 
 protected:
     virtual void BeginPlay() override;
@@ -170,6 +162,30 @@ protected:
     void CheckForInteractables();   // 상호작용 트레이스 방식
     void CheckInteractablesRamge(); // 범위감지 방식
 
+
+    /* 이벤트 핸들 함수 */
+
+    // 피격 이벤트 처리, 이펙트, 애니메이션, 사운드 등
+    UFUNCTION()
+    void HandleDamaged(float ActualDamage, AController* DamagedInstigator);
+
+    // 회복 이벤트 처리, 이펙트, 사운드 등
+    UFUNCTION()
+    void HandleHealed(float HealAmount);
+
+    // 사망 이벤트 처리
+    UFUNCTION()
+    void HandleDead(AController* DamagedInstigator);
+
+    // 체력 변경에 따른 HUD 갱신 처리
+    UFUNCTION()
+    void HandleHealthChanged(float CurrentHealth, float MaxHealth);
+
+    // 스태미너 변경에 따른 HUD 갱신 처리
+    UFUNCTION()
+    void HandleStaminaChanged(float CurrentStamina, float MaxStamina);
+
+
     // 디버그용 몬스터 처치 함수
     void KillEnemyForDebug();
 
@@ -177,19 +193,4 @@ protected:
     void MeleeAttackReleased();
     void OnHeavyAttack();
 
-    // 디버그용 데미지, 힐
-    UFUNCTION(BlueprintCallable)
-    void DamageForDebug();
-    UFUNCTION(BlueprintCallable)
-    void AddHealthForDebug();
-    void NaturalHealingStamina();
-private:
-    UPROPERTY(VisibleAnywhere, Category = "Stats")
-    int32 CurrentHealth;
-    UPROPERTY(VisibleAnywhere, Category = "Stats")
-    int32 MaxHealth;
-    UPROPERTY(VisibleAnywhere, Category = "Stats")
-    int32 CurrentStamina;
-    UPROPERTY(VisibleAnywhere, Category = "Stats")
-    int32 MaxStamina;
 };

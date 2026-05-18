@@ -39,8 +39,12 @@ bool UMeleeCombatComponent::CanStartAttack(AMeleeWeaponBase* MeleeWeapon, EMelee
     if (!IsValid(MeleeWeapon)) return false;
     if (!IsValid(OwnerCharacter)) return false;
 
-    if (!IsValid(GetAttackAnimMontage(MeleeWeapon, AttackType))) return false;
-    if (GetComboSectionName(MeleeWeapon, AttackType, ComboIndex).IsNone()) return false;
+    UAnimMontage* AttackMontage = GetAttackAnimMontage(MeleeWeapon, AttackType);
+    if (!AttackMontage) return false;
+
+    // 섹션 이름이 존재하는지, 섹션 이름이 해당 몽타주에 제대로 있는지 확인
+    FName SectionName = GetComboSectionName(MeleeWeapon, AttackType, ComboIndex);
+    if (SectionName.IsNone() || AttackMontage->GetSectionIndex(SectionName) == INDEX_NONE) return false;
 
     return true;
 }
@@ -99,6 +103,8 @@ bool UMeleeCombatComponent::TryHeavyAttack(AMeleeWeaponBase* MeleeWeapon, float 
 
 void UMeleeCombatComponent::FinishAttack()
 {
+    if (!IsAttackInProgress()) return;
+
     EndAttackTrace();
 
     ResetAttackState();
@@ -151,7 +157,6 @@ bool UMeleeCombatComponent::TryAttack(AMeleeWeaponBase* MeleeWeapon, float Attac
 {
     if (IsAttackInProgress())
     {
-        UE_LOG(LogTemp, Warning, TEXT("공격 시도"));
         return TryChainAttack(MeleeWeapon, AttackPower, AttackType);
     }
 
@@ -193,9 +198,6 @@ bool UMeleeCombatComponent::StartAttack(AMeleeWeaponBase* MeleeWeapon, float Att
     bComboTriggered = false;
     bAttackInProgress = true;
 
-    // 다음에 실행할 섹션 연결 준비
-    PrepareComboSectionLink(AnimInstance, AttackMontage, SectionName);
-
     // 애니메이션 몽타주가 끝날 때 호출할 함수 바인딩
     FOnMontageEnded OnAttackMontageEnded;
     OnAttackMontageEnded.BindUObject(this, &UMeleeCombatComponent::HandleAttackMontageEnded);
@@ -226,21 +228,35 @@ bool UMeleeCombatComponent::TryChainAttack(AMeleeWeaponBase* MeleeWeapon, float 
     }
 
     int32 NextComboIndex = CurrentComboIndex + 1;
-    FName CurrentSectionName = GetComboSectionName(MeleeWeapon, AttackType, CurrentComboIndex);
     FName NextSectionName = GetComboSectionName(MeleeWeapon, AttackType, NextComboIndex);
-    if (CurrentSectionName.IsNone() || NextSectionName.IsNone())
+    if (NextSectionName.IsNone())
     {
         UE_LOG(LogTemp, Warning, TEXT("콤보에 해당하는 섹션 이름이 없습니다!!"));
         return false;
     }
 
-    // 현재 섹션만 다음 콤보 섹션으로 연결
-    PrepareComboSectionLink(AnimInstance, AttackMontage, CurrentSectionName, NextSectionName);
+    // 입력은 들어왔지만 몽타주 재생이 이미 끝났을 경우 실패 반환
+    if (!AnimInstance->Montage_IsPlaying(AttackMontage))
+    {
+        UE_LOG(LogTemp, Warning, TEXT("이미 몽타주 재생이 끝났습니다!!"));
+        return false;
+    }
+
+    // 다음 동작의 섹션으로 건너뛰기
+    AnimInstance->Montage_JumpToSection(NextSectionName, AttackMontage);
+    // 제대로 건너 뛰었는지 확인
+    if (AnimInstance->Montage_GetCurrentSection(AttackMontage) != NextSectionName) return false;
+
+    // 현재 섹션을 건너뛸 경우 NotifyState End가 실행되지 않을 수 있으므로 직접 처리해야 함
+    EndAttackTrace();
+    CloseComboInput();
 
     CurrentComboIndex = NextComboIndex;
     CurrentPower = AttackPower * MeleeWeapon->GetDamageRate();
     bComboTriggered = true;
     bCanComboInput = false;
+
+    PlayAttackSound(MeleeWeapon);
 
     return true;
 }
@@ -253,41 +269,6 @@ FName UMeleeCombatComponent::GetComboSectionName(AMeleeWeaponBase* MeleeWeapon, 
     return AttackType == EMeleeAttackType::Light
         ? MeleeWeapon->GetLightComboSectionName(ComboIndex)
         : MeleeWeapon->GetHeavyComboSectionName(ComboIndex);
-}
-
-int32 UMeleeCombatComponent::GetComboCount(AMeleeWeaponBase* MeleeWeapon, EMeleeAttackType AttackType) const
-{
-    if (!IsValid(MeleeWeapon)) return 0;
-
-    return AttackType == EMeleeAttackType::Light
-        ? MeleeWeapon->GetLightComboCount()
-        : MeleeWeapon->GetHeavyComboCount();
-}
-
-void UMeleeCombatComponent::ClearComboNextSection(UAnimInstance* AnimInstance, UAnimMontage* AttackMontage,
-    FName SectionName)
-{
-    if (!IsValid(AnimInstance) || !IsValid(AttackMontage)) return;
-    if (SectionName.IsNone()) return;
-
-    AnimInstance->Montage_SetNextSection(SectionName, NAME_None, AttackMontage);
-}
-
-void UMeleeCombatComponent::PrepareComboSectionLink(UAnimInstance* AnimInstance, UAnimMontage* AttackMontage,
-    FName CurrentSectionName, FName NextSectionName)
-{
-    if (!IsValid(AnimInstance) || !IsValid(AttackMontage)) return;
-    if (CurrentSectionName.IsNone()) return;
-
-    // 현재 섹션과 이어질 다음 섹션 비우기
-    ClearComboNextSection(AnimInstance, AttackMontage, CurrentSectionName);
-    ClearComboNextSection(AnimInstance, AttackMontage, NextSectionName);
-
-    // 연결할 다음 섹션이 있다면 현재 섹션의 다음 섹션으로 연결하기
-    if (!NextSectionName.IsNone())
-    {
-        AnimInstance->Montage_SetNextSection(CurrentSectionName, NextSectionName, AttackMontage);
-    }
 }
 
 void UMeleeCombatComponent::ResetAttackState()
@@ -372,6 +353,7 @@ void UMeleeCombatComponent::DoHitTrace()
         );
 
     // --- 디버그 캡슐 그리기 ---
+#if ENABLE_DRAW_DEBUG
     const float Radius = Weapon->GetTraceRadius();
 
     const FVector Center = (Start + End) * 0.5f;
@@ -390,6 +372,7 @@ void UMeleeCombatComponent::DoHitTrace()
         false,
         AttackTraceInterval
     );
+#endif
     // ------------------
 
     if (!bHit) return;
