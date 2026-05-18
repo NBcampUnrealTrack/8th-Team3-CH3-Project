@@ -5,6 +5,8 @@
 #include "ItemSystemTypes.h"
 #include "InventoryComponent.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryChangedSignature);
+
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class GUNFIRE_API UInventoryComponent : public UActorComponent
 {
@@ -12,6 +14,9 @@ class GUNFIRE_API UInventoryComponent : public UActorComponent
 
 public:
     UInventoryComponent();
+
+    UPROPERTY(BlueprintAssignable, Category = "Inventory|Event")
+    FOnInventoryChangedSignature OnInventoryChanged;
 
     // 랜덤 목록 가져오기
     UFUNCTION(BlueprintCallable, Category = "Inventory")
@@ -28,7 +33,10 @@ public:
     void AddActive(FGF_ActiveItemData NewData);
 
     UFUNCTION(BlueprintCallable, Category = "Inventory")
-    void AddMaterial(FGF_PassiveItemData NewData); 
+    void AddMaterial(FGF_PassiveItemData NewData);
+
+    UFUNCTION(BlueprintCallable, Category = "Inventory|Upgrade")
+    void UpgradeItem(int32 TargetIndex, int32 MaterialIndex, bool bSuccess);
 
     // 보유 리스트 반환
     UFUNCTION(BlueprintPure, Category = "Inventory")
@@ -41,7 +49,6 @@ public:
     TArray<FGF_PassiveItemData> GetOwnedMaterials() const { return OwnedMaterials; }
 
 protected:
-    // 데이터 테이블
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")
     class UDataTable* PassiveItemTable;
 
