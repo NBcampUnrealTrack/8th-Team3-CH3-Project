@@ -33,6 +33,7 @@ APlayerCharacter::APlayerCharacter()
     DashStrength = 2000.0f;
     DashDuration = 0.2f;
     DashCooldown = 3.0f;
+    IsDashing = false;
 
     // 이동속도
     NormalSpeed = 600.0f;
@@ -81,7 +82,7 @@ void APlayerCharacter::BeginPlay()
     // 상호작용 범위 감지 0.2마다 실행
     GetWorldTimerManager().SetTimer(InteractionCheckTimerHandle, this, &APlayerCharacter::CheckInteractablesRamge, 0.2f, true);
     // 디버그용 스태미너 회복
-    GetWorldTimerManager().SetTimer(NaturalHealingStaminaTimerHandle, this, &APlayerCharacter::NaturalHealingStamina, 1.0f, true);
+    GetWorldTimerManager().SetTimer(NaturalHealingStaminaTimerHandle, this, &APlayerCharacter::NaturalHealingStamina, 0.2f, true);
 
     CombatComponent = FindComponentByClass<UCombatComponent>();
 }
@@ -208,6 +209,8 @@ void APlayerCharacter::Move(const FInputActionValue& Value)
 {
     if (!Controller) return;
 
+    if (IsDashing) return;
+
     if (CombatComponent && !CombatComponent->CanMove()) return;
 
     FVector2D MovementVector = Value.Get<FVector2D>();
@@ -265,6 +268,8 @@ void APlayerCharacter::Dash(const FInputActionValue& Value)
     }
 
     UE_LOG(LogTemp, Log, TEXT("Dash Start"));
+    IsDashing = true;
+    MoveComp->bOrientRotationToMovement = false;
 
     CurrentStamina = FMath::Clamp(CurrentStamina - 20, 0, MaxStamina);
     // 대쉬 방향 결정 (입력 방향 위주)
@@ -276,17 +281,14 @@ void APlayerCharacter::Dash(const FInputActionValue& Value)
         DashDirection = GetActorForwardVector();
     }
     DashDirection.Z = 0.0f;
+    // 벡터 자체의 크기(길이)가 정확히 1.0으로 고정
     DashDirection.Normalize();
 
     UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 
     if (AnimInstance && DashMontage)
     {
-        float AnimLength = DashMontage->GetPlayLength();
-
-        float TargetPlayRate = AnimLength / DashDuration;
-
-        PlayAnimMontage(DashMontage, TargetPlayRate);
+        AnimInstance->Montage_Play(DashMontage);
         UE_LOG(LogTemp, Log, TEXT("대쉬 애니메이션 재생"));
     }
 
@@ -300,12 +302,11 @@ void APlayerCharacter::Dash(const FInputActionValue& Value)
     GetCharacterMovement()->MaxWalkSpeed = DashStrength;
 
     // 즉각적인 속도 부여
-    //MoveComp->Velocity = DashDirection.GetSafeNormal() * DashStrength;
     MoveComp->Velocity = DashDirection * DashStrength;
 
     CanDash = false;
     // 마찰력 복구
-    GetWorldTimerManager().SetTimer(DashStopTimerHandle, this, &APlayerCharacter::StopDash, DashDuration, false);
+    //GetWorldTimerManager().SetTimer(DashStopTimerHandle, this, &APlayerCharacter::StopDash, DashDuration, false);
     // 쿨타임 이후에 대쉬 다시 사용가능
     GetWorldTimerManager().SetTimer(DashCooldownTimerHandle, this, &APlayerCharacter::ResetDash, DashCooldown, false);
 }
@@ -319,6 +320,14 @@ void APlayerCharacter::StopDash()
     MoveComp->GroundFriction = DefaultGroundFriction;
     MoveComp->BrakingDecelerationWalking = DefaultBrakingDeceleration;
     UE_LOG(LogTemp, Log, TEXT("Dash Stop"));
+}
+
+void APlayerCharacter::EndDashAnimation()
+{
+    IsDashing = false;
+    UCharacterMovementComponent* MoveComp = GetCharacterMovement();
+    if (!MoveComp) return;
+    MoveComp->bOrientRotationToMovement = true;
 }
 
 void APlayerCharacter::ResetDash()

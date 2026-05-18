@@ -78,6 +78,8 @@ protected:
     float DashCooldown;                 // 대쉬 쿨타임
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dash")
     float DashDuration;                 // 대쉬 지속시간
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Dash")
+    bool IsDashing;
     float DefaultGroundFriction;            // 현재 마찰력 저장
     float DefaultBrakingDeceleration;       // 현재 제동력 저장
     FTimerHandle DashCooldownTimerHandle;   // 대쉬 쿨타임타이머
@@ -158,7 +160,10 @@ protected:
     virtual void Jump() override;
     // 대쉬(회피)
     void Dash(const FInputActionValue& Value);
+    UFUNCTION(BlueprintCallable)
     void StopDash();
+    UFUNCTION(BlueprintCallable)
+    void EndDashAnimation();
     void ResetDash();       // 대쉬(회피) 초기화
     // 달리기
     void Run(const FInputActionValue& Value);
