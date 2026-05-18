@@ -46,18 +46,6 @@ APlayerCharacter::APlayerCharacter()
     AimFOV = 70.0f;
     DefaultSocketOffset = ThirdPersonCameraComponent->GetComponentLocation();
 
-    // 사격
-    MaxAmmo = 4;
-    TotalAmmo = 12;
-    CurrentAmmo = MaxAmmo;
-    AmmoPerFire = 1;
-    CanFire = true;
-    Rof = 1.0f;
-
-    // 재장전
-    IsReloading = false;
-    ReloadTime = 2.0f;
-
     // 공격
     HeavyAttackHoldTime = 0.5f;
     bHeavyAttackTriggered = false;
@@ -378,80 +366,18 @@ void APlayerCharacter::StopAiming()
 void APlayerCharacter::Shot(const FInputActionValue& Value)
 {
     if (!Controller) return;
+    if (!IsAiming) return;
+    if (!IsValid(CombatComponent)) return;
 
-    if (CombatComponent && !CombatComponent->CanMove()) return;
-
-    if (!IsAiming || !CanFire || IsReloading) return;
-
-    UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-
-    if (CurrentAmmo > 0 && AnimInstance && !AnimInstance->Montage_IsPlaying(FireMontage) && !AnimInstance->Montage_IsPlaying(FireDelayMontage))
-    {
-        GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Green, TEXT("Fire"));
-
-        CurrentAmmo -= AmmoPerFire;
-        CanFire = false;
-
-        AnimInstance->Montage_Play(FireMontage);
-
-        GetWorldTimerManager().SetTimer(ShotDelayTimerHandle, this, &APlayerCharacter::ShotDelay, 0.5f, false);
-    }
-    else
-    {
-        GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, TEXT("Ammo Empty OR Delay"));
-    }
-}
-
-void APlayerCharacter::ShotDelay()
-{
-    GetWorld()->GetTimerManager().ClearTimer(ShotDelayTimerHandle);
-    CanFire = true;
-
-    UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-    if (AnimInstance && FireDelayMontage)
-    {
-        AnimInstance->Montage_Play(FireDelayMontage);
-    }
+    CombatComponent->TryRangedAttack();
 }
 
 void APlayerCharacter::Reload(const FInputActionValue& Value)
 {
     if (!Controller) return;
+    if (!IsValid(CombatComponent)) return;
 
-    if (CurrentAmmo == MaxAmmo || !CanFire || IsReloading || TotalAmmo <= 0) return;
-
-    IsReloading = true;
-    CanFire = false;
-    GetWorldTimerManager().SetTimer(ReloadTimerHandle, this, &APlayerCharacter::Reloading, ReloadTime, false);
-    GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Green, TEXT("Reload"));
-
-    UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-    if (AnimInstance && ReloadMontage)
-    {
-        AnimInstance->Montage_Play(ReloadMontage);
-    }
-}
-
-void APlayerCharacter::Reloading()
-{
-    GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Green, TEXT("Reloading"));
-    TotalAmmo = FMath::Clamp(TotalAmmo - (MaxAmmo - CurrentAmmo), 0, 30);
-
-    if (TotalAmmo < MaxAmmo)
-    {
-        CurrentAmmo = TotalAmmo;
-    }
-    else
-    {
-        CurrentAmmo = MaxAmmo;
-    }
-    CanFire = true;
-    IsReloading = false;
-}
-
-void APlayerCharacter::MeleeAttack(const FInputActionValue& Value)
-{
-
+    CombatComponent->TryReload();
 }
 
 void APlayerCharacter::Skill(const FInputActionValue& Value)

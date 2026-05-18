@@ -30,12 +30,6 @@ public:
     // 카메라 (3인칭)
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
     UCameraComponent* ThirdPersonCameraComponent;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot")
-    UAnimMontage* FireMontage;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot")
-    UAnimMontage* FireDelayMontage;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reload")
-    UAnimMontage* ReloadMontage;
 public:
 	virtual void Tick(float DeltaTime) override;
 
@@ -79,35 +73,11 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Aiming")
     FVector AimSocketOffset;
 
-    // 사격
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot")
-    int32 CurrentAmmo;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot")
-    int32 MaxAmmo;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot")
-    int32 TotalAmmo;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot")
-    int32 AmmoPerFire;
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Shot")
-    bool CanFire;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot")
-    float Rof;
-    FTimerHandle ShotDelayTimerHandle;
-
-    //재장전
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Reload")
-    bool IsReloading;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reload")
-    float ReloadTime;
-    FTimerHandle ReloadTimerHandle;
 
     // 상호작용
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
     AActor* TargetedActor;  // 상호작용 가능한 액터 저장
     FTimerHandle InteractionCheckTimerHandle;
-
-    // 스태미나
-    FTimerHandle NaturalHealingStaminaTimerHandle;
 
 
     // 근접 공격
@@ -149,18 +119,21 @@ protected:
     void StopAiming();
     // 사격
     void Shot(const FInputActionValue& Value);
-    void ShotDelay();
     // 재장전
     void Reload(const FInputActionValue& Value);
-    void Reloading();
-    // 근접 공격
-    void MeleeAttack(const FInputActionValue& Value);
     // 스킬 사용
     void Skill(const FInputActionValue& Value);
     // 상호작용
     void Interaction(const FInputActionValue& Value);
     void CheckForInteractables();   // 상호작용 트레이스 방식
     void CheckInteractablesRamge(); // 범위감지 방식
+
+
+    /* 근접 공격 처리 */
+
+    void MeleeAttackStarted();
+    void MeleeAttackReleased();
+    void OnHeavyAttack();
 
 
     /* 이벤트 핸들 함수 */
@@ -188,9 +161,5 @@ protected:
 
     // 디버그용 몬스터 처치 함수
     void KillEnemyForDebug();
-
-    void MeleeAttackStarted();
-    void MeleeAttackReleased();
-    void OnHeavyAttack();
 
 };

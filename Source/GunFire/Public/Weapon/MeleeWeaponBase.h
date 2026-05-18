@@ -54,7 +54,7 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Melee")
     TObjectPtr<UAnimMontage> HeavyComboAnimMontage;
 
-    // 약공격 콤보 애니메이션, 약공격 1타는 기본 공격 애니메이션
+    // 약공격 콤보 애니메이션
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Melee")
     TObjectPtr<UAnimMontage> LightComboAnimMontage;
 

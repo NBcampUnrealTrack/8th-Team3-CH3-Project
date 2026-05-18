@@ -160,6 +160,12 @@ void UWeaponComponent::SetWeapon(EWeaponSlot Slot, AWeaponBase* NewWeapon)
     if (!Weapons.IsValidIndex(Index)) return;
 
     Weapons[Index] = NewWeapon;
+
+    // 장비 장착 이벤트 호출
+    if (IsValid(NewWeapon))
+    {
+        OnWeaponEquipped.Broadcast(Slot, NewWeapon);
+    }
 }
 
 void UWeaponComponent::AddWeaponMappingContext()

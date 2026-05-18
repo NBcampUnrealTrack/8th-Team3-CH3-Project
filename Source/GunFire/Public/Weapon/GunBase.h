@@ -6,6 +6,8 @@
 
 class AGunFireProjectile;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FAmmoChangedSignature, int32, CurrentAmmo, int32, RemainAmmo);
+
 UCLASS()
 class GUNFIRE_API AGunBase : public AWeaponBase
 {
@@ -19,12 +21,52 @@ public:
     // 공격 처리 함수
     virtual void Attack() override;
 
+    // 사격 가능한지 확인하는 함수
+    UFUNCTION(BlueprintPure)
+    bool CanFire() const;
+
+    // 사격 시 총알이 남았는지 확인하는 함수
+    UFUNCTION(BlueprintCallable)
+    bool TryConsumeAmmo();
+
     // 재장전
     UFUNCTION(BlueprintCallable)
     virtual void Reload();
 
+    // 재장전 가능한지 확인하는 함수
+    UFUNCTION(BlueprintPure)
+    bool CanReload() const;
+
+    // 재장전 시작 처리
+    UFUNCTION(BlueprintCallable)
+    bool TryStartReload();
+
+    // 재장전 실제 적용 처리
+    // 애니메이션 중 탄창을 갈아끼는 타이밍에 호출
+    UFUNCTION(BlueprintCallable)
+    bool ApplyReload();
+
+    // 재장전 애니메이션 종료 처리
+    UFUNCTION(BlueprintCallable)
+    void FinishReload();
+
+    UFUNCTION(BlueprintCallable)
+    void AddAmmo(int32 Amount);
+
     UFUNCTION(BlueprintPure)
     FTransform GetMuzzleTransform() const;
+
+    UFUNCTION(BlueprintPure)
+    USoundBase* GetReloadSound() const;
+
+    UFUNCTION(BlueprintPure)
+    UAnimMontage* GetReloadAnimation() const;
+
+    UFUNCTION(BlueprintPure)
+    int32 GetCurrentAmmo() const;
+
+    UFUNCTION(BlueprintPure)
+    int32 GetRemainAmmo() const;
 
     UFUNCTION(BlueprintPure)
     TSubclassOf<AGunFireProjectile> GetProjectileClass() const;
@@ -32,23 +74,17 @@ public:
     UFUNCTION(BlueprintPure)
     float GetRange() const;
 
+    UFUNCTION(BlueprintPure)
+    float GetProjectileSpeed() const;
+
+public:
+    // 총알수 변할 때
+    UPROPERTY(BlueprintAssignable)
+    FAmmoChangedSignature OnAmmoChanged;
+
 protected:
-    // 실제 사격 처리
-    virtual void Fire();
-
-    // 재장전 소리 재생
-    UFUNCTION(BlueprintCallable)
-    void PlayReloadSound();
-
-    // 재장전 애니메이션 몽타주 재생
-    void PlayReloadAnimation();
-
     // 사격 딜레이 처리 함수
     void HandleFireDelay();
-
-    // 재장전 애니메이션 중 실제 재장전 동작에서 호출될 함수
-    UFUNCTION(BlueprintCallable)
-    void HandleReloadComplete();
 
 protected:
     // 발사할 총알 클래스
@@ -91,6 +127,10 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Gun")
     float Range;
 
+    // 총알의 속도
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Gun")
+    float ProjectileSpeed;
+
     // 사격 가능한지
     UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Weapon|Gun")
     bool bCanFire;
@@ -98,6 +138,10 @@ protected:
     // 재장전 가능한지
     UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Weapon|Gun")
     bool bCanReload;
+
+    // 재장전 중인지
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon|Gun")
+    bool bReloading;
 
     FTimerHandle FireDelayTimer;
 };
