@@ -29,12 +29,21 @@ public:
     // 카메라 (3인칭)
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
     UCameraComponent* ThirdPersonCameraComponent;
+
+    // 애니메이션 몽타주
+    // 대쉬
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dash")
+    UAnimMontage* DashMontage;
+    // 사격
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot")
     UAnimMontage* FireMontage;
+    // 사격 딜레이
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot")
     UAnimMontage* FireDelayMontage;
+    // 재장전
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reload")
     UAnimMontage* ReloadMontage;
+
 public:
 	virtual void Tick(float DeltaTime) override;
 
@@ -61,12 +70,14 @@ public:
 protected:
 
     // 대쉬(회피)
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Run")
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Dash")
     bool CanDash;                      // 대쉬 가능 여부
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dash")
     float DashStrength;                 // 대쉬 세기
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dash")
     float DashCooldown;                 // 대쉬 쿨타임
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dash")
+    float DashDuration;                 // 대쉬 지속시간
     float DefaultGroundFriction;            // 현재 마찰력 저장
     float DefaultBrakingDeceleration;       // 현재 제동력 저장
     FTimerHandle DashCooldownTimerHandle;   // 대쉬 쿨타임타이머

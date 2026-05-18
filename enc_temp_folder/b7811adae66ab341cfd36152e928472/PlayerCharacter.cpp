@@ -253,8 +253,6 @@ void APlayerCharacter::Dash(const FInputActionValue& Value)
         return;
     }
 
-    if (CurrentStamina < 20) return;
-
     UCharacterMovementComponent* MoveComp = GetCharacterMovement();
 
     // 공중 상태 확인
@@ -264,7 +262,7 @@ void APlayerCharacter::Dash(const FInputActionValue& Value)
         return;
     }
 
-    UE_LOG(LogTemp, Log, TEXT("Dash Start"));
+    if (CurrentStamina < 20) return;
 
     CurrentStamina = FMath::Clamp(CurrentStamina - 20, 0, MaxStamina);
     // 대쉬 방향 결정 (입력 방향 위주)
@@ -275,8 +273,10 @@ void APlayerCharacter::Dash(const FInputActionValue& Value)
     {
         DashDirection = GetActorForwardVector();
     }
-    DashDirection.Z = 0.0f;
-    DashDirection.Normalize();
+
+    // 현재의 마찰력 설정값 저장
+    DefaultGroundFriction = MoveComp->GroundFriction;
+    DefaultBrakingDeceleration = MoveComp->BrakingDecelerationWalking;
 
     UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 
@@ -288,24 +288,22 @@ void APlayerCharacter::Dash(const FInputActionValue& Value)
 
         PlayAnimMontage(DashMontage, TargetPlayRate);
         UE_LOG(LogTemp, Log, TEXT("대쉬 애니메이션 재생"));
+        //AnimInstance->Montage_Play(DashMontage);
     }
-
-    // 현재의 마찰력 설정값 저장
-    DefaultGroundFriction = MoveComp->GroundFriction;
-    DefaultBrakingDeceleration = MoveComp->BrakingDecelerationWalking;
 
     // 마찰력과 제동력을 0으로 설정
     MoveComp->GroundFriction = 0.f;
     MoveComp->BrakingDecelerationWalking = 0.f;
-    GetCharacterMovement()->MaxWalkSpeed = DashStrength;
 
     // 즉각적인 속도 부여
-    //MoveComp->Velocity = DashDirection.GetSafeNormal() * DashStrength;
-    MoveComp->Velocity = DashDirection * DashStrength;
+    MoveComp->Velocity = DashDirection.GetSafeNormal() * DashStrength;
 
-    CanDash = false;
     // 마찰력 복구
     GetWorldTimerManager().SetTimer(DashStopTimerHandle, this, &APlayerCharacter::StopDash, DashDuration, false);
+
+    UE_LOG(LogTemp, Log, TEXT("Dash Start"));
+    CanDash = false;
+
     // 쿨타임 이후에 대쉬 다시 사용가능
     GetWorldTimerManager().SetTimer(DashCooldownTimerHandle, this, &APlayerCharacter::ResetDash, DashCooldown, false);
 }
@@ -314,7 +312,7 @@ void APlayerCharacter::StopDash()
 {
     UCharacterMovementComponent* MoveComp = GetCharacterMovement();
     if (!MoveComp) return;
-    GetCharacterMovement()->MaxWalkSpeed = NormalSpeed;
+
     // 원래의 마찰력으로 복구
     MoveComp->GroundFriction = DefaultGroundFriction;
     MoveComp->BrakingDecelerationWalking = DefaultBrakingDeceleration;
