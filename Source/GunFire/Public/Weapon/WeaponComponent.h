@@ -38,6 +38,9 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Weapon")
     void UnEquipWeapon(EWeaponSlot Slot);
 
+    UFUNCTION(BlueprintCallable, Category = "Weapon")
+    void UnEquipAllWeapons();
+
     UFUNCTION(BlueprintPure, Category = "Weapon")
     AWeaponBase* GetWeapon(EWeaponSlot Slot) const;
 
@@ -64,6 +67,7 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+    virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")

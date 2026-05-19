@@ -258,7 +258,11 @@ void AGunFireGameMode::ClearGame()
 
 void AGunFireGameMode::GameOver()
 {
-    GoToResultLevel(ESessionResult::Death);
+    APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
+    AGunFirePlayerController* GFPlayerController = Cast<AGunFirePlayerController>(PlayerController);
+    if (!IsValid(GFPlayerController)) return;
+
+    GFPlayerController->ShowGameOverUI();
 }
 
 bool AGunFireGameMode::TryGenerateRandomRelicRoom()

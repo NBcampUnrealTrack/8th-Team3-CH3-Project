@@ -12,6 +12,7 @@
 #include "CollisionQueryParams.h"
 #include "StatComponent.h"
 #include "WorldCollision.h"
+#include "Components/CapsuleComponent.h"
 #include "GameFramework/Actor.h"
 
 APlayerCharacter::APlayerCharacter()
@@ -52,6 +53,10 @@ APlayerCharacter::APlayerCharacter()
     // 공격
     HeavyAttackHoldTime = 0.5f;
     bHeavyAttackTriggered = false;
+
+    // 사망
+    DeadMontage = nullptr;
+    HitMontage = nullptr;
 }
 
 bool APlayerCharacter::HasMovementInput() const
@@ -242,8 +247,6 @@ void APlayerCharacter::PostInitializeComponents()
         StatComponent->OnDamaged.AddDynamic(this, &APlayerCharacter::HandleDamaged);
         StatComponent->OnHealed.AddDynamic(this, &APlayerCharacter::HandleHealed);
         StatComponent->OnDead.AddDynamic(this, &APlayerCharacter::HandleDead);
-        StatComponent->OnHealthChanged.AddDynamic(this, &APlayerCharacter::HandleHealthChanged);
-        StatComponent->OnStaminaChanged.AddDynamic(this, &APlayerCharacter::HandleStaminaChanged);
     }
 }
 
@@ -560,7 +563,31 @@ void APlayerCharacter::CheckInteractablesRamge()
 
 void APlayerCharacter::HandleDamaged(float ActualDamage, AController* DamagedInstigator)
 {
-    // C++ 코드 처리
+    if (!IsValid(StatComponent)) return;
+
+    // 이미 죽어있다면 처리 X
+    if (StatComponent->IsDead()) return;
+
+    // 피격 몽타주 재생
+    if (HitMontage)
+    {
+        float HitStunnedTime = PlayAnimMontage(HitMontage);
+        if (HitStunnedTime <= 0.f) return;
+
+        // 전투 상태를 피격 상태로 전환
+        if (IsValid(CombatComponent))
+        {
+            CombatComponent->GetStunned();
+
+            UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
+            if (!AnimInstance) return;
+
+            // 애니메이션 몽타주가 끝날 때 호출할 함수 바인딩
+            FOnMontageEnded OnHitMontageEnded;
+            OnHitMontageEnded.BindUObject(this, &APlayerCharacter::HandleHitMontageEnded);
+            AnimInstance->Montage_SetEndDelegate(OnHitMontageEnded, HitMontage);
+        }
+    }
 }
 
 void APlayerCharacter::HandleHealed(float HealAmount)
@@ -570,17 +597,36 @@ void APlayerCharacter::HandleHealed(float HealAmount)
 
 void APlayerCharacter::HandleDead(AController* DamagedInstigator)
 {
-    // C++ 코드 처리
+    GetCharacterMovement()->StopMovementImmediately();
+    GetCharacterMovement()->DisableMovement();
+
+    // 입력 해제
+    if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
+    {
+        DisableInput(PlayerController);
+    }
+
+    // 사망 몽타주 재생
+    if (DeadMontage)
+    {
+        PlayAnimMontage(DeadMontage);
+    }
+
+    // 게임오버 처리
+    if (AGunFireGameMode* GFGameMode = GetWorld()
+        ? GetWorld()->GetAuthGameMode<AGunFireGameMode>()
+        : nullptr)
+    {
+        GFGameMode->GameOver();
+    }
 }
 
-void APlayerCharacter::HandleHealthChanged(float CurrentHealth, float MaxHealth)
+void APlayerCharacter::HandleHitMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
-    // C++ 코드 처리
-}
+    if (Montage != HitMontage) return;
+    if (!IsValid(CombatComponent)) return;
 
-void APlayerCharacter::HandleStaminaChanged(float CurrentStamina, float MaxStamina)
-{
-    // C++ 코드 처리
+    CombatComponent->ClearActionState(ECombatActionState::Stunned);
 }
 
 void APlayerCharacter::KillEnemyForDebug()
@@ -590,6 +636,41 @@ void APlayerCharacter::KillEnemyForDebug()
     {
         UE_LOG(LogTemp, Warning, TEXT("Kill 1 Enemy for Test"));
         GFGameMode->KillEnemyForTest();
+    }
+}
+
+void APlayerCharacter::EnableRagdoll()
+{
+    // 이동 정지
+    UCharacterMovementComponent* MovementComp = GetCharacterMovement();
+    if (IsValid(MovementComp))
+    {
+        MovementComp->StopMovementImmediately();
+        MovementComp->DisableMovement();
+    }
+
+    // 캡슐 충돌 끄기
+    UCapsuleComponent* CapsuleComp = GetCapsuleComponent();
+    if (IsValid(CapsuleComp))
+    {
+        CapsuleComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    }
+
+    USkeletalMeshComponent* SkeletalMeshComp = GetMesh();
+    if (IsValid(SkeletalMeshComp))
+    {
+        // 래그돌 프로필 적용
+        SkeletalMeshComp->SetCollisionProfileName(TEXT("Ragdoll"));
+	    SkeletalMeshComp->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+
+        // AnimBp가 포즈 덮어쓰는 문제 방지
+        SkeletalMeshComp->bPauseAnims = true;
+
+        // 물리 시뮬레이션 시작
+        SkeletalMeshComp->SetSimulatePhysics(true);
+        SkeletalMeshComp->WakeAllRigidBodies();
+
+        SetLifeSpan(3.f);
     }
 }
 

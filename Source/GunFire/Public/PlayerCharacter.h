@@ -4,6 +4,7 @@
 #include "GameFramework/Character.h"
 #include "PlayerCharacter.generated.h"
 
+class UAnimMontage;
 class UStatComponent;
 class UCombatComponent;
 class USkeletalMeshComponent;
@@ -26,6 +27,10 @@ public:
     // 공격할 때 회전 방향을 구하는 함수
     UFUNCTION(BlueprintCallable)
     FRotator GetAttackInputRotation() const;
+
+    // 래그돌 적용하는 함수
+    UFUNCTION(BlueprintCallable)
+    void EnableRagdoll();
 
     // 캐릭터 메쉬
     //UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh, meta = (AllowPrivateAccess = "true"))
@@ -101,6 +106,17 @@ protected:
     FTimerHandle HeavyAttackTimerHandle;
 
 
+    /* 애니메이션 몽타주 */
+
+    // 사망 애니메이션 몽타주
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
+    TObjectPtr<UAnimMontage> DeadMontage;
+
+    // 피격 애니메이션 몽타주
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
+    TObjectPtr<UAnimMontage> HitMontage;
+
+
     /* 컴포넌트 */
 
     // 전투 관리 컴포넌트
@@ -163,16 +179,9 @@ protected:
     UFUNCTION()
     void HandleDead(AController* DamagedInstigator);
 
-    // 체력 변경에 따른 HUD 갱신 처리
-    UFUNCTION()
-    void HandleHealthChanged(float CurrentHealth, float MaxHealth);
-
-    // 스태미너 변경에 따른 HUD 갱신 처리
-    UFUNCTION()
-    void HandleStaminaChanged(float CurrentStamina, float MaxStamina);
-
+    // 피격 몽타주 종료시 처리
+    void HandleHitMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 
     // 디버그용 몬스터 처치 함수
     void KillEnemyForDebug();
-
 };

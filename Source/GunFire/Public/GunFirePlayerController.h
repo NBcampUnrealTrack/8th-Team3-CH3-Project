@@ -15,6 +15,15 @@ class GUNFIRE_API AGunFirePlayerController : public APlayerController
 public:
     AGunFirePlayerController();
 
+    UFUNCTION(BlueprintCallable)
+    void ShowGameOverUI();
+
+    UFUNCTION(BlueprintCallable)
+    void GotoMainMenu();
+
+    virtual void BeginPlay() override;
+
+public:
     // IMC 맵핑
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
     UInputMappingContext* DefaultMappingContext;
@@ -67,5 +76,10 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
     UInputAction* KillTestAction;
 
-    virtual void BeginPlay() override;
+protected:
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
+    TSubclassOf<UUserWidget> GameOverWidgetClass;
+
+    UPROPERTY()
+    TObjectPtr<UUserWidget> GameOverWidget;
 };

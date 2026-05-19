@@ -21,6 +21,14 @@ void UWeaponComponent::BeginPlay()
     Super::BeginPlay();
 }
 
+void UWeaponComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+    // 삭제될때 기존 장착한 무기들 전부 해제
+    UnEquipAllWeapons();
+
+    Super::EndPlay(EndPlayReason);
+}
+
 AWeaponBase* UWeaponComponent::EquipWeapon(TSubclassOf<AWeaponBase> WeaponClass, EWeaponSlot Slot)
 {
     if (!WeaponClass) return nullptr;
@@ -63,6 +71,14 @@ void UWeaponComponent::UnEquipWeapon(EWeaponSlot Slot)
     if (!HasWeapon(EWeaponSlot::LeftHand) && !HasWeapon(EWeaponSlot::RightHand))
     {
         RemoveWeaponMappingContext();
+    }
+}
+
+void UWeaponComponent::UnEquipAllWeapons()
+{
+    for (int32 i = 0; i < static_cast<int32>(EWeaponSlot::Count); ++i)
+    {
+        UnEquipWeapon(static_cast<EWeaponSlot>(i));
     }
 }
 

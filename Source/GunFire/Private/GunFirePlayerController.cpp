@@ -1,5 +1,7 @@
 ﻿#include "GunFirePlayerController.h"
 #include "EnhancedInputSubsystems.h"
+#include "Blueprint/UserWidget.h"
+#include "Kismet/GameplayStatics.h"
 
 AGunFirePlayerController::AGunFirePlayerController()
     :   DefaultMappingContext(nullptr),
@@ -32,4 +34,33 @@ void AGunFirePlayerController::BeginPlay()
             }
         }
     }
+}
+
+void AGunFirePlayerController::ShowGameOverUI()
+{
+    if (!GameOverWidgetClass) return;
+
+    if (!IsValid(GameOverWidget))
+    {
+        GameOverWidget = CreateWidget<UUserWidget>(this, GameOverWidgetClass);
+        if (!IsValid(GameOverWidget)) return;
+    }
+
+    GameOverWidget->AddToViewport();
+
+    bShowMouseCursor = true;
+
+    FInputModeUIOnly InputMode;
+    InputMode.SetWidgetToFocus(GameOverWidget->TakeWidget());
+    SetInputMode(InputMode);
+}
+
+void AGunFirePlayerController::GotoMainMenu()
+{
+    bShowMouseCursor = true;
+
+    FInputModeUIOnly InputMode;
+    SetInputMode(InputMode);
+
+    UGameplayStatics::OpenLevel(this, TEXT("MainMenuLevel"));
 }
