@@ -75,6 +75,12 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Combat|Melee")
     void CloseComboInput();
 
+    UFUNCTION(BlueprintCallable, Category = "Combat|Melee")
+    void UpdateAttackDirection();
+
+    UFUNCTION(BlueprintPure, Category = "Combat|Melee")
+    FRotator GetCurrentAttackRotation() const;
+
 public:
     UPROPERTY(BlueprintAssignable)
     FAttackFinishedSignature OnAttackFinished;
@@ -145,6 +151,9 @@ private:
 
     // 현재 데미지
     float CurrentPower;
+
+    // 현재 공격 방향, 공격중에 방향키 입력하면 해당 방향으로 회전 처리용
+    FRotator CurrentAttackRotation;
 
     // 트레이스 간격
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Melee|Trace", meta = (AllowPrivateAccess = "true"))

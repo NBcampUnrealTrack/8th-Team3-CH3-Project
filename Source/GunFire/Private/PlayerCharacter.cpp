@@ -46,9 +46,17 @@ APlayerCharacter::APlayerCharacter()
     AimFOV = 70.0f;
     DefaultSocketOffset = ThirdPersonCameraComponent->GetComponentLocation();
 
+    // 이동 입력
+    CurrentMovementInput = FVector2D::ZeroVector;
+
     // 공격
     HeavyAttackHoldTime = 0.5f;
     bHeavyAttackTriggered = false;
+}
+
+bool APlayerCharacter::HasMovementInput() const
+{
+    return !CurrentMovementInput.IsNearlyZero();
 }
 
 void APlayerCharacter::BeginPlay()
@@ -85,6 +93,43 @@ void APlayerCharacter::Tick(float DeltaTime)
 
 }
 
+FRotator APlayerCharacter::GetAttackInputRotation() const
+{
+    // 이동 입력이 없다면 방향 전환 X
+    if (!HasMovementInput())
+    {
+        return GetActorRotation();
+    }
+
+    // 컨트롤러의 회전값을 가져옴, 3인칭 게임에선 카메라가 바라보는 방향
+    FRotator ControlRotation = Controller
+        ? Controller->GetControlRotation()
+        : GetActorRotation();
+
+    // 지면 기준 좌우회전만 하면 되므로 Yaw값만 남김
+    FRotator YawRotation(0.f, ControlRotation.Yaw, 0.f);
+
+    // 회전에서 forward, right 추출
+    // Move에서 forward에 X, Right에 Y 사용하므로 그대로 따라감
+    FVector CameraForward = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+    FVector CameraRight = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+
+    // 공격 시 입력에 따라 바라봐야 할 방향 벡터를 구함
+    FVector DesiredDirection =
+        CameraForward * CurrentMovementInput.X +
+        CameraRight * CurrentMovementInput.Y;
+
+    // 위로는 움직일 필요 없으므로 Z값 날림
+    DesiredDirection.Z = 0.f;
+
+    if (DesiredDirection.IsNearlyZero())
+    {
+        return GetActorRotation();
+    }
+
+    return DesiredDirection.Rotation();
+}
+
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
@@ -106,6 +151,7 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
             if (PlayerController->MoveAction)
             {
                 EnhancedInputComponent->BindAction(PlayerController->MoveAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Move);
+                EnhancedInputComponent->BindAction(PlayerController->MoveAction, ETriggerEvent::Completed, this, &APlayerCharacter::StopMoveInput);
             }
 
             // 시점
@@ -203,13 +249,18 @@ void APlayerCharacter::PostInitializeComponents()
 
 void APlayerCharacter::Move(const FInputActionValue& Value)
 {
+    CurrentMovementInput = Value.Get<FVector2D>();
+    if (CurrentMovementInput.IsNearlyZero())
+    {
+        CurrentMovementInput = FVector2D::ZeroVector;
+        return;
+    }
+
     if (!Controller) return;
 
+    // 공격중과 같이 움직일 수 없는 상태라면 return
     if (CombatComponent && !CombatComponent->CanMove()) return;
 
-    FVector2D MovementVector = Value.Get<FVector2D>();
-
-    if (MovementVector.IsNearlyZero())   return;
 
     // 컨트롤러의 회전값(카메라가 보는 방향)
     const FRotator Rotation = Controller->GetControlRotation();
@@ -219,8 +270,13 @@ void APlayerCharacter::Move(const FInputActionValue& Value)
     const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
     const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 
-    AddMovementInput(ForwardDirection, MovementVector.X);
-    AddMovementInput(RightDirection, MovementVector.Y);
+    AddMovementInput(ForwardDirection, CurrentMovementInput.X);
+    AddMovementInput(RightDirection, CurrentMovementInput.Y);
+}
+
+void APlayerCharacter::StopMoveInput()
+{
+    CurrentMovementInput = FVector2D::ZeroVector;
 }
 
 void APlayerCharacter::Look(const FInputActionValue& Value)

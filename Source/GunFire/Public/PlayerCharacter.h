@@ -20,6 +20,13 @@ class GUNFIRE_API APlayerCharacter : public ACharacter
 public:
 	APlayerCharacter();
 
+    UFUNCTION(BlueprintCallable)
+    bool HasMovementInput() const;
+
+    // 공격할 때 회전 방향을 구하는 함수
+    UFUNCTION(BlueprintCallable)
+    FRotator GetAttackInputRotation() const;
+
     // 캐릭터 메쉬
     //UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh, meta = (AllowPrivateAccess = "true"))
     //USkeletalMeshComponent* SkeletalMesh;
@@ -37,7 +44,6 @@ public:
 
     // BeginPlay 전에 컴포넌트를 준비할 수 있는 함수
     virtual void PostInitializeComponents() override;
-
 
 protected:
 
@@ -80,10 +86,16 @@ protected:
     FTimerHandle InteractionCheckTimerHandle;
 
 
-    // 근접 공격
+    // 이동 입력 방향 저장하는 변수 (공격 시 방향전환에 사용)
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Attack")
+    FVector2D CurrentMovementInput;
+
+    /* 근접 공격 변수 */
+
+    // 강공격 판정 시간
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attack")
     float HeavyAttackHoldTime;
-
+    // 강공격 이미 발동했는지 체크하는 변수
     bool bHeavyAttackTriggered;
 
     FTimerHandle HeavyAttackTimerHandle;
@@ -103,6 +115,7 @@ protected:
 
     // 이동
     void Move(const FInputActionValue& Value);
+    void StopMoveInput();
     // 시점
     void Look(const FInputActionValue& Value);
     // 점프 오버라이드

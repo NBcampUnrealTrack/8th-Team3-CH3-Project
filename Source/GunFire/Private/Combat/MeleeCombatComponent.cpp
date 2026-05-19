@@ -5,6 +5,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Weapon/MeleeWeaponBase.h"
 #include "DrawDebugHelpers.h"
+#include "PlayerCharacter.h"
 #include "Enemy/EnemyBase.h"
 
 UMeleeCombatComponent::UMeleeCombatComponent()
@@ -20,6 +21,7 @@ UMeleeCombatComponent::UMeleeCombatComponent()
     bAttackInProgress = false;
 
     CurrentPower = 0.f;
+    CurrentAttackRotation = FRotator::ZeroRotator;
     AttackTraceInterval = 0.01f;
 }
 
@@ -151,6 +153,21 @@ void UMeleeCombatComponent::OpenComboInput()
 void UMeleeCombatComponent::CloseComboInput()
 {
     bCanComboInput = false;
+}
+
+void UMeleeCombatComponent::UpdateAttackDirection()
+{
+    APlayerCharacter* PlayerCharacter = Cast<APlayerCharacter>(OwnerCharacter);
+    if (!IsValid(PlayerCharacter)) return;
+
+    if (!PlayerCharacter->HasMovementInput()) return;
+
+    CurrentAttackRotation = PlayerCharacter->GetAttackInputRotation();
+}
+
+FRotator UMeleeCombatComponent::GetCurrentAttackRotation() const
+{
+    return CurrentAttackRotation;
 }
 
 bool UMeleeCombatComponent::TryAttack(AMeleeWeaponBase* MeleeWeapon, float AttackPower, EMeleeAttackType AttackType)
