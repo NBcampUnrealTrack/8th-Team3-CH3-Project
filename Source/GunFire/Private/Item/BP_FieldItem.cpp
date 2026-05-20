@@ -1,7 +1,7 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "BP_FieldItem.h"
+#include "Item/BP_FieldItem.h"
 
 // Sets default values
 ABP_FieldItem::ABP_FieldItem()
@@ -15,7 +15,7 @@ ABP_FieldItem::ABP_FieldItem()
 void ABP_FieldItem::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
 }
 
 // Called every frame

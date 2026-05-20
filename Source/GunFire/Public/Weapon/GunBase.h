@@ -4,6 +4,7 @@
 #include "Weapon/WeaponBase.h"
 #include "GunBase.generated.h"
 
+struct FGunSessionData;
 class AGunFireProjectile;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FAmmoChangedSignature, int32, CurrentAmmo, int32, RemainAmmo);
@@ -76,6 +77,10 @@ public:
 
     UFUNCTION(BlueprintPure)
     float GetProjectileSpeed() const;
+
+    // 게임 인스턴스에 저장된 정보로 보유 정보 복구하는 함수
+    UFUNCTION(BlueprintCallable)
+    void SetSessionData(const FGunSessionData& SessionData);
 
 public:
     // 총알수 변할 때

@@ -12,11 +12,15 @@ ADamagePopupActor::ADamagePopupActor()
     WidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("WidgetComponent"));
     WidgetComponent->SetupAttachment(Scene);
     WidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
+
+    LifeTime = 1.f;
 }
 
 void ADamagePopupActor::InitDamagePopupActor(float NewDamage)
 {
     OnDamagePopupInitialized(NewDamage);
+
+    SetLifeSpan(LifeTime);
 }
 
 

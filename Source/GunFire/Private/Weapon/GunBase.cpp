@@ -1,5 +1,6 @@
 #include "Weapon/GunBase.h"
 
+#include "Game/SessionData.h"
 #include "GunFire/GunFireProjectile.h"
 
 AGunBase::AGunBase()
@@ -174,6 +175,14 @@ float AGunBase::GetRange() const
 float AGunBase::GetProjectileSpeed() const
 {
     return ProjectileSpeed;
+}
+
+void AGunBase::SetSessionData(const FGunSessionData& SessionData)
+{
+    CurrentAmmo = SessionData.CurrentAmmo;
+    RemainAmmo = SessionData.RemainAmmo;
+
+    OnAmmoChanged.Broadcast(CurrentAmmo, RemainAmmo);
 }
 
 void AGunBase::HandleFireDelay()

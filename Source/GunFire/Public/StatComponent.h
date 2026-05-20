@@ -21,6 +21,7 @@ public:
 
     bool CanConsumeStamina(float Cost) const;
     bool TryConsumeStamina(float Cost);
+    void RecoverStaminaMax();
     void Heal(float Amount);
     void AddBaseStat(ECombatStatType StatType, float AddValue);
     void AddModifier(const FStatModifier& Modifier);
@@ -32,18 +33,33 @@ public:
 
     UFUNCTION(BlueprintPure)
     float GetMaxHealth() const;
+
     UFUNCTION(BlueprintPure)
     float GetCurrentHealth() const;
+
     UFUNCTION(BlueprintPure)
     float GetAttackPower() const;
+
     UFUNCTION(BlueprintPure)
     float GetDefense() const;
+
     UFUNCTION(BlueprintPure)
     float GetMovementSpeed(bool bIsSprint) const;
+
     UFUNCTION(BlueprintPure)
     float GetMaxStamina() const;
+
     UFUNCTION(BlueprintPure)
     float GetCurrentStamina() const;
+
+    UFUNCTION(BlueprintPure)
+    const FCombatStat& GetBaseStats() const;
+
+    UFUNCTION(BlueprintCallable)
+    void SetBaseStats(const FCombatStat& NewStats);
+
+    UFUNCTION(BlueprintCallable)
+    void SetCurrentHealth(float NewHealth);
 
 public:
     // 델리게이트

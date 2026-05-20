@@ -19,9 +19,6 @@ AWeaponBase::AWeaponBase()
     bEquipped = false;
     DamageRate = 1.f;
     StaminaCost = 0.f;
-
-    CurrentUpgradeLevel = 0;
-    MaxUpgradeLevel = 5;
 }
 
 void AWeaponBase::Attack()
@@ -94,18 +91,3 @@ float AWeaponBase::GetStaminaCost() const
 {
     return StaminaCost;
 }
-
-int32 AWeaponBase::GetCurrentUpgradeLevel() const
-{
-    return CurrentUpgradeLevel;
-}
-
-void AWeaponBase::UpgradeWeapon()
-{
-    if (CurrentUpgradeLevel >= MaxUpgradeLevel)
-    {
-        return;
-    }
-    ++CurrentUpgradeLevel;
-}
-

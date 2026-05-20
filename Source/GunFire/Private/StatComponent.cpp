@@ -85,6 +85,11 @@ bool UStatComponent::TryConsumeStamina(float Cost)
     return true;
 }
 
+void UStatComponent::RecoverStaminaMax()
+{
+    CurrentStamina = GetMaxStamina();
+}
+
 void UStatComponent::Heal(float Amount)
 {
     if (IsDead() || Amount <= 0.f) return;
@@ -204,6 +209,21 @@ float UStatComponent::GetMaxStamina() const
 float UStatComponent::GetCurrentStamina() const
 {
     return CurrentStamina;
+}
+
+const FCombatStat& UStatComponent::GetBaseStats() const
+{
+    return BaseStats;
+}
+
+void UStatComponent::SetBaseStats(const FCombatStat& NewStats)
+{
+    BaseStats = NewStats;
+}
+
+void UStatComponent::SetCurrentHealth(float NewHealth)
+{
+    CurrentHealth = NewHealth;
 }
 
 void UStatComponent::TakeDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType,

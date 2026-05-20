@@ -47,12 +47,6 @@ public:
     UFUNCTION(BlueprintPure)
     float GetStaminaCost() const;
 
-    UFUNCTION(BlueprintPure)
-    int32 GetCurrentUpgradeLevel() const;
-
-    UFUNCTION(BlueprintCallable)
-    void UpgradeWeapon();
-
 protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon|Component")
     TObjectPtr<USceneComponent> Scene;
@@ -78,12 +72,4 @@ protected:
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Stamina")
     float StaminaCost;
-
-    // 현재 강화 레벨
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
-    int32 CurrentUpgradeLevel;
-
-    // 최대 강화 레벨
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
-    int32 MaxUpgradeLevel;
 };

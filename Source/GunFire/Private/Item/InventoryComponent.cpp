@@ -1,5 +1,6 @@
-﻿#include "InventoryComponent.h"
-#include "Engine/DataTable.h" 
+﻿#include "Item/InventoryComponent.h"
+#include "Engine/DataTable.h"
+#include "Game/SessionData.h"
 
 UInventoryComponent::UInventoryComponent()
 {
@@ -90,7 +91,7 @@ TArray<FGF_ActiveItemData> UInventoryComponent::GetRandomActiveOptions(int32 Cou
     return Result;
 }
 
-// 패시브 추가 
+// 패시브 추가
 void UInventoryComponent::AddPassive(FGF_PassiveItemData NewData)
 {
     bool bFound = false;
@@ -132,7 +133,7 @@ void UInventoryComponent::AddActive(FGF_ActiveItemData NewData)
     }
 }
 
-// 재료 추가 
+// 재료 추가
 void UInventoryComponent::AddMaterial(FGF_PassiveItemData NewData)
 {
     bool bFound = false;
@@ -151,4 +152,11 @@ void UInventoryComponent::AddMaterial(FGF_PassiveItemData NewData)
     {
         OwnedMaterials.Add(NewData);
     }
+}
+
+void UInventoryComponent::SetInventorySessionData(const FInventorySessionData& InventorySessionData)
+{
+    OwnedPassives = InventorySessionData.OwnedPassives;
+    OwnedActives = InventorySessionData.OwnedActives;
+    OwnedMaterials = InventorySessionData.OwnedMaterials;
 }

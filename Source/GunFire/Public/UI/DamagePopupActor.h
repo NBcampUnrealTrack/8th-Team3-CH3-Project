@@ -29,4 +29,7 @@ protected:
     // 위젯 컴포넌트
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
     TObjectPtr<UWidgetComponent> WidgetComponent;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
+    float LifeTime;
 };
