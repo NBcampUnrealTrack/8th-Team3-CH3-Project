@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "ItemSystemTypes.h"
+#include "ItemSystemTypes.h" 
 #include "InventoryComponent.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryChangedSignature);
@@ -36,7 +36,7 @@ public:
     void AddMaterial(FGF_PassiveItemData NewData);
 
     UFUNCTION(BlueprintCallable, Category = "Inventory|Upgrade")
-    void UpgradeItem(int32 TargetIndex, int32 MaterialIndex, bool bSuccess);
+    int32 UpgradeItem(int32 TargetIndex, int32 MaterialIndex);
 
     // 보유 리스트 반환
     UFUNCTION(BlueprintPure, Category = "Inventory")
@@ -63,5 +63,5 @@ protected:
     TArray<FGF_ActiveItemData> OwnedActives;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
-    TArray<FGF_PassiveItemData> OwnedMaterials; // 재료 배열
+    TArray<FGF_PassiveItemData> OwnedMaterials;
 };
