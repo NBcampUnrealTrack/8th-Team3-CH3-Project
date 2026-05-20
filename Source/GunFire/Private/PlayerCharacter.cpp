@@ -55,6 +55,9 @@ APlayerCharacter::APlayerCharacter()
     CanFire = true;
     Rof = 1.0f;
 
+    // 록온
+    IsLockOn = false;
+
     // 재장전
     IsReloading = false;
     ReloadTime = 2.0f;
@@ -196,6 +199,12 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
             if (PlayerController->KillTestAction)
             {
                 EnhancedInputComponent->BindAction(PlayerController->KillTestAction, ETriggerEvent::Started, this, &APlayerCharacter::KillEnemyForDebug);
+            }
+
+            // 록온
+            if (PlayerController->LockOnAction)
+            {
+                EnhancedInputComponent->BindAction(PlayerController->LockOnAction, ETriggerEvent::Started, this, &APlayerCharacter::LockOn);
             }
         }
     }
@@ -372,12 +381,18 @@ void APlayerCharacter::Aiming(const FInputActionValue& Value)
     if (!IsAiming)
     {
         IsAiming = true;
+
+        if (IsLockOn) return;
+
         GetCharacterMovement()->bOrientRotationToMovement = false; // 이동 방향 회전 끄기
         bUseControllerRotationYaw = true;
     }
     else
     {
         IsAiming = false;
+
+        if (IsLockOn) return;
+
         GetCharacterMovement()->bOrientRotationToMovement = true; // 이동 방향 회전
         bUseControllerRotationYaw = false;
     }
@@ -588,6 +603,30 @@ void APlayerCharacter::CheckInteractablesRamge()
         if (TargetedActor) IInteractableInterface::Execute_LookAway(TargetedActor);
         TargetedActor = ClosestActor;
         if (TargetedActor) IInteractableInterface::Execute_LookAt(TargetedActor);
+    }
+}
+
+void APlayerCharacter::LockOn(const FInputActionValue& Value)
+{
+    if (!Controller) return;
+
+    if (!IsLockOn)
+    {
+        IsLockOn = true;
+
+        if (IsAiming) return;
+
+        GetCharacterMovement()->bOrientRotationToMovement = false; // 이동 방향 회전 끄기
+        bUseControllerRotationYaw = true;
+    }
+    else
+    {
+        IsLockOn = false;
+
+        if (IsAiming) return;
+
+        GetCharacterMovement()->bOrientRotationToMovement = true; // 이동 방향 회전
+        bUseControllerRotationYaw = false;
     }
 }
 

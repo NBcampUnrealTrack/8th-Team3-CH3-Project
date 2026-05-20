@@ -132,6 +132,10 @@ protected:
     AActor* TargetedActor;  // 상호작용 가능한 액터 저장
     FTimerHandle InteractionCheckTimerHandle;
 
+    // 록온
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Reload")
+    bool IsLockOn;
+
     // 스태미나
     FTimerHandle NaturalHealingStaminaTimerHandle;
 
@@ -185,7 +189,8 @@ protected:
     void Interaction(const FInputActionValue& Value);
     void CheckForInteractables();   // 상호작용 트레이스 방식
     void CheckInteractablesRamge(); // 범위감지 방식
-
+    // 록온
+    void LockOn(const FInputActionValue& Value);
     // 디버그용 몬스터 처치 함수
     void KillEnemyForDebug();
 
