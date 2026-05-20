@@ -1,5 +1,8 @@
 #include "Weapon/MeleeWeaponBase.h"
 
+#include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
+
 AMeleeWeaponBase::AMeleeWeaponBase()
 {
     // WeaponBase의 변수
@@ -14,9 +17,43 @@ AMeleeWeaponBase::AMeleeWeaponBase()
     HeavyComboSectionNames = { TEXT("Heavy_1") };
 
     HeavyAttackStaminaCost = 20.f;
+
     TraceStartSocketName = TEXT("TraceStart");
     TraceEndSocketName = TEXT("TraceEnd");
+
+    TrailEffect = nullptr;
+    TrailEffectSocketName = TEXT("TraceEnd");
+
     TraceRadius = 20.f;
+}
+
+void AMeleeWeaponBase::StartTrailEffect()
+{
+    if (!TrailEffect) return;
+
+    UStaticMeshComponent* MeshComp = GetMesh();
+    if (!IsValid(MeshComp)) return;
+
+    // 켜져있을 수 있으니 꺼주기
+    StopTrailEffect();
+
+    TrailComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(
+        TrailEffect,
+        MeshComp,
+        TrailEffectSocketName,
+        FVector::ZeroVector,
+        FRotator::ZeroRotator,
+        EAttachLocation::SnapToTarget,
+        true
+        );
+}
+
+void AMeleeWeaponBase::StopTrailEffect()
+{
+    if (!IsValid(TrailComponent)) return;
+
+    TrailComponent->Deactivate();
+    TrailComponent = nullptr;
 }
 
 UAnimMontage* AMeleeWeaponBase::GetHeavyComboAnimMontage() const

@@ -6,8 +6,6 @@
 void UAnimNotifyState_AttackTurn::NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
                                              float FrameDeltaTime, const FAnimNotifyEventReference& EventReference)
 {
-    Super::NotifyTick(MeshComp, Animation, FrameDeltaTime, EventReference);
-
     if (!IsValid(MeshComp)) return;
 
     APlayerCharacter* PlayerCharacter = Cast<APlayerCharacter>(MeshComp->GetOwner());

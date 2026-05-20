@@ -259,14 +259,15 @@ bool UMeleeCombatComponent::TryChainAttack(AMeleeWeaponBase* MeleeWeapon, float 
         return false;
     }
 
+    // 현재 섹션을 건너뛸 경우 NotifyState End가 실행되지 않을 수 있으므로 직접 처리해야 함
+    EndAttackTrace();
+    CloseComboInput();
+    MeleeWeapon->StopTrailEffect();
+
     // 다음 동작의 섹션으로 건너뛰기
     AnimInstance->Montage_JumpToSection(NextSectionName, AttackMontage);
     // 제대로 건너 뛰었는지 확인
     if (AnimInstance->Montage_GetCurrentSection(AttackMontage) != NextSectionName) return false;
-
-    // 현재 섹션을 건너뛸 경우 NotifyState End가 실행되지 않을 수 있으므로 직접 처리해야 함
-    EndAttackTrace();
-    CloseComboInput();
 
     CurrentComboIndex = NextComboIndex;
     CurrentPower = AttackPower * MeleeWeapon->GetDamageRate();

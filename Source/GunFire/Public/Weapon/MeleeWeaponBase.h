@@ -5,6 +5,9 @@
 #include "MeleeWeaponBase.generated.h"
 
 
+class UNiagaraSystem;
+class UNiagaraComponent;
+
 UCLASS()
 class GUNFIRE_API AMeleeWeaponBase : public AWeaponBase
 {
@@ -12,6 +15,14 @@ class GUNFIRE_API AMeleeWeaponBase : public AWeaponBase
 
 public:
     AMeleeWeaponBase();
+
+    // 공격 잔상 이펙트 켜기
+    UFUNCTION(BlueprintCallable)
+    void StartTrailEffect();
+
+    // 공격 잔상 이펙트 끄기
+    UFUNCTION(BlueprintCallable)
+    void StopTrailEffect();
 
     // 강공격 애니메이션 몽타주 가져오는 함수
     UFUNCTION(BlueprintPure)
@@ -77,6 +88,18 @@ protected:
     // 충돌 판정 트레이스 끝점
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Melee")
     FName TraceEndSocketName;
+
+    // 공격 잔상 연출용 나이아가라 이펙트 컴포넌트
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon|Component")
+    TObjectPtr<UNiagaraComponent> TrailComponent;
+
+    // 공격 잔상 이펙트
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|VFX")
+    TObjectPtr<UNiagaraSystem> TrailEffect;
+
+    // 공격 잔상 이펙트 소켓 이름
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|VFX")
+    FName TrailEffectSocketName;
 
     // 무기 두께
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Melee")

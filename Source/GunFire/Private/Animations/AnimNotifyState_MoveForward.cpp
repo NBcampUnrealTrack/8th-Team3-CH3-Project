@@ -6,8 +6,6 @@
 void UAnimNotifyState_MoveForward::NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
                                               float FrameDeltaTime, const FAnimNotifyEventReference& EventReference)
 {
-    Super::NotifyTick(MeshComp, Animation, FrameDeltaTime, EventReference);
-
     if (!IsValid(MeshComp)) return;
 
     ACharacter* Character = Cast<ACharacter>(MeshComp->GetOwner());
