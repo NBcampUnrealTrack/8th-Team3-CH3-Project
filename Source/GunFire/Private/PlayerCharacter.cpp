@@ -33,7 +33,9 @@ APlayerCharacter::APlayerCharacter()
     // 대쉬 설정
     CanDash = true;
     DashStrength = 2000.0f;
+    DashDuration = 0.2f;
     DashCooldown = 3.0f;
+    IsDashing = false;
 
     // 이동속도
     NormalSpeed = 600.0f;
@@ -49,6 +51,9 @@ APlayerCharacter::APlayerCharacter()
 
     // 이동 입력
     CurrentMovementInput = FVector2D::ZeroVector;
+
+    // 록온
+    IsLockOn = false;
 
     // 공격
     HeavyAttackHoldTime = 0.5f;
@@ -226,6 +231,12 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
             {
                 EnhancedInputComponent->BindAction(PlayerController->KillTestAction, ETriggerEvent::Started, this, &APlayerCharacter::KillEnemyForDebug);
             }
+
+            // 록온
+            if (PlayerController->LockOnAction)
+            {
+                EnhancedInputComponent->BindAction(PlayerController->LockOnAction, ETriggerEvent::Started, this, &APlayerCharacter::LockOn);
+            }
         }
     }
     else
@@ -260,6 +271,8 @@ void APlayerCharacter::Move(const FInputActionValue& Value)
     }
 
     if (!Controller) return;
+
+    if (IsDashing) return;
 
     // 공격중과 같이 움직일 수 없는 상태라면 return
     if (CombatComponent && !CombatComponent->CanMove()) return;
@@ -309,6 +322,8 @@ void APlayerCharacter::Dash(const FInputActionValue& Value)
         return;
     }
 
+    if (StatComponent->TryConsumeStamina(20.f)) return;
+
     UCharacterMovementComponent* MoveComp = GetCharacterMovement();
 
     // 공중 상태 확인
@@ -318,7 +333,9 @@ void APlayerCharacter::Dash(const FInputActionValue& Value)
         return;
     }
 
-    //if (CurrentStamina < 20) return;
+    UE_LOG(LogTemp, Log, TEXT("Dash Start"));
+    IsDashing = true;
+    MoveComp->bOrientRotationToMovement = false;
 
     //CurrentStamina = FMath::Clamp(CurrentStamina - 20, 0, MaxStamina);
     // 대쉬 방향 결정 (입력 방향 위주)
@@ -330,6 +347,18 @@ void APlayerCharacter::Dash(const FInputActionValue& Value)
         DashDirection = GetActorForwardVector();
     }
 
+    DashDirection.Z = 0.0f;
+    // 벡터 자체의 크기(길이)가 정확히 1.0으로 고정
+    DashDirection.Normalize();
+
+    UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+
+    if (AnimInstance && DashMontage)
+    {
+        AnimInstance->Montage_Play(DashMontage);
+        UE_LOG(LogTemp, Log, TEXT("대쉬 애니메이션 재생"));
+    }
+
     // 현재의 마찰력 설정값 저장
     DefaultGroundFriction = MoveComp->GroundFriction;
     DefaultBrakingDeceleration = MoveComp->BrakingDecelerationWalking;
@@ -337,16 +366,14 @@ void APlayerCharacter::Dash(const FInputActionValue& Value)
     // 마찰력과 제동력을 0으로 설정
     MoveComp->GroundFriction = 0.f;
     MoveComp->BrakingDecelerationWalking = 0.f;
+    GetCharacterMovement()->MaxWalkSpeed = DashStrength;
 
     // 즉각적인 속도 부여
-    MoveComp->Velocity = DashDirection.GetSafeNormal() * DashStrength;
+    MoveComp->Velocity = DashDirection * DashStrength;
 
-    // 마찰력 복구
-    GetWorldTimerManager().SetTimer(DashStopTimerHandle, this, &APlayerCharacter::StopDash, 0.15f, false);
-
-    UE_LOG(LogTemp, Log, TEXT("Dash Start"));
     CanDash = false;
-
+    // 마찰력 복구
+    //GetWorldTimerManager().SetTimer(DashStopTimerHandle, this, &APlayerCharacter::StopDash, DashDuration, false);
     // 쿨타임 이후에 대쉬 다시 사용가능
     GetWorldTimerManager().SetTimer(DashCooldownTimerHandle, this, &APlayerCharacter::ResetDash, DashCooldown, false);
 }
@@ -355,11 +382,19 @@ void APlayerCharacter::StopDash()
 {
     UCharacterMovementComponent* MoveComp = GetCharacterMovement();
     if (!MoveComp) return;
-
+    GetCharacterMovement()->MaxWalkSpeed = NormalSpeed;
     // 원래의 마찰력으로 복구
     MoveComp->GroundFriction = DefaultGroundFriction;
     MoveComp->BrakingDecelerationWalking = DefaultBrakingDeceleration;
     UE_LOG(LogTemp, Log, TEXT("Dash Stop"));
+}
+
+void APlayerCharacter::EndDashAnimation()
+{
+    IsDashing = false;
+    UCharacterMovementComponent* MoveComp = GetCharacterMovement();
+    if (!MoveComp) return;
+    MoveComp->bOrientRotationToMovement = true;
 }
 
 void APlayerCharacter::ResetDash()
@@ -404,12 +439,18 @@ void APlayerCharacter::Aiming(const FInputActionValue& Value)
     if (!IsAiming)
     {
         IsAiming = true;
+
+        if (IsLockOn) return;
+
         GetCharacterMovement()->bOrientRotationToMovement = false; // 이동 방향 회전 끄기
         bUseControllerRotationYaw = true;
     }
     else
     {
         IsAiming = false;
+
+        if (IsLockOn) return;
+
         GetCharacterMovement()->bOrientRotationToMovement = true; // 이동 방향 회전
         bUseControllerRotationYaw = false;
     }
@@ -508,17 +549,17 @@ void APlayerCharacter::CheckInteractablesRamge()
     Params.AddIgnoredActor(this);
 
     // 범위 확인용 나중에 삭제
-    DrawDebugSphere(
-        GetWorld(),
-        Center,          // 구체 중심
-        Radius,          // 반경
-        12,              // 세그먼트 (숫자가 높을수록 부드러운 구체가 됨)
-        FColor::Green,   // 선 색상
-        false,           // 매 프레임 새로 그릴 것이므로 false (Persistent)
-        -1.f,            // 지속 시간 (-1은 이번 프레임만)
-        0,               // Depth Priority
-        1.f              // 선 두께
-    );
+    //DrawDebugSphere(
+    //    GetWorld(),
+    //    Center,          // 구체 중심
+    //    Radius,          // 반경
+    //    12,              // 세그먼트 (숫자가 높을수록 부드러운 구체가 됨)
+    //    FColor::Green,   // 선 색상
+    //    false,           // 매 프레임 새로 그릴 것이므로 false (Persistent)
+    //    -1.f,            // 지속 시간 (-1은 이번 프레임만)
+    //    0,               // Depth Priority
+    //    1.f              // 선 두께
+    //);
 
     bool bHit = GetWorld()->OverlapMultiByChannel(
         OverlapResults,
@@ -627,6 +668,30 @@ void APlayerCharacter::HandleHitMontageEnded(UAnimMontage* Montage, bool bInterr
     if (!IsValid(CombatComponent)) return;
 
     CombatComponent->ClearActionState(ECombatActionState::Stunned);
+}
+
+void APlayerCharacter::LockOn(const FInputActionValue& Value)
+{
+    if (!Controller) return;
+
+    if (!IsLockOn)
+    {
+        IsLockOn = true;
+
+        if (IsAiming) return;
+
+        GetCharacterMovement()->bOrientRotationToMovement = false; // 이동 방향 회전 끄기
+        bUseControllerRotationYaw = true;
+    }
+    else
+    {
+        IsLockOn = false;
+
+        if (IsAiming) return;
+
+        GetCharacterMovement()->bOrientRotationToMovement = true; // 이동 방향 회전
+        bUseControllerRotationYaw = false;
+    }
 }
 
 void APlayerCharacter::KillEnemyForDebug()

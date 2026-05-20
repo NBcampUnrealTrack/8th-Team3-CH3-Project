@@ -42,6 +42,10 @@ public:
     // 카메라 (3인칭)
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
     UCameraComponent* ThirdPersonCameraComponent;
+
+    // 대쉬
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dash")
+    UAnimMontage* DashMontage;
 public:
 	virtual void Tick(float DeltaTime) override;
 
@@ -53,12 +57,16 @@ public:
 protected:
 
     // 대쉬(회피)
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Run")
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Dash")
     bool CanDash;                      // 대쉬 가능 여부
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dash")
     float DashStrength;                 // 대쉬 세기
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dash")
     float DashCooldown;                 // 대쉬 쿨타임
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dash")
+    float DashDuration;                 // 대쉬 지속시간
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Dash")
+    bool IsDashing;
     float DefaultGroundFriction;            // 현재 마찰력 저장
     float DefaultBrakingDeceleration;       // 현재 제동력 저장
     FTimerHandle DashCooldownTimerHandle;   // 대쉬 쿨타임타이머
@@ -90,6 +98,12 @@ protected:
     AActor* TargetedActor;  // 상호작용 가능한 액터 저장
     FTimerHandle InteractionCheckTimerHandle;
 
+    // 록온
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Reload")
+    bool IsLockOn;
+
+    // 스태미나
+    FTimerHandle NaturalHealingStaminaTimerHandle;
 
     // 이동 입력 방향 저장하는 변수 (공격 시 방향전환에 사용)
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Attack")
@@ -138,7 +152,10 @@ protected:
     virtual void Jump() override;
     // 대쉬(회피)
     void Dash(const FInputActionValue& Value);
+    UFUNCTION(BlueprintCallable)
     void StopDash();
+    UFUNCTION(BlueprintCallable)
+    void EndDashAnimation();
     void ResetDash();       // 대쉬(회피) 초기화
     // 달리기
     void Run(const FInputActionValue& Value);
@@ -157,8 +174,13 @@ protected:
     void CheckForInteractables();   // 상호작용 트레이스 방식
     void CheckInteractablesRamge(); // 범위감지 방식
 
+    // 록온
+    void LockOn(const FInputActionValue& Value);
+    // 디버그용 몬스터 처치 함수
+    void KillEnemyForDebug();
 
     /* 근접 공격 처리 */
+
 
     void MeleeAttackStarted();
     void MeleeAttackReleased();
@@ -181,7 +203,4 @@ protected:
 
     // 피격 몽타주 종료시 처리
     void HandleHitMontageEnded(UAnimMontage* Montage, bool bInterrupted);
-
-    // 디버그용 몬스터 처치 함수
-    void KillEnemyForDebug();
 };

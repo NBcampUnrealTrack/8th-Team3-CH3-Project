@@ -16,7 +16,8 @@ AGunFirePlayerController::AGunFirePlayerController()
         ReloadAction(nullptr),
         SkillAction(nullptr),
         AimingAction(nullptr),
-        KillTestAction(nullptr)
+        KillTestAction(nullptr),
+        LockOnAction(nullptr)
 {
 }
 
