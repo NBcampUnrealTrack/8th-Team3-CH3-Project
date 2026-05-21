@@ -17,7 +17,6 @@ AEnemyBase::AEnemyBase()
     StatComponent = CreateDefaultSubobject<UStatComponent>(TEXT("StatComponent"));
     bDead = false;
     AttackSpeedRate = 1.0f;
-    bCanBeStunned = false;
 }
 
 void AEnemyBase::BeginPlay()
@@ -184,6 +183,27 @@ void AEnemyBase::ExecuteDestroy()
     Destroy();
 }
 
+void AEnemyBase::SpawnItem()
+{
+    // 현재 아이템은 두개므로 하드코딩으로 작성
+    float RandomValue = FMath::FRand();
+
+    //GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Cyan,
+    //    FString::Printf(TEXT("Dice: %.2f | Dash: %.2f | Encircle: %.2f"),
+    //        RandomValue, DashProbability, EncircleProbability));
+
+    if (ItemActor1 && RandomValue <= ItemActor1SpawnRate)
+    {
+        GetWorld()->SpawnActor<AActor>(ItemActor1, GetActorLocation(), FRotator::ZeroRotator);
+    }
+
+    else if (ItemActor2 && RandomValue <= (ItemActor1SpawnRate + ItemActor2SpawnRate))
+    {
+        GetWorld()->SpawnActor<AActor>(ItemActor2, GetActorLocation(), FRotator::ZeroRotator);
+    }
+
+}
+
 void AEnemyBase::OnEnemyDeath(AController* InstigatorController)
 {
     Die();
@@ -237,6 +257,9 @@ void AEnemyBase::IMDead()
         // 컨트롤러 사망 처리 호출
         AIC->SetDead();
     }
+
+    //아이템 스폰
+    SpawnItem();
 }
 
 void AEnemyBase::IMGrogi()

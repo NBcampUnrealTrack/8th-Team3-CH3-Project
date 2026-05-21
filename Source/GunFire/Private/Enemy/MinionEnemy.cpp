@@ -44,12 +44,12 @@ void AMinionEnemy::PlayAttack()
     if (DiceRoll == 0)
     {
         SectionName = FName("Attack");  // 1타 전용 애니메이션
-        GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, TEXT("패턴: 단발 공격"));
+        //GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, TEXT("패턴: 단발 공격"));
     }
     else
     {
         SectionName = FName("Attack2"); // 2타 전용 연속 애니메이션
-        GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, TEXT("패턴: 2연타 콤보"));
+        //GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, TEXT("패턴: 2연타 콤보"));
     }
 
     // 결정된 섹션 이름으로 몽타주 재생
@@ -60,10 +60,19 @@ void AMinionEnemy::OnWeaponOverlap(UPrimitiveComponent* OverlappedComponent, AAc
 {
     if (OtherActor && OtherActor != this)
     {
+        // 이미 때렸으면 그냥 종료
+        if (HittedActors.Contains(OtherActor))
+        {
+            return;
+        }
+
+        // 때린놈으로 등록
+        HittedActors.Add(OtherActor);
+
         // 맞은 액터가 Player 태그
         if (OtherActor->ActorHasTag(FName("Player")))
         {
-            GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, TEXT("플레이어 피격 판정!"));
+            //GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, TEXT("플레이어 피격 판정!"));
 
             // 데미지 처리
             UGameplayStatics::ApplyDamage(
@@ -79,6 +88,8 @@ void AMinionEnemy::OnWeaponOverlap(UPrimitiveComponent* OverlappedComponent, AAc
 
 void AMinionEnemy::ActivateAttackCollision(FName WeaponTag)
 {
+    HittedActors.Empty();
+
     for (UPrimitiveComponent* Comp : WeaponCollisions)
     {
         if (Comp)
@@ -92,10 +103,13 @@ void AMinionEnemy::ActivateAttackCollision(FName WeaponTag)
             }
         }
     }
+    OnAttackCollisionStarted.Broadcast();
 }
 
 void AMinionEnemy::DeactivateAttackCollision()
 {
+    HittedActors.Empty();
+
     for (UPrimitiveComponent* Comp : WeaponCollisions)
     {
         if (Comp)
@@ -103,4 +117,5 @@ void AMinionEnemy::DeactivateAttackCollision()
             Comp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
         }
     }
+    OnAttackCollisionEnded.Broadcast();
 }

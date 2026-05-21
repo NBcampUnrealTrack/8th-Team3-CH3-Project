@@ -3,14 +3,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Enemy/EnemyBase.h"
+#include "Enemy/MinionBase.h"
 #include "MinionEnemy.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class GUNFIRE_API AMinionEnemy : public AEnemyBase
+class GUNFIRE_API AMinionEnemy : public AMinionBase
 {
 	GENERATED_BODY()
 
@@ -20,6 +20,9 @@ protected:
 
     UPROPERTY(EditAnywhere, Category = "Animation")
     UAnimMontage* AttackMontage;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sound")
+    class USoundBase* HitSound;
 
 protected:
     virtual void BeginPlay() override;

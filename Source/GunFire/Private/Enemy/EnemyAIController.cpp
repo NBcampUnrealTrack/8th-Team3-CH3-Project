@@ -216,7 +216,7 @@ void AEnemyAIController::AlertAlly(APawn* Target)
         FLinearColor::Red,
         2.0f
     );
-    GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("주변 아군의 수 : %d"), OutHits.Num()));
+    //GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("주변 아군의 수 : %d"), OutHits.Num()));
 
     if (bHit)
     {

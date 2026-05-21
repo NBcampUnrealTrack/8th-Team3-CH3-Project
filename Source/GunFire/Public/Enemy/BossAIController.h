@@ -84,4 +84,8 @@ protected:
 public:
     // 공격이 끝난 후 처리
     virtual void OnAttackAnimationFinished() override;
+
+    // 공격 상태를 켜고 끌 수 있게 해주는 함수
+    UFUNCTION(BlueprintCallable, Category = "Boss | Attack")
+    void SetIsAttacking(bool bAttacking) { bIsAttacking = bAttacking; }
 };

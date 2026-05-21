@@ -12,6 +12,10 @@ class AEnemyBase;
 // Delegate/Event 방식으로 몬스터 사망시 Room 에 알리기 위함
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEnemyDied, AEnemyBase*, DeadEnemy);
 
+//공격 알림
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAttackCollisionStartedDelegate);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAttackCollisionEndedDelegate);
+
 class UStatComponent;
 
 UCLASS()
@@ -22,6 +26,9 @@ class GUNFIRE_API AEnemyBase : public ACharacter
 public:
 	AEnemyBase();
     virtual void BeginPlay() override;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy")
+    FText EnemyName;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     UStatComponent* StatComponent;
@@ -41,6 +48,23 @@ public:
     // 삭제를 위한 타이머
     FTimerHandle DeathTimerHandle;
 
+    // 공격 시 피격대상 저장용
+    UPROPERTY()
+    TArray<AActor*> HittedActors;
+
+    // 아이템 스폰시킬 데이터1
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn")
+    TSubclassOf<AActor> ItemActor1;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn")
+    float ItemActor1SpawnRate = 0.1f;
+
+    // 아이템 스폰시킬 데이터2
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn")
+    TSubclassOf<AActor> ItemActor2;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn")
+    float ItemActor2SpawnRate = 0.2f;
+
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI | Combat")
     bool bIsPatrol = true; // 패트롤 여부
 
@@ -49,6 +73,12 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI | Combat")
     float HitStunDuration = 1.5f; // 경직 지속 시간
+
+
+    UPROPERTY(BlueprintAssignable, Category = "Combat")
+    FOnAttackCollisionEndedDelegate OnAttackCollisionEnded;
+    UPROPERTY(BlueprintAssignable, Category = "Combat")
+    FOnAttackCollisionStartedDelegate OnAttackCollisionStarted;
 
     // 피격 재생
     virtual void PlayHitReaction(APawn* Attacker);
@@ -66,6 +96,9 @@ public:
     virtual void Die();
     UFUNCTION()
     void ExecuteDestroy();
+
+    UFUNCTION()
+    virtual void SpawnItem();
 
 protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")

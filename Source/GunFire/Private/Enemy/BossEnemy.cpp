@@ -11,6 +11,15 @@
 #include "Enemy/EnemyBase.h"
 #include "AIController.h"
 #include "TimerManager.h"
+#include "Enemy/EnemyAIController.h"
+#include "Components/CapsuleComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "Blueprint/UserWidget.h"
+#include "Components/ProgressBar.h"
+#include "Components/DecalComponent.h"
+#include "Enemy/BossHPUI.h"
+#include "Engine/AssetManager.h"
+#include "Engine/StreamableManager.h"
 
 void ABossEnemy::BeginPlay()
 {
@@ -33,6 +42,26 @@ void ABossEnemy::BeginPlay()
             WeaponCollisions.Add(PrimitiveComp);
         }
     }
+
+    TArray<FSoftObjectPath> AssetsToLoad;
+
+    // 데칼 등록 확인
+    if (!WarningDecalSoftClass.IsNull())
+    {
+        AssetsToLoad.Add(WarningDecalSoftClass.ToSoftObjectPath());
+    }
+
+    if (!ImpactDecalSoftClass.IsNull())
+    {
+        AssetsToLoad.Add(ImpactDecalSoftClass.ToSoftObjectPath());
+    }
+
+    FStreamableManager& Streamable = UAssetManager::GetStreamableManager();
+    // 데칼 로드
+    if (AssetsToLoad.Num() > 0)
+    {
+        Streamable.RequestAsyncLoad(AssetsToLoad, FStreamableDelegate::CreateUObject(this, &ABossEnemy::OnDecalLoadCompleted));
+    }
 }
 
 void ABossEnemy::OnWeaponOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -42,6 +71,17 @@ void ABossEnemy::OnWeaponOverlap(UPrimitiveComponent* OverlappedComponent, AActo
         ACharacter* PlayerCharacter = Cast<ACharacter>(OtherActor);
         if (!PlayerCharacter) return;
 
+        // 이미 때렸으면 그냥 종료
+        if (HittedActors.Contains(OtherActor))
+        {
+            return;
+        }
+
+        // 때린놈으로 등록
+        HittedActors.Add(OtherActor);
+
+
+        //GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, TEXT("플레이어 피격 판정!"));
         // 공격 패턴에 따라처리
         switch (CurrentAttackPattern)
         {
@@ -62,6 +102,8 @@ void ABossEnemy::OnWeaponOverlap(UPrimitiveComponent* OverlappedComponent, AActo
 
 void ABossEnemy::ActivateAttackCollision(FName WeaponTag)
 {
+    HittedActors.Empty();
+
     for (UPrimitiveComponent* Comp : WeaponCollisions)
     {
         if (Comp)
@@ -75,10 +117,14 @@ void ABossEnemy::ActivateAttackCollision(FName WeaponTag)
             }
         }
     }
+
+    OnAttackCollisionStarted.Broadcast();
 }
 
 void ABossEnemy::DeactivateAttackCollision()
 {
+    HittedActors.Empty();
+
     for (UPrimitiveComponent* Comp : WeaponCollisions)
     {
         if (Comp)
@@ -86,11 +132,14 @@ void ABossEnemy::DeactivateAttackCollision()
             Comp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
         }
     }
+
+    OnAttackCollisionEnded.Broadcast();
 }
 
 void ABossEnemy::OnEnemyHealthChanged(float ActualDamage, AController* EventInstigator)
 {
     Super::OnEnemyHealthChanged(ActualDamage, EventInstigator);
+    OnEnemyHit.Broadcast();
 }
 
 void ABossEnemy::PlayAttack()
@@ -112,15 +161,63 @@ void ABossEnemy::PlayAttack()
 
 void ABossEnemy::HandleLightAttackHit(ACharacter* HitPlayer)
 {
-    UGameplayStatics::ApplyDamage(HitPlayer, GetAttackDamage(), GetController(), this, UDamageType::StaticClass());
+    if (!HitPlayer)
+        return;
+
+    UGameplayStatics::ApplyDamage(
+        HitPlayer,
+        GetAttackDamage(),
+        GetController(),
+        this,
+        UDamageType::StaticClass()
+    );
 }
 
 void ABossEnemy::HandleHeavyAttackHit(ACharacter* HitPlayer)
 {
+    if (!HitPlayer)
+        return;
+
+    // 최종 데미지 산출
+    float HeavyDamage = GetAttackDamage() * HeavyAttackDamageMultiplier;
+
+    UGameplayStatics::ApplyDamage(
+        HitPlayer,
+        HeavyDamage,
+        GetController(),
+        this,
+        UDamageType::StaticClass()
+    );
+
+    // 넉백 방향 계산
+    FVector KnockbackDir = (HitPlayer->GetActorLocation() - GetActorLocation()).GetSafeNormal();
+
+    // 3. '대각선 넉백'을 위해 Z축(위쪽) 방향을 더해주고 정규화
+    KnockbackDir.Z = 0.6f;
+    KnockbackDir.Normalize();
+
+    // 넉백 힘을 곱해 날라가는 속도
+    FVector LaunchVelocity = KnockbackDir * HeavyKnockbackForce;
+
+    // 플레이어 날라감
+    // 뒤의 옵션을 켜서 x,y,z속도 무시하고 덮어씀
+    HitPlayer->LaunchCharacter(LaunchVelocity, true, true);
 }
 
 void ABossEnemy::HandleStompDirectHit(ACharacter* HitPlayer)
 {
+    if (!HitPlayer)
+        return;
+
+    // 스톰프 직접 타격 데미지
+    float DirectDamage = GetAttackDamage();
+    UGameplayStatics::ApplyDamage(
+        HitPlayer,
+        GetAttackDamage(),
+        GetController(),
+        this,
+        UDamageType::StaticClass()
+    );
 }
 
 void ABossEnemy::PlayRoarAnimation()
@@ -129,6 +226,9 @@ void ABossEnemy::PlayRoarAnimation()
     {
         PlayAnimMontage(RoarMontage);
     }
+
+    // UI생성
+    ShowBossHPBar();
 }
 
 void ABossEnemy::PlayBossAttack(int32 PatternIndex)
@@ -154,18 +254,112 @@ void ABossEnemy::PlayBossAttack(int32 PatternIndex)
         break;
     case 2:
         SectionName = FName("StompAttack");
+        SpawnStompWarningDecal();
         break;
     default:
         SectionName = FName("LightAttack");
         break;
     }
 
-    // TODO : 섹션네임으로 바꾸기
-    PlayAnimMontage(AttackMontage, 1.0f, FName("LightAttack"));
+    PlayAnimMontage(AttackMontage, 1.0f, SectionName);
 }
 
 void ABossEnemy::ExecuteStomp()
 {
+    FVector BossLocation = GetActorLocation();
+
+    TArray<FHitResult> Hits;
+    TArray<AActor*> ActorsToIgnore;
+    ActorsToIgnore.Add(this);
+
+    bool bHit = UKismetSystemLibrary::SphereTraceMulti(
+        GetWorld(),
+        BossLocation - FVector(0, 0, 150),
+        BossLocation - FVector(0,0,150),
+        StompRadius,
+        UEngineTypes::ConvertToTraceType(ECC_Pawn),
+        false,
+        ActorsToIgnore,
+        EDrawDebugTrace::ForDuration,
+        Hits,
+        true,
+        FLinearColor::Green,
+        FLinearColor::Red,
+        2.0f
+    );
+
+    if (bHit)
+    {
+        TArray<AActor*> AoEHittedActors;
+
+        for (const FHitResult& Hit : Hits)
+        {
+            AActor* HitActor = Hit.GetActor();
+            ACharacter* HitChar = Cast<ACharacter>(HitActor);
+
+            if (!HitChar || AoEHittedActors.Contains(HitActor))
+                continue;
+
+            // 플레이어 에게만 & 땅에있을때만 적용
+            if (HitActor->ActorHasTag(FName("Player")) && !HitChar->GetCharacterMovement()->IsFalling())
+            {
+                // 혹시나할 중복적용을 방지
+                AoEHittedActors.Add(HitActor);
+
+                float StompDamage = GetAttackDamage() * StompAttackDamageMultiplier;
+
+                // 데미지 처리
+                UGameplayStatics::ApplyDamage(
+                    HitActor,
+                    StompDamage,
+                    GetController(),
+                    this,
+                    UDamageType::StaticClass()
+                );
+
+                // 에어본
+                HitChar->LaunchCharacter(FVector(0, 0, StompKnockupForce), false, true);
+
+            }
+        }
+    }
+
+    SpawnStompImpactDecal();
+}
+
+void ABossEnemy::ShowBossHPBar()
+{
+    // UI생성
+    if (BossHPUIClass && !BossHPUIInstance)
+    {
+        BossHPUIInstance = GetWorld()->SpawnActor<ABossHPUI>(BossHPUIClass, FVector::ZeroVector, FRotator::ZeroRotator);
+        if (BossHPUIInstance)
+        {
+            // 액터 내부의 위젯 생성 및 뷰포트 추가 함수 호출
+            BossHPUIInstance->ShowBossHPBar();
+        }
+    }
+
+    // 데이터 반영
+    OnEnemyHit.Broadcast();
+}
+
+void ABossEnemy::HideBossHPBar()
+{
+    if (BossHPUIInstance)
+    {
+        BossHPUIInstance->HideBossHPBar(); // 위젯 제거
+        BossHPUIInstance->Destroy();       // 액터 파괴
+        BossHPUIInstance = nullptr;
+    }
+}
+
+void ABossEnemy::UpdateBossHPBar()
+{
+    if (BossHPUIInstance)
+    {
+        BossHPUIInstance->UpdateBossHPBar();
+    }
 }
 
 void ABossEnemy::Die()
@@ -175,5 +369,55 @@ void ABossEnemy::Die()
 
 void ABossEnemy::IMDead()
 {
-    Super::IMDead();
+    // 콜리전 끄기
+    GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+    // 사망 애니메이션 재생
+    if (DeathMontage)
+    {
+        PlayAnimMontage(DeathMontage, 0.5f, FName("Dead"));
+    }
+
+    if (AEnemyAIController* AIC = Cast<AEnemyAIController>(GetController()))
+    {
+        // 컨트롤러 사망 처리 호출
+        AIC->SetDead();
+    }
+}
+
+void ABossEnemy::OnDecalLoadCompleted()
+{
+    if (WarningDecalSoftClass.IsValid())
+    {
+        LoadedWarningDecalClass = WarningDecalSoftClass.Get();
+    }
+
+    if (ImpactDecalSoftClass.IsValid())
+    {
+        LoadedImpactDecalClass = ImpactDecalSoftClass.Get();
+    }
+}
+
+void ABossEnemy::SpawnStompWarningDecal()
+{
+    if (LoadedWarningDecalClass && GetWorld())
+    {
+        // 보스 위치 바닥에 경고 장판 액터 소환
+        // 삭제는 스스로될거임
+        FVector SpawnLocation = GetActorLocation();
+        SpawnLocation.Z -= 150.0f;
+
+        GetWorld()->SpawnActor<AActor>(LoadedWarningDecalClass, SpawnLocation, FRotator::ZeroRotator);
+    }
+}
+
+void ABossEnemy::SpawnStompImpactDecal()
+{
+    if (LoadedImpactDecalClass && GetWorld())
+    {
+        FVector SpawnLocation = GetActorLocation();
+        SpawnLocation.Z -= 150.0f;
+
+        GetWorld()->SpawnActor<AActor>(LoadedImpactDecalClass, SpawnLocation, FRotator::ZeroRotator);
+    }
 }

@@ -6,15 +6,19 @@
 #include "Enemy/EnemyBase.h"
 #include "BossEnemy.generated.h"
 
-/**
- * 
- */
+class UUserWidget;
+class ABossHPUI;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnBossDamage);
+
 UCLASS()
 class GUNFIRE_API ABossEnemy : public AEnemyBase
 {
 	GENERATED_BODY()
 
 public:
+    UPROPERTY(BlueprintAssignable, Category = "Boss")
+    FOnBossDamage OnEnemyHit;
 
     virtual void BeginPlay() override;
 
@@ -33,6 +37,11 @@ public:
     // 광역기 판정 함수
     UFUNCTION(BlueprintCallable, Category = "Boss | Combat")
     void ExecuteStomp();
+
+    // HPUI관련 함수
+    virtual void ShowBossHPBar();
+    virtual void HideBossHPBar();
+    virtual void UpdateBossHPBar();
 
 protected:
 
@@ -60,6 +69,10 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss | Action")
     UAnimMontage* AttackMontage;
 
+    // 공격 적중시 사운드
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sound")
+    class USoundBase* HitSound;
+
     // 현재 실행 중인 공격 패턴 번호 저장용
     int32 CurrentAttackPattern = 0;
 
@@ -72,14 +85,14 @@ protected:
     float HeavyAttackDamageMultiplier = 2.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss | Combat")
-    float HeavyKnockbackForce = 1500.0f;
+    float HeavyKnockbackForce = 1000.0f;
 
     // 광역기 범위/넉백힘/ 데미지 배율
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss | Combat")
     float StompRadius = 1500.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss | Combat")
-    float StompKnockupForce = 800.0f;
+    float StompKnockupForce = 500.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss | Combat")
     float StompAttackDamageMultiplier = 2.0f;
@@ -87,6 +100,32 @@ protected:
     // 사망
     virtual void Die() override;
     virtual void IMDead() override;
+
+    // 스톰프 공격 전 경고용 데칼
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss | Decal")
+    TSoftClassPtr<AActor> WarningDecalSoftClass;
+    // 스톰프 타격 후 바닥이 깨진 느낌을 주는 데칼
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss | Decal")
+    TSoftClassPtr<AActor> ImpactDecalSoftClass;
+
+    // 비동기 로드가 완료된 사용할 클래스
+    UPROPERTY()
+    UClass* LoadedWarningDecalClass;
+
+    UPROPERTY()
+    UClass* LoadedImpactDecalClass;
+    // 데칼 로드시 호출
+    void OnDecalLoadCompleted();
+
+    // hpui용
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss | UI")
+    TSubclassOf<ABossHPUI> BossHPUIClass;
+
+    UPROPERTY()
+    TObjectPtr<ABossHPUI> BossHPUIInstance;
+
+    void SpawnStompWarningDecal();
+    void SpawnStompImpactDecal();
 
 
 protected:

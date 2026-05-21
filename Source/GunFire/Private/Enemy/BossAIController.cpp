@@ -8,6 +8,7 @@
 #include "Enemy/BossEnemy.h"
 #include "Kismet/GameplayStatics.h"
 
+
 ABossAIController::ABossAIController()
     : AEnemyAIController()
 {
@@ -105,8 +106,13 @@ void ABossAIController::StartEngaging(AActor* Target)
 
 void ABossAIController::StopEngaging()
 {
-    // 보스가...교전종료가 필요한가? 일단 넣자
     Super::StopEngaging();
+
+    if (GetWorld())
+    {
+        GetWorld()->GetTimerManager().ClearTimer(CooldownTimerHandle);
+        GetWorld()->GetTimerManager().ClearTimer(TacticTimerHandle);
+    }
 }
 
 void ABossAIController::EndAttackCooldown()
@@ -124,37 +130,48 @@ void ABossAIController::EndAttackCooldown()
 
 void ABossAIController::OnHitDamage(APawn* Enemy)
 {
-    Super::OnHitDamage(Enemy);
-
     UBlackboardComponent* BBComp = GetBlackboardComponent();
-    if (!BBComp || !Enemy) return;
+    AEnemyBase* MyPawn = Cast<AEnemyBase>(GetPawn());
 
-    // 보스가 대기 상태일 때 피격
-    // 강제로 인게이지상태
-    if (BBComp->GetValueAsInt(BossStateKey) == (int32)EBossState::Idle)
+    if (!BBComp || !Enemy || !MyPawn || MyPawn->bIsDead())
+        return;
+
+    // 타겟정보 등록
+    BBComp->SetValueAsObject(TargetActorKey, Enemy);
+    BBComp->SetValueAsBool(HasLineOfSightKey, true);
+
+    int32 CurrentBossState = BBComp->GetValueAsInt(BossStateKey);
+
+    // 포효상태면 피격애니메이션x
+    if (CurrentBossState == (int32)EBossState::Engage)
     {
-        BBComp->SetValueAsObject(TargetActorKey, Enemy);
-        BBComp->SetValueAsInt(BossStateKey, (int32)EBossState::Engage);
-
-        // 전술 타이머 가동
-        StartEngaging(Enemy);
-
         return;
     }
 
-    // 전투중일시 피격 리액션(공격주일경우 제외)
-    if (AEnemyBase* MyPawn = Cast<AEnemyBase>(GetPawn()))
+    // 보스가 대기 상태일 때 피격 -> 포효 상태로 전환
+    if (CurrentBossState == (int32)EBossState::Idle)
     {
-        if (!bIsAttacking)
-        {
-            MyPawn->PlayHitReaction(Enemy);
-        }
+        BBComp->SetValueAsInt(BossStateKey, (int32)EBossState::Engage);
+        StartEngaging(Enemy);
+        return;
+    }
+
+    // 전투 중일 시 피격 리액션 (공격 중일 경우 제외)
+    if (!bIsAttacking)
+    {
+        MyPawn->PlayHitReaction(Enemy);
     }
 }
 
 void ABossAIController::SetDead()
 {
-    Super::SetDead();
+    StopEngaging();
+
+    if (UBlackboardComponent* BBComp = GetBlackboardComponent())
+    {
+        BBComp->SetValueAsInt(BossStateKey, (int32)EBossState::Dead);
+
+    }
 }
 
 void ABossAIController::ChangeTactic()
@@ -189,6 +206,7 @@ void ABossAIController::RoarStart()
     {
         // 애니메이션 재생
         MyPawn->PlayRoarAnimation();
+        MyPawn->ShowBossHPBar();
     }
 
 }
