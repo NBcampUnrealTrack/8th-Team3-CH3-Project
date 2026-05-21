@@ -42,7 +42,7 @@ public:
     ACharacter* GetOwnerCharacter() const;
 
     UFUNCTION(BlueprintPure)
-    float GetDamageRate() const;
+    virtual float GetDamageRate() const;
 
     UFUNCTION(BlueprintPure)
     float GetStaminaCost() const;
@@ -65,10 +65,6 @@ protected:
     // 장착 상태인지
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
     bool bEquipped;
-
-    // 캐릭터 최종 공격력에 곱할 무기 데미지 배율
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
-    float DamageRate;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Stamina")
     float StaminaCost;

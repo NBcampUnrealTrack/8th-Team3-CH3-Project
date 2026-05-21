@@ -82,6 +82,9 @@ public:
     UFUNCTION(BlueprintCallable)
     void SetSessionData(const FGunSessionData& SessionData);
 
+
+    virtual float GetDamageRate() const override;
+
 public:
     // 총알수 변할 때
     UPROPERTY(BlueprintAssignable)
@@ -147,6 +150,9 @@ protected:
     // 재장전 중인지
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon|Gun")
     bool bReloading;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Gun")
+    float DamageRate;
 
     FTimerHandle FireDelayTimer;
 };

@@ -28,12 +28,11 @@ void ACombatRoom::Initialize()
 
 void ACombatRoom::KillEnemyForTest()
 {
-    for (const auto& Enemy : Enemies)
+    for (int32 i = Enemies.Num() - 1; i >= 0; --i)
     {
-        if (IsValid(Enemy))
+        if (IsValid(Enemies[i]))
         {
-            Enemy->Die();
-            return;
+            Enemies[i]->Die();
         }
     }
 }

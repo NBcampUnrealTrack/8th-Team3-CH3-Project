@@ -2,11 +2,11 @@
 
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
+#include "Combat/MeleeCombatComponent.h"
 
 AMeleeWeaponBase::AMeleeWeaponBase()
 {
     // WeaponBase의 변수
-    DamageRate = 1.f;
     StaminaCost = 10.f;
 
     // MeleeWeapon 변수
@@ -15,6 +15,9 @@ AMeleeWeaponBase::AMeleeWeaponBase()
 
     LightComboSectionNames = { TEXT("Basic1") };
     HeavyComboSectionNames = { TEXT("Smash1") };
+
+    LightComboDamageRates = { 1.f };
+    HeavyComboDamageRates = { 1.2f };
 
     HeavyAttackStaminaCost = 20.f;
 
@@ -108,4 +111,24 @@ FName AMeleeWeaponBase::GetTraceEndSocketName() const
 float AMeleeWeaponBase::GetTraceRadius() const
 {
     return TraceRadius;
+}
+
+float AMeleeWeaponBase::GetDamageRate() const
+{
+    return GetDamageRate(EMeleeAttackType::Light, 0);
+}
+
+float AMeleeWeaponBase::GetDamageRate(EMeleeAttackType AttackType, int32 ComboIndex) const
+{
+    const TArray<float> DamageRates =
+        AttackType == EMeleeAttackType::Light
+            ? LightComboDamageRates
+            : HeavyComboDamageRates;
+
+    if (!DamageRates.IsValidIndex(ComboIndex))
+    {
+        return Super::GetDamageRate();
+    }
+
+    return DamageRates[ComboIndex];
 }

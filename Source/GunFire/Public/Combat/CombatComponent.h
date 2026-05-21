@@ -22,7 +22,6 @@ enum class ECombatActionState : uint8
     Dodging         UMETA(DisplayName = "회피"),
     Stunned         UMETA(DisplayName = "피격 경직"),
     UsingSkill      UMETA(DisplayName = "스킬 사용"),
-    Interacting     UMETA(DisplayName = "상호작용"),
     Dead            UMETA(DisplayName = "사망")
 };
 
@@ -79,10 +78,6 @@ public:
     // 피격 경직 상태로 전환
     UFUNCTION(BlueprintCallable, Category = "Combat")
     void GetStunned();
-
-    // 상호작용 상태로 전환
-    UFUNCTION(BlueprintCallable, Category = "Combat")
-    void StartInteracting();
 
 
     /* Getter, Setter, 확인 함수 */

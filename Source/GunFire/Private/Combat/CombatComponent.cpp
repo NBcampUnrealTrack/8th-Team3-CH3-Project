@@ -179,11 +179,6 @@ void UCombatComponent::GetStunned()
     ForceSetActionState(ECombatActionState::Stunned);
 }
 
-void UCombatComponent::StartInteracting()
-{
-    TrySetActionState(ECombatActionState::Interacting);
-}
-
 bool UCombatComponent::CanStartCombatAction() const
 {
     if (!bCombatEnabled) return false;
@@ -215,7 +210,6 @@ bool UCombatComponent::CanChangeActionState(ECombatActionState NewState) const
     case ECombatActionState::Reloading:
     case ECombatActionState::Dodging:
     case ECombatActionState::UsingSkill:
-    case ECombatActionState::Interacting:
         return CurrentActionState == ECombatActionState::None;
 
     case ECombatActionState::Stunned:

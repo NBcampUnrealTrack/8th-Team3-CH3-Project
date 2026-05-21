@@ -215,7 +215,7 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
             // 상호작용
             if (PlayerController->InteractionAction)
             {
-                EnhancedInputComponent->BindAction(PlayerController->InteractionAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Interaction);
+                EnhancedInputComponent->BindAction(PlayerController->InteractionAction, ETriggerEvent::Started, this, &APlayerCharacter::Interaction);
             }
 
 
@@ -328,7 +328,15 @@ bool APlayerCharacter::StartDash(float DashStrength)
 
 
     // 이동방향으로 회전 못하게 잠시 막아둠
+    // 카메라 방향으로 회전 못하게 막아둠
+    // 회전값 컨트롤러 동기화 못하게 막아둠
+    bPrevOrientRotationToMovement = MoveComp->bOrientRotationToMovement;
+    bPrevUseControllerRotationYaw = bUseControllerRotationYaw;
+    bPrevUseControllerDesiredRotation = MoveComp->bUseControllerDesiredRotation;
+
     MoveComp->bOrientRotationToMovement = false;
+    bUseControllerRotationYaw = false;
+    MoveComp->bUseControllerDesiredRotation = false;
 
     // 대쉬 방향 결정 (입력 방향 위주)
     FVector DashDirection = GetAttackInputRotation().Vector();
@@ -388,7 +396,11 @@ void APlayerCharacter::FinishDash()
     // 원래의 마찰력으로 복구
     MoveComp->GroundFriction = DefaultGroundFriction;
     MoveComp->BrakingDecelerationWalking = DefaultBrakingDeceleration;
-    MoveComp->bOrientRotationToMovement = true;
+
+    // 회전 상태 복구
+    MoveComp->bOrientRotationToMovement = bPrevOrientRotationToMovement;
+    bUseControllerRotationYaw = bPrevUseControllerRotationYaw;
+    MoveComp->bUseControllerDesiredRotation = bPrevUseControllerDesiredRotation;
 
     // 무적 혹시 남아있다면 풀어주기
     if (IsValid(StatComponent))
@@ -703,7 +715,7 @@ void APlayerCharacter::KillEnemyForDebug()
     // 테스트로 현재 방의 적을 처치함
     if (AGunFireGameMode* GFGameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AGunFireGameMode>() : nullptr)
     {
-        UE_LOG(LogTemp, Warning, TEXT("Kill 1 Enemy for Test"));
+        UE_LOG(LogTemp, Warning, TEXT("Kill ALL Enemy for Test"));
         GFGameMode->KillEnemyForTest();
     }
 }
