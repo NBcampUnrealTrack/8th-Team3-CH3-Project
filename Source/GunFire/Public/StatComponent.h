@@ -25,6 +25,7 @@ public:
     void Heal(float Amount);
     void AddBaseStat(ECombatStatType StatType, float AddValue);
     void AddModifier(const FStatModifier& Modifier);
+    void AddModifier(FName SourceID, TConstArrayView<ECombatStatType> StatTypes, EStatModifierType ModifierType, float Value);
     void RemoveModifier(FName SourceID);
     void CalculateFinalStats();
 
@@ -44,9 +45,6 @@ public:
 
     UFUNCTION(BlueprintPure)
     float GetDefense() const;
-
-    UFUNCTION(BlueprintPure)
-    float GetMovementSpeed(bool bIsSprint) const;
 
     UFUNCTION(BlueprintPure)
     float GetMaxStamina() const;

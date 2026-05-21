@@ -93,4 +93,5 @@ protected:
 
 private:
     void SpawnEnemies();
+    void ApplyStatBonus(AEnemyBase* Enemy);
 };

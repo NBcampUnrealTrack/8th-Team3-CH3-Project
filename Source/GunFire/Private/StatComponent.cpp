@@ -9,7 +9,7 @@ UStatComponent::UStatComponent()
     bUseStamina = false;
     bInvincible = false;
 
-    constexpr float DefaultStats[] = {100.f, 20.f, 5.f, 600.f, 1.5f, 100.f, 30.f};
+    constexpr float DefaultStats[] = {100.f, 20.f, 5.f, 100.f, 30.f};
     BaseStats.Initialize(DefaultStats);
 }
 
@@ -112,11 +112,32 @@ void UStatComponent::AddBaseStat(ECombatStatType StatType, float AddValue)
     CalculateFinalStats();
 }
 
+// 단일 모디파이어 추가
 void UStatComponent::AddModifier(const FStatModifier& Modifier)
 {
     if (Modifier.StatType == ECombatStatType::Count) return;
 
     Modifiers.Add(Modifier);
+    CalculateFinalStats();
+}
+
+// 여러 타입의 모디파이어 한번에 추가
+void UStatComponent::AddModifier(FName SourceID, TConstArrayView<ECombatStatType> StatTypes,
+    EStatModifierType ModifierType, float Value)
+{
+    for (const ECombatStatType StatType : StatTypes)
+    {
+        if (StatType == ECombatStatType::Count) continue;
+
+        FStatModifier Modifier;
+        Modifier.SourceID = SourceID;
+        Modifier.StatType = StatType;
+        Modifier.ModifierType = ModifierType;
+        Modifier.Value = Value;
+
+        Modifiers.Add(Modifier);
+    }
+
     CalculateFinalStats();
 }
 
@@ -193,13 +214,6 @@ float UStatComponent::GetAttackPower() const
 float UStatComponent::GetDefense() const
 {
     return GetStatValue(ECombatStatType::Defense);
-}
-
-float UStatComponent::GetMovementSpeed(bool bIsSprint) const
-{
-    return bIsSprint
-        ? GetStatValue(ECombatStatType::WalkSpeed) * GetStatValue(ECombatStatType::SprintMultiplier)
-        : GetStatValue(ECombatStatType::WalkSpeed);
 }
 
 float UStatComponent::GetMaxStamina() const
