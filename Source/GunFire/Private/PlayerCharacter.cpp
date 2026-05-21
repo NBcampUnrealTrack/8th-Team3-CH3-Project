@@ -30,13 +30,6 @@ APlayerCharacter::APlayerCharacter()
     ThirdPersonCameraComponent->SetupAttachment(SpringArmComponent, USpringArmComponent::SocketName);
     ThirdPersonCameraComponent->bUsePawnControlRotation = false;
 
-    // 대쉬 설정
-    CanDash = true;
-    DashStrength = 2000.0f;
-    DashDuration = 0.2f;
-    DashCooldown = 3.0f;
-    IsDashing = false;
-
     // 이동속도
     NormalSpeed = 600.0f;
     RunSpeedMultiplier = 1.5f;
@@ -272,8 +265,6 @@ void APlayerCharacter::Move(const FInputActionValue& Value)
 
     if (!Controller) return;
 
-    if (IsDashing) return;
-
     // 공격중과 같이 움직일 수 없는 상태라면 return
     if (CombatComponent && !CombatComponent->CanMove()) return;
 
@@ -314,32 +305,33 @@ void APlayerCharacter::Jump()
 
 void APlayerCharacter::Dash(const FInputActionValue& Value)
 {
-    if (!Controller) return;
+    if (!IsValid(CombatComponent)) return;
 
-    if (!CanDash)
-    {
-        UE_LOG(LogTemp, Log, TEXT("Dash Cooldown"));
-        return;
-    }
+    CombatComponent->TryDodge();
+}
 
-    if (StatComponent->TryConsumeStamina(20.f)) return;
+bool APlayerCharacter::CanStartDash()
+{
+    UCharacterMovementComponent* MoveComp = GetCharacterMovement();
+    return IsValid(MoveComp) && !MoveComp->IsFalling();
+}
+
+bool APlayerCharacter::StartDash(float DashStrength)
+{
+    if (!Controller || !DashMontage) return false;
 
     UCharacterMovementComponent* MoveComp = GetCharacterMovement();
+    if (!IsValid(MoveComp)) return false;
 
-    // 공중 상태 확인
-    if (MoveComp && MoveComp->IsFalling())
-    {
-        //공중이면 함수 종료
-        return;
-    }
+    // 공중 상태면 함수 종료
+    if (MoveComp->IsFalling()) return false;
 
-    UE_LOG(LogTemp, Log, TEXT("Dash Start"));
-    IsDashing = true;
+
+    // 이동방향으로 회전 못하게 잠시 막아둠
     MoveComp->bOrientRotationToMovement = false;
 
-    //CurrentStamina = FMath::Clamp(CurrentStamina - 20, 0, MaxStamina);
     // 대쉬 방향 결정 (입력 방향 위주)
-    FVector DashDirection = MoveComp->GetLastInputVector();
+    FVector DashDirection = GetAttackInputRotation().Vector();
 
     // 만약 이동 입력이 없다면(가만히 있을 때) 캐릭터의 전방으로 대쉬
     if (DashDirection.IsNearlyZero())
@@ -347,17 +339,9 @@ void APlayerCharacter::Dash(const FInputActionValue& Value)
         DashDirection = GetActorForwardVector();
     }
 
-    DashDirection.Z = 0.0f;
     // 벡터 자체의 크기(길이)가 정확히 1.0으로 고정
+    DashDirection.Z = 0.f;
     DashDirection.Normalize();
-
-    UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-
-    if (AnimInstance && DashMontage)
-    {
-        AnimInstance->Montage_Play(DashMontage);
-        UE_LOG(LogTemp, Log, TEXT("대쉬 애니메이션 재생"));
-    }
 
     // 현재의 마찰력 설정값 저장
     DefaultGroundFriction = MoveComp->GroundFriction;
@@ -366,43 +350,51 @@ void APlayerCharacter::Dash(const FInputActionValue& Value)
     // 마찰력과 제동력을 0으로 설정
     MoveComp->GroundFriction = 0.f;
     MoveComp->BrakingDecelerationWalking = 0.f;
-    GetCharacterMovement()->MaxWalkSpeed = DashStrength;
+    MoveComp->MaxWalkSpeed = DashStrength;
 
     // 즉각적인 속도 부여
     MoveComp->Velocity = DashDirection * DashStrength;
 
-    CanDash = false;
-    // 마찰력 복구
-    //GetWorldTimerManager().SetTimer(DashStopTimerHandle, this, &APlayerCharacter::StopDash, DashDuration, false);
-    // 쿨타임 이후에 대쉬 다시 사용가능
-    GetWorldTimerManager().SetTimer(DashCooldownTimerHandle, this, &APlayerCharacter::ResetDash, DashCooldown, false);
+    // 대쉬 몽타주 재생
+    float Duration = PlayAnimMontage(DashMontage);
+    if (Duration <= 0.f)
+    {
+        FinishDash();
+        return false;
+    }
+
+    UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
+    if (!AnimInstance)
+    {
+        FinishDash();
+        return false;
+    }
+
+    // 애니메이션 몽타주가 끝날 때 호출할 함수 바인딩
+    FOnMontageEnded OnDashMontageEnded;
+    OnDashMontageEnded.BindUObject(this, &APlayerCharacter::HandleDashMontageEnded);
+    AnimInstance->Montage_SetEndDelegate(OnDashMontageEnded, DashMontage);
+
+
+    return true;
 }
 
-void APlayerCharacter::StopDash()
+void APlayerCharacter::FinishDash()
 {
     UCharacterMovementComponent* MoveComp = GetCharacterMovement();
     if (!MoveComp) return;
-    GetCharacterMovement()->MaxWalkSpeed = NormalSpeed;
+
+    MoveComp->MaxWalkSpeed = NormalSpeed;
     // 원래의 마찰력으로 복구
     MoveComp->GroundFriction = DefaultGroundFriction;
     MoveComp->BrakingDecelerationWalking = DefaultBrakingDeceleration;
-    UE_LOG(LogTemp, Log, TEXT("Dash Stop"));
-}
-
-void APlayerCharacter::EndDashAnimation()
-{
-    IsDashing = false;
-    UCharacterMovementComponent* MoveComp = GetCharacterMovement();
-    if (!MoveComp) return;
     MoveComp->bOrientRotationToMovement = true;
-}
 
-void APlayerCharacter::ResetDash()
-{
-    UCharacterMovementComponent* MoveComp = GetCharacterMovement();
-    if (!MoveComp) return;
-    CanDash = true;
-    UE_LOG(LogTemp, Log, TEXT("Dash On"));
+    // 무적 혹시 남아있다면 풀어주기
+    if (IsValid(StatComponent))
+    {
+        StatComponent->SetInvincible(false);
+    }
 }
 
 void APlayerCharacter::Run(const FInputActionValue& Value)
@@ -668,6 +660,18 @@ void APlayerCharacter::HandleHitMontageEnded(UAnimMontage* Montage, bool bInterr
     if (!IsValid(CombatComponent)) return;
 
     CombatComponent->ClearActionState(ECombatActionState::Stunned);
+}
+
+void APlayerCharacter::HandleDashMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+    if (Montage != DashMontage) return;
+
+    FinishDash();
+
+    if (IsValid(CombatComponent))
+    {
+        CombatComponent->ClearActionState(ECombatActionState::Dodging);
+    }
 }
 
 void APlayerCharacter::LockOn(const FInputActionValue& Value)

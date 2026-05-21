@@ -110,6 +110,9 @@ public:
     UFUNCTION(BlueprintPure, Category = "Combat")
     bool CanMove() const;
 
+    UFUNCTION(BlueprintPure, Category = "Combat")
+    bool CanDodge() const;
+
 public:
     // 전투 상태 변화 델리게이트
     UPROPERTY(BlueprintAssignable, Category = "Combat")
@@ -139,6 +142,14 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     ECombatActionState CurrentActionState;
 
+    // 대쉬(회피) 세기
+    UPROPERTY(EditAnywhere, BlueprintReadOnly)
+    float DashStrength;
+
+    // 대쉬 스태미너 소모량
+    UPROPERTY(EditAnywhere, BlueprintReadOnly)
+    float DashStaminaCost;
+
     // 락온한 적이 있는지 판단
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     bool bIsLockedOn;
@@ -160,6 +171,9 @@ private:
         );
 
     void SetActionState(ECombatActionState NewState);
+
+    // 이전 동작을 끊고 회피 수행
+    void InterruptActionForDodge();
 
     // 사망 시 행동 처리할 함수
     UFUNCTION()

@@ -43,7 +43,18 @@ public:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
     UCameraComponent* ThirdPersonCameraComponent;
 
-    // 대쉬
+    UFUNCTION(BlueprintPure)
+    bool CanStartDash();
+
+    // 대쉬 시작
+    UFUNCTION(BlueprintCallable)
+    bool StartDash(float DashStrength);
+
+    // 대쉬 종료
+    UFUNCTION(BlueprintCallable)
+    void FinishDash();
+
+    // 대쉬 몽타주
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dash")
     UAnimMontage* DashMontage;
 public:
@@ -57,16 +68,6 @@ public:
 protected:
 
     // 대쉬(회피)
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Dash")
-    bool CanDash;                      // 대쉬 가능 여부
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dash")
-    float DashStrength;                 // 대쉬 세기
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dash")
-    float DashCooldown;                 // 대쉬 쿨타임
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dash")
-    float DashDuration;                 // 대쉬 지속시간
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Dash")
-    bool IsDashing;
     float DefaultGroundFriction;            // 현재 마찰력 저장
     float DefaultBrakingDeceleration;       // 현재 제동력 저장
     FTimerHandle DashCooldownTimerHandle;   // 대쉬 쿨타임타이머
@@ -152,11 +153,6 @@ protected:
     virtual void Jump() override;
     // 대쉬(회피)
     void Dash(const FInputActionValue& Value);
-    UFUNCTION(BlueprintCallable)
-    void StopDash();
-    UFUNCTION(BlueprintCallable)
-    void EndDashAnimation();
-    void ResetDash();       // 대쉬(회피) 초기화
     // 달리기
     void Run(const FInputActionValue& Value);
     void StopRun();
@@ -203,4 +199,6 @@ protected:
 
     // 피격 몽타주 종료시 처리
     void HandleHitMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
+    void HandleDashMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 };

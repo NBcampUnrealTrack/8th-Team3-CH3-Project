@@ -107,8 +107,16 @@ void UMeleeCombatComponent::FinishAttack()
 {
     if (!IsAttackInProgress()) return;
 
+    // 트레이스 종료
     EndAttackTrace();
 
+    // 무기 잔상 이펙트 제거
+    if (CurrentMeleeWeapon.IsValid())
+    {
+        CurrentMeleeWeapon->StopTrailEffect();
+    }
+
+    // 공격 상태 정리 (콤보 입력 포함)
     ResetAttackState();
 
     OnAttackFinished.Broadcast();

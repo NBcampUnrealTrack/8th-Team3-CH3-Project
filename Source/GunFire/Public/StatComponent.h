@@ -55,11 +55,17 @@ public:
     UFUNCTION(BlueprintPure)
     const FCombatStat& GetBaseStats() const;
 
+    UFUNCTION(BlueprintPure)
+    bool IsInvincible() const;
+
     UFUNCTION(BlueprintCallable)
     void SetBaseStats(const FCombatStat& NewStats);
 
     UFUNCTION(BlueprintCallable)
     void SetCurrentHealth(float NewHealth);
+
+    UFUNCTION(BlueprintCallable)
+    void SetInvincible(bool bIsInvincible);
 
 public:
     // 델리게이트
@@ -114,6 +120,9 @@ protected:
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stat")
     bool bUseStamina;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Stat")
+    bool bInvincible;
 
 private:
     void StartRegenStamina();

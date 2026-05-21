@@ -7,6 +7,7 @@ UStatComponent::UStatComponent()
     StaminaRegenInterval = 0.1f;
     StaminaRegenDelayTime = 2.f;
     bUseStamina = false;
+    bInvincible = false;
 
     constexpr float DefaultStats[] = {100.f, 20.f, 5.f, 600.f, 1.5f, 100.f, 30.f};
     BaseStats.Initialize(DefaultStats);
@@ -216,6 +217,11 @@ const FCombatStat& UStatComponent::GetBaseStats() const
     return BaseStats;
 }
 
+bool UStatComponent::IsInvincible() const
+{
+    return bInvincible;
+}
+
 void UStatComponent::SetBaseStats(const FCombatStat& NewStats)
 {
     BaseStats = NewStats;
@@ -226,9 +232,17 @@ void UStatComponent::SetCurrentHealth(float NewHealth)
     CurrentHealth = NewHealth;
 }
 
+void UStatComponent::SetInvincible(bool bIsInvincible)
+{
+    bInvincible = bIsInvincible;
+}
+
 void UStatComponent::TakeDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType,
                                 AController* Instigator, AActor* Causer)
 {
+    // 무적상태면 건너뛰기
+    if (bInvincible) return;
+
     if (IsDead() || Damage <= 0.f) return;
 
     const float BaseDamage = Damage - GetDefense();

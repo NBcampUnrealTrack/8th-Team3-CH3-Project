@@ -75,9 +75,11 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Combat|Melee")
     void CloseComboInput();
 
+    // 방향 입력에 따른 방향전환 처리
     UFUNCTION(BlueprintCallable, Category = "Combat|Melee")
     void UpdateAttackDirection();
 
+    // 현재 공격 방향을 받는 함수
     UFUNCTION(BlueprintPure, Category = "Combat|Melee")
     FRotator GetCurrentAttackRotation() const;
 

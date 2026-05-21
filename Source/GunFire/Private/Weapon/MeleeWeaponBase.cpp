@@ -13,8 +13,8 @@ AMeleeWeaponBase::AMeleeWeaponBase()
     LightComboAnimMontage = nullptr;
     HeavyComboAnimMontage = nullptr;
 
-    LightComboSectionNames = { TEXT("Light_1") };
-    HeavyComboSectionNames = { TEXT("Heavy_1") };
+    LightComboSectionNames = { TEXT("Basic1") };
+    HeavyComboSectionNames = { TEXT("Smash1") };
 
     HeavyAttackStaminaCost = 20.f;
 
