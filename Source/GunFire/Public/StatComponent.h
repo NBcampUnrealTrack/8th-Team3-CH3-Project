@@ -29,6 +29,8 @@ public:
     void CalculateFinalStats();
 
     float GetStatValue(ECombatStatType StatType) const;
+
+    UFUNCTION(BlueprintPure)
     bool IsDead() const;
 
     UFUNCTION(BlueprintPure)
