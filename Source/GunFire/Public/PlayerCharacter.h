@@ -220,4 +220,7 @@ protected:
     void HandleHitMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 
     void HandleDashMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
+    UFUNCTION(BlueprintCallable, Category = "Test")
+    void TestHeal();
 };

@@ -672,6 +672,20 @@ void APlayerCharacter::HandleDamaged(float ActualDamage, AController* DamagedIns
 void APlayerCharacter::HandleHealed(float HealAmount)
 {
     // C++ 코드 처리
+    if (!IsValid(StatComponent)) return;
+
+    if (HealingNiagara)
+    {
+        UNiagaraFunctionLibrary::SpawnSystemAttached(
+            HealingNiagara,
+            GetMesh(),                 // 부착할 대상 컴포넌트 (캐릭터 메쉬)
+            FName(),
+            FVector::ZeroVector,       // 상대 위치 오프셋
+            FRotator::ZeroRotator,     // 상대 회전 오프셋
+            EAttachLocation::KeepRelativeOffset,
+            true
+        );
+    }
 }
 
 void APlayerCharacter::HandleDead(AController* DamagedInstigator)
@@ -717,6 +731,14 @@ void APlayerCharacter::HandleDashMontageEnded(UAnimMontage* Montage, bool bInter
     if (IsValid(CombatComponent))
     {
         CombatComponent->ClearActionState(ECombatActionState::Dodging);
+    }
+}
+
+void APlayerCharacter::TestHeal()
+{
+    if (StatComponent)
+    {
+        StatComponent->Heal(20.0f);
     }
 }
 
