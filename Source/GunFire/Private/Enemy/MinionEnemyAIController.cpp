@@ -131,6 +131,7 @@ ETacticState AMinionEnemyAIController::DetermineNextTactic(ETacticState CurrentS
     {
         GetWorld()->GetTimerManager().ClearTimer(RetreatTimerHandle);
         GetWorld()->GetTimerManager().ClearTimer(EncircleTimerHandle);
+        GetWorld()->GetTimerManager().ClearTimer(CombatUpdateTimerHandle);
         bIsAttacking = true;
         return ETacticState::Attack;
     }
@@ -244,6 +245,5 @@ void AMinionEnemyAIController::StopFleeing()
 
 void AMinionEnemyAIController::OnAttackAnimationFinished()
 {
-    bIsAttacking = false;
-    OnAttackFinishedDispatcher.Broadcast();
+    Super::OnAttackAnimationFinished();
 }

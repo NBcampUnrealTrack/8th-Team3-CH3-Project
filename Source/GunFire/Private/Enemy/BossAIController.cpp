@@ -172,6 +172,8 @@ void ABossAIController::SetDead()
         BBComp->SetValueAsInt(BossStateKey, (int32)EBossState::Dead);
 
     }
+    ClearFocus(EAIFocusPriority::Gameplay);
+    ClearFocus(EAIFocusPriority::Default);
 }
 
 void ABossAIController::ChangeTactic()

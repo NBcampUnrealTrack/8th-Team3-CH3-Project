@@ -50,6 +50,20 @@ void AEnemyAIController::OnAttackAnimationFinished()
     bIsAttacking = false;
 
     OnAttackFinishedDispatcher.Broadcast();
+    GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Cyan, FString::Printf(TEXT("공격 끝!")));
+
+    // 공격 딜레이
+    // 멈춰둔 타이머 재실행
+    // 다음공격까지 첫 실행 타이밍 딜레이 = 공격 딜레이
+    float AttackDelay = FMath::FRandRange(1.f, 1.5f);
+    GetWorld()->GetTimerManager().SetTimer(
+        CombatUpdateTimerHandle,
+        this,
+        &AEnemyAIController::UpdateCombatTactics,
+        UpdateInterval, // 0.5초 주기
+        true,           // 반복 실행
+        AttackDelay     
+    );
 }
 
 void AEnemyAIController::ForceResetAttack()
@@ -141,6 +155,10 @@ void AEnemyAIController::SetDead()
         // 타이머, 타겟 정보 비우기
         StopEngaging();
     }
+
+    // 혹시모르니 포커스해제
+    ClearFocus(EAIFocusPriority::Gameplay);
+    ClearFocus(EAIFocusPriority::Default);
 }
 
 void AEnemyAIController::OnHitDamage(APawn* Enemy)
@@ -162,6 +180,11 @@ void AEnemyAIController::OnHitDamage(APawn* Enemy)
 
         // 피격 몽타주 재생
         MyPawn->PlayHitReaction(Enemy);
+        GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Cyan, FString::Printf(TEXT("경직되어야함!")));
+    }
+    else
+    {
+        GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Cyan, FString::Printf(TEXT("경직이 될수없음! : %d"), bIsAttacking));
     }
 
     // 블랙보드에 타겟 등록 및 시야 확보 처리
