@@ -173,9 +173,6 @@ void UInventoryComponent::AddMaterial(FGF_PassiveItemData NewData)
 // 아이템 강화
 int32 UInventoryComponent::UpgradeItem(int32 TargetIndex, int32 MaterialIndex)
 {
-    // =========================
-    // 인덱스 검사
-    // =========================
 
     if (!OwnedPassives.IsValidIndex(TargetIndex) ||
         !OwnedPassives.IsValidIndex(MaterialIndex))
@@ -188,10 +185,6 @@ int32 UInventoryComponent::UpgradeItem(int32 TargetIndex, int32 MaterialIndex)
         return -1;
     }
 
-    // =========================
-    // 데이터 테이블 검사
-    // =========================
-
     if (!PassiveItemTable)
     {
         UE_LOG(LogTemp, Error,
@@ -200,10 +193,6 @@ int32 UInventoryComponent::UpgradeItem(int32 TargetIndex, int32 MaterialIndex)
         return -1;
     }
 
-    // =========================
-    // RowName 검사
-    // =========================
-
     if (OwnedPassives[TargetIndex].ItemRowName.IsNone())
     {
         UE_LOG(LogTemp, Error,
@@ -211,10 +200,6 @@ int32 UInventoryComponent::UpgradeItem(int32 TargetIndex, int32 MaterialIndex)
 
         return -1;
     }
-
-    // =========================
-    // 데이터 테이블 조회
-    // =========================
 
     FGF_PassiveItemData* RowData =
         PassiveItemTable->FindRow<FGF_PassiveItemData>(
@@ -231,17 +216,14 @@ int32 UInventoryComponent::UpgradeItem(int32 TargetIndex, int32 MaterialIndex)
         return -1;
     }
 
-    // =========================
-    // 강화 적용
-    // =========================
 
+    // 강화 적용
     OwnedPassives[TargetIndex].ItemName =
         RowData->UpgradeItemName;
 
     OwnedPassives[TargetIndex].ItemDescription =
         RowData->UpgradeItemDescription;
 
-    // 아이콘 유지
     OwnedPassives[TargetIndex].ItemIcon =
         RowData->ItemIcon;
 
@@ -257,11 +239,8 @@ int32 UInventoryComponent::UpgradeItem(int32 TargetIndex, int32 MaterialIndex)
         *OwnedPassives[TargetIndex].ItemName.ToString(),
         OwnedPassives[TargetIndex].CurrentLevel);
 
-    // =========================
-    // 재료 소비
-    // =========================
+    // 재료 사용
 
-    // 같은 슬롯이면 소비 안함
     if (MaterialIndex != TargetIndex)
     {
         if (OwnedPassives[MaterialIndex].StackCount > 1)
@@ -270,7 +249,6 @@ int32 UInventoryComponent::UpgradeItem(int32 TargetIndex, int32 MaterialIndex)
         }
         else
         {
-            // 빈 슬롯 처리
             OwnedPassives[MaterialIndex].ItemRowName = NAME_None;
             OwnedPassives[MaterialIndex].ItemName = FText::GetEmpty();
             OwnedPassives[MaterialIndex].ItemDescription = FText::GetEmpty();
@@ -281,10 +259,7 @@ int32 UInventoryComponent::UpgradeItem(int32 TargetIndex, int32 MaterialIndex)
         }
     }
 
-    // =========================
     // UI 갱신
-    // =========================
-
     OnInventoryChanged.Broadcast();
 
     return TargetIndex;
