@@ -1,26 +1,20 @@
 ﻿#include "InventoryComponent.h"
-#include "ItemSystemTypes.h"
-#include "Engine/DataTable.h"
-
 
 UInventoryComponent::UInventoryComponent()
 {
     PrimaryComponentTick.bCanEverTick = false;
 }
 
-// 패시브 옵션 가져오기
 TArray<FGF_PassiveItemData> UInventoryComponent::GetRandomPassiveOptions(int32 Count)
 {
     TArray<FGF_PassiveItemData> Result;
     if (!PassiveItemTable) return Result;
 
-    // 행 이름 가져오기
     TArray<FName> RowNames = PassiveItemTable->GetRowNames();
     if (RowNames.Num() == 0) return Result;
 
     TArray<FGF_PassiveItemData> ValidOptions;
 
-    // 데이터 검색
     for (const FName& Name : RowNames)
     {
         FGF_PassiveItemData* RowPtr = PassiveItemTable->FindRow<FGF_PassiveItemData>(Name, TEXT("GetRandomPassiveOptions"));
@@ -38,9 +32,7 @@ TArray<FGF_PassiveItemData> UInventoryComponent::GetRandomPassiveOptions(int32 C
             if (!bAlreadyOwned)
             {
                 FGF_PassiveItemData CopyData = *RowPtr;
-
                 CopyData.ItemRowName = Name;
-
                 ValidOptions.Add(CopyData);
             }
         }
@@ -59,7 +51,7 @@ TArray<FGF_PassiveItemData> UInventoryComponent::GetRandomPassiveOptions(int32 C
 
     return Result;
 }
-// 액티브 옵션 가져오기
+
 TArray<FGF_ActiveItemData> UInventoryComponent::GetRandomActiveOptions(int32 Count)
 {
     TArray<FGF_ActiveItemData> Result;
@@ -101,7 +93,6 @@ TArray<FGF_ActiveItemData> UInventoryComponent::GetRandomActiveOptions(int32 Cou
     return Result;
 }
 
-// 패시브 추가 
 void UInventoryComponent::AddPassive(FGF_PassiveItemData NewData)
 {
     bool bFound = false;
@@ -128,7 +119,6 @@ void UInventoryComponent::AddPassive(FGF_PassiveItemData NewData)
     }
 }
 
-// 액티브 추가
 void UInventoryComponent::AddActive(FGF_ActiveItemData NewData)
 {
     bool bFound = false;
@@ -149,7 +139,6 @@ void UInventoryComponent::AddActive(FGF_ActiveItemData NewData)
     }
 }
 
-// 재료 추가 
 void UInventoryComponent::AddMaterial(FGF_PassiveItemData NewData)
 {
     bool bFound = false;
@@ -171,96 +160,56 @@ void UInventoryComponent::AddMaterial(FGF_PassiveItemData NewData)
 }
 
 // 아이템 강화
-int32 UInventoryComponent::UpgradeItem(int32 TargetIndex, int32 MaterialIndex)
+bool UInventoryComponent::UpgradeItem(int32 TargetIndex)
 {
+    if (!OwnedPassives.IsValidIndex(TargetIndex)) return false;
+    if (!PassiveItemTable) return false;
+    if (OwnedPassives[TargetIndex].ItemRowName.IsNone()) return false;
 
-    if (!OwnedPassives.IsValidIndex(TargetIndex) ||
-        !OwnedPassives.IsValidIndex(MaterialIndex))
-    {
-        UE_LOG(LogTemp, Error,
-            TEXT("Upgrade Failed: Invalid Index (Target: %d / Material: %d)"),
-            TargetIndex,
-            MaterialIndex);
+    FGF_PassiveItemData* RowData = PassiveItemTable->FindRow<FGF_PassiveItemData>(OwnedPassives[TargetIndex].ItemRowName, TEXT("UpgradeItem"));
+    if (!RowData) return false;
 
-        return -1;
-    }
-
-    if (!PassiveItemTable)
-    {
-        UE_LOG(LogTemp, Error,
-            TEXT("Upgrade Failed: PassiveItemTable is Null"));
-
-        return -1;
-    }
-
-    if (OwnedPassives[TargetIndex].ItemRowName.IsNone())
-    {
-        UE_LOG(LogTemp, Error,
-            TEXT("Upgrade Failed: ItemRowName is None"));
-
-        return -1;
-    }
-
-    FGF_PassiveItemData* RowData =
-        PassiveItemTable->FindRow<FGF_PassiveItemData>(
-            OwnedPassives[TargetIndex].ItemRowName,
-            TEXT("UpgradeItem")
-        );
-
-    if (!RowData)
-    {
-        UE_LOG(LogTemp, Error,
-            TEXT("Upgrade Failed: Row Not Found (%s)"),
-            *OwnedPassives[TargetIndex].ItemRowName.ToString());
-
-        return -1;
-    }
-
-
-    // 강화 적용
-    OwnedPassives[TargetIndex].ItemName =
-        RowData->UpgradeItemName;
-
-    OwnedPassives[TargetIndex].ItemDescription =
-        RowData->UpgradeItemDescription;
-
-    OwnedPassives[TargetIndex].ItemIcon =
-        RowData->ItemIcon;
-
-    // 스탯 증가
-    OwnedPassives[TargetIndex].StatValue +=
-        RowData->StatValue;
-
-    // 레벨 증가
+    // 데이터 적용
+    OwnedPassives[TargetIndex].ItemName = RowData->UpgradeItemName;
+    OwnedPassives[TargetIndex].ItemDescription = RowData->UpgradeItemDescription;
+    OwnedPassives[TargetIndex].ItemIcon = RowData->ItemIcon;
+    OwnedPassives[TargetIndex].StatValue += RowData->StatValue;
     OwnedPassives[TargetIndex].CurrentLevel += 1;
 
-    UE_LOG(LogTemp, Warning,
-        TEXT("Upgrade Success -> Name: %s / Level: %d"),
-        *OwnedPassives[TargetIndex].ItemName.ToString(),
-        OwnedPassives[TargetIndex].CurrentLevel);
+    OnInventoryChanged.Broadcast();
+    return true;
+}
 
-    // 재료 사용
+// 재료 소모 
+bool UInventoryComponent::ConsumeMaterial(int32 DummyIndex)
+{
+    int32 FoundMaterialIndex = INDEX_NONE;
 
-    if (MaterialIndex != TargetIndex)
+    // 1. 큰 바구니(OwnedPassives)를 돌며 아이템 타입을 검사합니다.
+    for (int32 i = 0; i < OwnedPassives.Num(); ++i)
     {
-        if (OwnedPassives[MaterialIndex].StackCount > 1)
+        // 변수 타입이 Enum이므로 열거형 값인 EGF_ItemType::Material 하고만 비교해야 합니다.
+        if (OwnedPassives[i].ItemType == EGF_ItemType::Material)
         {
-            OwnedPassives[MaterialIndex].StackCount--;
-        }
-        else
-        {
-            OwnedPassives[MaterialIndex].ItemRowName = NAME_None;
-            OwnedPassives[MaterialIndex].ItemName = FText::GetEmpty();
-            OwnedPassives[MaterialIndex].ItemDescription = FText::GetEmpty();
-            OwnedPassives[MaterialIndex].ItemIcon = nullptr;
-            OwnedPassives[MaterialIndex].CurrentLevel = 0;
-            OwnedPassives[MaterialIndex].StackCount = 0;
-            OwnedPassives[MaterialIndex].StatValue = 0.0f;
+            FoundMaterialIndex = i;
+            break;
         }
     }
 
-    // UI 갱신
-    OnInventoryChanged.Broadcast();
+    // 2. 만약 인벤토리에 재료가 하나도 없다면 실패 처리
+    if (FoundMaterialIndex == INDEX_NONE) return false;
 
-    return TargetIndex;
+    // 3. 찾은 재료 인덱스를 기준으로 수량을 깎거나 삭제합니다.
+    if (OwnedPassives[FoundMaterialIndex].StackCount > 1)
+    {
+        OwnedPassives[FoundMaterialIndex].StackCount--;
+    }
+    else
+    {
+        OwnedPassives.RemoveAt(FoundMaterialIndex);
+    }
+
+    // 4. UI에 변경 신호 발송
+    OnInventoryChanged.Broadcast();
+    return true;
 }
