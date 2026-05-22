@@ -98,6 +98,9 @@ private:
     bool CanEnterRoom(const ARoomBase* EnteredRoom);
     AStartRoom* FindStartRoom();
     int32 CountCombatRooms();
-    void GoToResultLevel(ESessionResult Result);
+    void GoToResultLevel();
+
+    void SaveSessionData();
+    void RestoreSessionData();
 };
 

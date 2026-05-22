@@ -17,11 +17,7 @@ AWeaponBase::AWeaponBase()
     AttackSound = nullptr;
     AttackAnimation = nullptr;
     bEquipped = false;
-    DamageRate = 1.f;
     StaminaCost = 0.f;
-
-    CurrentUpgradeLevel = 0;
-    MaxUpgradeLevel = 5;
 }
 
 void AWeaponBase::Attack()
@@ -87,25 +83,11 @@ ACharacter* AWeaponBase::GetOwnerCharacter() const
 
 float AWeaponBase::GetDamageRate() const
 {
-    return DamageRate;
+    UE_LOG(LogTemp, Warning, TEXT("Base GetDamageRate()"));
+    return 1.f;
 }
 
 float AWeaponBase::GetStaminaCost() const
 {
     return StaminaCost;
 }
-
-int32 AWeaponBase::GetCurrentUpgradeLevel() const
-{
-    return CurrentUpgradeLevel;
-}
-
-void AWeaponBase::UpgradeWeapon()
-{
-    if (CurrentUpgradeLevel >= MaxUpgradeLevel)
-    {
-        return;
-    }
-    ++CurrentUpgradeLevel;
-}
-

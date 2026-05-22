@@ -1,5 +1,6 @@
 ﻿#include "Room/CombatRoom.h"
 
+#include "StatComponent.h"
 #include "Components/BoxComponent.h"
 #include "Game/GunFireGameInstance.h"
 #include "Game/GunFireGameState.h"
@@ -16,7 +17,6 @@ ACombatRoom::ACombatRoom()
     PrepareTrigger->OnComponentBeginOverlap.AddDynamic(this, &ACombatRoom::OnPrepareTriggerBeginOverlap);
 
     RoomType = ERoomType::Combat;
-    SpawningEnemyCount = 1;
     Initialize();
 }
 
@@ -29,12 +29,11 @@ void ACombatRoom::Initialize()
 
 void ACombatRoom::KillEnemyForTest()
 {
-    for (const auto& Enemy : Enemies)
+    for (int32 i = Enemies.Num() - 1; i >= 0; --i)
     {
-        if (IsValid(Enemy))
+        if (IsValid(Enemies[i]))
         {
-            Enemy->Die();
-            return;
+            Enemies[i]->Die();
         }
     }
 }
@@ -186,40 +185,58 @@ void ACombatRoom::SpawnEnemies()
     UWorld* World = GetWorld();
     if (!World) return;
 
-    if (EnemyClasses.IsEmpty()) return;
-
-    for (int32 i = 0; i < SpawningEnemyCount; ++i)
+    for (const FEnemySpawnGroup& SpawnGroup : EnemySpawnGroups)
     {
-        // 스폰 포인트 확인
-        if (i >= EnemySpawnPoints.Num()) break;
+        if (!SpawnGroup.EnemyClass) continue;
 
-        AActor* SpawnPoint = EnemySpawnPoints[i].Get();
-        if (!IsValid(SpawnPoint))
+        for (const TObjectPtr<AActor>& SpawnPointActor : SpawnGroup.SpawnPoints)
         {
-            UE_LOG(LogTemp, Warning, TEXT("스폰 포인트 찾기 실패!"));
-            continue;
-        }
+            AActor* SpawnPoint = SpawnPointActor.Get();
+            if (!IsValid(SpawnPoint)) continue;
 
-        // 소환할 적 클래스 확인
-        TSubclassOf<AEnemyBase> EnemyClass = EnemyClasses[i % EnemyClasses.Num()];
-        if (!EnemyClass)
-        {
-            UE_LOG(LogTemp, Warning, TEXT("지정한 적 클래스가 없습니다!"));
-            continue;
-        }
+            AEnemyBase* SpawnedEnemy = World->SpawnActor<AEnemyBase>(
+                SpawnGroup.EnemyClass,
+                SpawnPoint->GetActorTransform()
+                );
 
-        AEnemyBase* SpawnedEnemy = World->SpawnActor<AEnemyBase>(
-            EnemyClass,
-            SpawnPoint->GetActorTransform()
-            );
+            if (IsValid(SpawnedEnemy))
+            {
+                // 보너스 스탯 적용
+                ApplyStatBonus(SpawnedEnemy);
 
-        // 생성한 적 컨테이너에 추가
-        if (IsValid(SpawnedEnemy))
-        {
-            SpawnedEnemy->OnEnemyDead.AddDynamic(this, &ACombatRoom::HandleEnemyDead);
-            Enemies.Add(SpawnedEnemy);
+                SpawnedEnemy->OnEnemyDead.AddDynamic(this, &ACombatRoom::HandleEnemyDead);
+                Enemies.Add(SpawnedEnemy);
+            }
         }
     }
 
     RemainingEnemyCount = Enemies.Num();
+}
+
+void ACombatRoom::ApplyStatBonus(AEnemyBase* Enemy)
+{
+    if (!IsValid(Enemy)) return;
+
+    UStatComponent* StatComponent = Enemy->FindComponentByClass<UStatComponent>();
+    if (!IsValid(StatComponent)) return;
+
+    UGunFireGameInstance* GameInstance = GetGameInstance<UGunFireGameInstance>();
+    if (!GameInstance) return;
+
+    float BonusRate = GameInstance->GetEnemyStatBonusRate();
+    if (BonusRate <= 0.f) return;
+
+    static const ECombatStatType EnemyScalingStatTypes[] =
+    {
+        ECombatStatType::MaxHealth,
+        ECombatStatType::AttackPower,
+        ECombatStatType::Defense
+    };
+
+    StatComponent->AddModifier(
+        TEXT("RoomScaling"),
+        EnemyScalingStatTypes,
+        EStatModifierType::Multiply,
+        BonusRate
+        );
 }

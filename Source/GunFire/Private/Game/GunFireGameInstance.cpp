@@ -10,26 +10,24 @@ void UGunFireGameInstance::StartNewSession()
     ResetSessionData();
 }
 
-void UGunFireGameInstance::FinishSession(ESessionResult Result)
-{
-    SessionResult = Result;
-    // 세션 종료 시 필요한거
-}
-
 void UGunFireGameInstance::ResetSessionData()
 {
     PlayerSessionData = FPlayerSessionData();
     CurrentFloor = 1;
-    SessionResult = ESessionResult::None;
-    RoomData.Empty();
+
     ClearedRoomCount = 0;
     KilledEnemyCount = 0;
+    EnemyStatBonusPerRoom = 5.f;
 }
 
-void UGunFireGameInstance::AddRoomData(const FRoomData& Data)
+void UGunFireGameInstance::AddClearedRoomCount(int32 Count)
 {
-    RoomData.Add(Data);
-    ++ClearedRoomCount;
+    ClearedRoomCount += FMath::Max(0, Count);
+}
+
+void UGunFireGameInstance::AddTotalClearedCombatRoomCount(int32 Count)
+{
+    TotalClearedCombatRoomCount += FMath::Max(0, Count);
 }
 
 void UGunFireGameInstance::AddKilledEnemyCount(int32 Count)
@@ -47,19 +45,39 @@ const FPlayerSessionData& UGunFireGameInstance::GetPlayerSessionData() const
     return PlayerSessionData;
 }
 
+const TArray<FEquippedWeaponSessionData>& UGunFireGameInstance::GetEquippedWeaponSessionData() const
+{
+    return EquippedWeapons;
+}
+
+const FInventorySessionData& UGunFireGameInstance::GetInventorySessionData() const
+{
+    return InventorySessionData;
+}
+
 int32 UGunFireGameInstance::GetCurrentFloor() const
 {
     return CurrentFloor;
 }
 
-ESessionResult UGunFireGameInstance::GetSessionResult() const
+float UGunFireGameInstance::GetEnemyStatBonusRate() const
 {
-    return SessionResult;
+    return TotalClearedCombatRoomCount * EnemyStatBonusPerRoom;
 }
 
 void UGunFireGameInstance::SetPlayerSessionData(const FPlayerSessionData& SessionData)
 {
     PlayerSessionData = SessionData;
+}
+
+void UGunFireGameInstance::SetEquippedWeaponSessionData(const TArray<FEquippedWeaponSessionData>& SessionData)
+{
+    EquippedWeapons = SessionData;
+}
+
+void UGunFireGameInstance::SetInventorySessionData(const FInventorySessionData& SessionData)
+{
+    InventorySessionData = SessionData;
 }
 
 void UGunFireGameInstance::SetCurrentFloor(int32 Floor)

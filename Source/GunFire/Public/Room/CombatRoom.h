@@ -9,6 +9,18 @@ class AEnemyBase;
 class UBoxComponent;
 class ADoorBase;
 
+USTRUCT(BlueprintType)
+struct FEnemySpawnGroup
+{
+    GENERATED_BODY()
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly)
+    TSubclassOf<AEnemyBase> EnemyClass;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly)
+    TArray<TObjectPtr<AActor>> SpawnPoints;
+};
+
 UCLASS()
 class GUNFIRE_API ACombatRoom : public ARoomBase
 {
@@ -35,13 +47,9 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Room|Component")
     TObjectPtr<UBoxComponent> PrepareTrigger;
 
-    // 생성할 적 클래스 목록
+    // 생성할 적 클래스 와 스폰 포인트 목록
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Room|Combat")
-    TArray<TSubclassOf<AEnemyBase>> EnemyClasses;
-
-    // 스폰 포인트 지정
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Room|Combat")
-    TArray<TObjectPtr<AActor>> EnemySpawnPoints;
+    TArray<FEnemySpawnGroup> EnemySpawnGroups;
 
     // 생성된 적들을 보관하는 컨테이너
     UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Room|Combat")
@@ -50,10 +58,6 @@ protected:
     // Prepare Trigger 발동 시 뒤로 못돌아가게 막는 문
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Room")
     TArray<TObjectPtr<ADoorBase>> RestrictDoors;
-
-    // 소환할 적의 수
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Room|Combat")
-    int32 SpawningEnemyCount;
 
     // 남아있는 적의 수
     UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Room|Combat")
@@ -89,4 +93,5 @@ protected:
 
 private:
     void SpawnEnemies();
+    void ApplyStatBonus(AEnemyBase* Enemy);
 };

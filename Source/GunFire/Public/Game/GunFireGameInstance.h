@@ -2,55 +2,11 @@
 
 #include "CoreMinimal.h"
 #include "Engine/GameInstance.h"
-#include "Room/RoomTypes.h"
+#include "SessionData.h"
 #include "GunFireGameInstance.generated.h"
 
-
-// 어떤 상태로 결과창에 진입할지
-UENUM(BlueprintType)
-enum class ESessionResult : uint8
-{
-    None        UMETA(DisplayName = "진행 중"),
-    Victory     UMETA(DisplayName = "승리"),
-    Death       UMETA(DisplayName = "사망"),
-    Quit        UMETA(DisplayName = "종료")
-};
-
-// 한 세션에서 저장할 플레이어 데이터
-USTRUCT(BlueprintType)
-struct FPlayerSessionData
-{
-    GENERATED_BODY()
-
-    UPROPERTY(BlueprintReadWrite)
-    float CurrentHealth = 100.f;
-
-    UPROPERTY(BlueprintReadWrite)
-    float MaxHealth = 100.f;
-
-    UPROPERTY(BlueprintReadWrite)
-    int32 Gold = 0;
-
-    UPROPERTY(BlueprintReadWrite)
-    TArray<FName> RelicIDs;
-};
-
-// 방 정보 구조체
-USTRUCT(BlueprintType)
-struct FRoomData
-{
-    GENERATED_BODY()
-
-    UPROPERTY(BlueprintReadWrite)
-    int32 Floor = 1;
-
-    UPROPERTY(BlueprintReadWrite)
-    FName RoomID = NAME_None;
-
-    UPROPERTY(BlueprintReadWrite)
-    ERoomType RoomType = ERoomType::Safe;
-};
-
+// 저장해야 하는 정보
+// 1. 진행정보  2. 플레이어 스탯   3. 무기/총알 상태  4. 인벤토리
 
 UCLASS()
 class GUNFIRE_API UGunFireGameInstance : public UGameInstance
@@ -64,40 +20,55 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Session")
     void StartNewSession();
 
-    // 세션 종료
-    UFUNCTION(BlueprintCallable, Category = "Session")
-    void FinishSession(ESessionResult Result);
-
     // 세션정보 초기화
     UFUNCTION(BlueprintCallable, Category = "Session")
     void ResetSessionData();
 
-    // 지나온 방의 정보 기록
+    // 클리어한 방 개수 추가
     UFUNCTION(BlueprintCallable, Category = "Session")
-    void AddRoomData(const FRoomData& Data);
+    void AddClearedRoomCount(int32 Count = 1);
+
+    // 클리어한 전투방 개수 추가
+    UFUNCTION(BlueprintCallable, Category = "Session")
+    void AddTotalClearedCombatRoomCount(int32 Count = 1);
 
     // 처치한 적 수 기록
     UFUNCTION(BlueprintCallable, Category = "Session")
     void AddKilledEnemyCount(int32 Count);
 
+    // 현재 층 ++
     UFUNCTION(BlueprintCallable, Category = "Session")
     void MoveNextFloor();
 
 
-    // 게터
+    /* 게터 */
+
     UFUNCTION(BlueprintPure, Category = "Session")
     const FPlayerSessionData& GetPlayerSessionData() const;
+
+    UFUNCTION(BlueprintPure, Category = "Session")
+    const TArray<FEquippedWeaponSessionData>& GetEquippedWeaponSessionData() const;
+
+    UFUNCTION(BlueprintPure, Category = "Session")
+    const FInventorySessionData& GetInventorySessionData() const;
+
 
     UFUNCTION(BlueprintPure, Category = "Session")
     int32 GetCurrentFloor() const;
 
     UFUNCTION(BlueprintPure, Category = "Session")
-    ESessionResult GetSessionResult() const;
+    float GetEnemyStatBonusRate() const;
 
+    /* 세터 */
 
-    // 세터
     UFUNCTION(BlueprintCallable, Category = "Session")
     void SetPlayerSessionData(const FPlayerSessionData& SessionData);
+
+    UFUNCTION(BlueprintCallable, Category = "Session")
+    void SetEquippedWeaponSessionData(const TArray<FEquippedWeaponSessionData>& SessionData);
+
+    UFUNCTION(BlueprintCallable, Category = "Session")
+    void SetInventorySessionData(const FInventorySessionData& SessionData);
 
     UFUNCTION(BlueprintCallable, Category = "Session")
     void SetCurrentFloor(int32 Floor);
@@ -108,23 +79,31 @@ protected:
     UPROPERTY(BlueprintReadOnly, Category = "Session")
     FPlayerSessionData PlayerSessionData;
 
+    // 저장할 무기 데이터
+    UPROPERTY(BlueprintReadOnly, Category = "Session")
+    TArray<FEquippedWeaponSessionData> EquippedWeapons;
+
+    // 저장할 인벤토리 데이터
+    UPROPERTY(BlueprintReadOnly, Category = "Session")
+    FInventorySessionData InventorySessionData;
+
     // 현재 층
     UPROPERTY(BlueprintReadOnly, Category = "Session")
     int32 CurrentFloor;
-
-    // 세션 상태, 결과창에 반영할 상태
-    UPROPERTY(BlueprintReadOnly, Category = "Session")
-    ESessionResult SessionResult;
-
-    // 지나온 방들의 정보
-    UPROPERTY(BlueprintReadOnly, Category = "Session")
-    TArray<FRoomData> RoomData;
 
     // 클리어한 방 갯수
     UPROPERTY(BlueprintReadOnly, Category = "Session")
     int32 ClearedRoomCount;
 
+    // 클리어한 총 전투방 갯수
+    UPROPERTY(BlueprintReadOnly, Category = "Session")
+    int32 TotalClearedCombatRoomCount;
+
     // 처치한 적의 수
     UPROPERTY(BlueprintReadOnly, Category = "Session")
     int32 KilledEnemyCount;
+
+    // 전투방을 클리어할때 증가할 적 스탯 보너스 수치
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Session")
+    float EnemyStatBonusPerRoom;
 };

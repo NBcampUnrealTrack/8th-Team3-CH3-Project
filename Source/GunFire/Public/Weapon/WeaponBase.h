@@ -42,16 +42,10 @@ public:
     ACharacter* GetOwnerCharacter() const;
 
     UFUNCTION(BlueprintPure)
-    float GetDamageRate() const;
+    virtual float GetDamageRate() const;
 
     UFUNCTION(BlueprintPure)
     float GetStaminaCost() const;
-
-    UFUNCTION(BlueprintPure)
-    int32 GetCurrentUpgradeLevel() const;
-
-    UFUNCTION(BlueprintCallable)
-    void UpgradeWeapon();
 
 protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon|Component")
@@ -72,18 +66,6 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
     bool bEquipped;
 
-    // 캐릭터 최종 공격력에 곱할 무기 데미지 배율
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
-    float DamageRate;
-
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Stamina")
     float StaminaCost;
-
-    // 현재 강화 레벨
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
-    int32 CurrentUpgradeLevel;
-
-    // 최대 강화 레벨
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
-    int32 MaxUpgradeLevel;
 };

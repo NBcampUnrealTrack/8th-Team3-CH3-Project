@@ -10,8 +10,6 @@ enum class ECombatStatType : uint8
     MaxHealth           UMETA(DisplayName = "최대 체력"),
     AttackPower         UMETA(DisplayName = "공격력"),
     Defense             UMETA(DisplayName = "방어력"),
-    WalkSpeed           UMETA(DisplayName = "기본 속도"),
-    SprintMultiplier    UMETA(DisplayName = "달리기 속도 배율"),
     MaxStamina          UMETA(DisplayName = "최대 스태미너"),
     StaminaRegen        UMETA(DisplayName = "스태미너 회복량"),
 
@@ -41,7 +39,7 @@ struct FCombatStat
     }
 
     // Enum 순서에 맞게 스탯을 초기화 하는 함수
-    // 최대체력, 공격력, 방어력, 걷기속도, 달리기 배율, 최대스태미너, 스태미너 회복량...
+    // 최대체력, 공격력, 방어력, 최대스태미너, 스태미너 회복량...
     void Initialize(TArrayView<const float> StatView)
     {
         // Value 전체 초기화

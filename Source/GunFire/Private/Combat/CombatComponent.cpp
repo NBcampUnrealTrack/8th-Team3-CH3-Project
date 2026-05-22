@@ -1,5 +1,6 @@
 #include "Combat/CombatComponent.h"
 
+#include "PlayerCharacter.h"
 #include "StatComponent.h"
 #include "Combat/MeleeCombatComponent.h"
 #include "Combat/RangedCombatComponent.h"
@@ -17,6 +18,8 @@ UCombatComponent::UCombatComponent()
     RangedCombatComponent = nullptr;
 
     CurrentActionState = ECombatActionState::None;
+    DashStrength = 2000.f;
+    DashStaminaCost = 20.f;
     bIsLockedOn = false;
     bIsAiming = false;
     bCombatEnabled = true;
@@ -56,6 +59,10 @@ void UCombatComponent::TryLightAttack()
         {
             return Weapon->GetStaminaCost();
         },
+        [this](AMeleeWeaponBase* Weapon)
+        {
+            return MeleeCombatComponent->CanAcceptAttackInput(Weapon, EMeleeAttackType::Light);
+        },
         [this](AMeleeWeaponBase* Weapon, float AttackPower)
         {
             return MeleeCombatComponent->TryLightAttack(Weapon, AttackPower);
@@ -69,6 +76,10 @@ void UCombatComponent::TryHeavyAttack()
         [](const AMeleeWeaponBase* Weapon)
         {
             return Weapon->GetHeavyAttackStaminaCost();
+        },
+        [this](AMeleeWeaponBase* Weapon)
+        {
+            return MeleeCombatComponent->CanAcceptAttackInput(Weapon, EMeleeAttackType::Heavy);
         },
         [this](AMeleeWeaponBase* Weapon, float AttackPower)
         {
@@ -115,9 +126,31 @@ void UCombatComponent::TryReload()
 
 void UCombatComponent::TryDodge()
 {
-    if (!TrySetActionState(ECombatActionState::Dodging)) return;
+    if (!CanDodge()) return;
+    if (!IsValid(StatComponent)) return;
 
-    // 회피 행동 호출 or 처리
+    // 스태미너 충분한지 확인
+    if (!StatComponent->CanConsumeStamina(DashStaminaCost)) return;
+
+    APlayerCharacter* PlayerCharacter = Cast<APlayerCharacter>(GetOwner());
+    if (!IsValid(PlayerCharacter)) return;
+
+    // 대쉬할 수 있는지 확인
+    if (!PlayerCharacter->CanStartDash()) return;;
+
+    // 이전 동작 중단
+    InterruptActionForDodge();
+
+    // 회피 상태로 강제 전환
+    ForceSetActionState(ECombatActionState::Dodging);
+
+    if (!PlayerCharacter->StartDash(DashStrength))
+    {
+        ClearActionState(ECombatActionState::Dodging);
+        return;
+    }
+
+    StatComponent->TryConsumeStamina(DashStaminaCost);
 }
 
 bool UCombatComponent::TrySetActionState(ECombatActionState NewState)
@@ -144,11 +177,6 @@ void UCombatComponent::ForceSetActionState(ECombatActionState NewState)
 void UCombatComponent::GetStunned()
 {
     ForceSetActionState(ECombatActionState::Stunned);
-}
-
-void UCombatComponent::StartInteracting()
-{
-    TrySetActionState(ECombatActionState::Interacting);
 }
 
 bool UCombatComponent::CanStartCombatAction() const
@@ -182,7 +210,6 @@ bool UCombatComponent::CanChangeActionState(ECombatActionState NewState) const
     case ECombatActionState::Reloading:
     case ECombatActionState::Dodging:
     case ECombatActionState::UsingSkill:
-    case ECombatActionState::Interacting:
         return CurrentActionState == ECombatActionState::None;
 
     case ECombatActionState::Stunned:
@@ -217,9 +244,28 @@ bool UCombatComponent::CanMove() const
         && CurrentActionState != ECombatActionState::Dead;
 }
 
+bool UCombatComponent::CanDodge() const
+{
+    if (!bCombatEnabled) return false;
+
+    // 회피는 사망, 피격 상태, 이미 회피중이 아니면 끊고 사용 가능
+    switch (CurrentActionState)
+    {
+    case ECombatActionState::Dead:
+    case ECombatActionState::Stunned:
+    case ECombatActionState::Dodging:
+        return false;
+
+    default:
+        return true;
+    }
+}
+
 void UCombatComponent::TryMeleeAttack(
     TFunctionRef<float(const AMeleeWeaponBase*)> GetStaminaCost,
-    TFunctionRef<bool(AMeleeWeaponBase*, float)> AttackFunc)
+    TFunctionRef<bool(AMeleeWeaponBase*)> CanComboAttackFunc,
+    TFunctionRef<bool(AMeleeWeaponBase*, float)> AttackFunc
+    )
 {
     if (!IsValid(MeleeCombatComponent)) return;
     if (!IsValid(WeaponComponent)) return;
@@ -229,17 +275,33 @@ void UCombatComponent::TryMeleeAttack(
     AMeleeWeaponBase* MeleeWeapon = WeaponComponent->GetCurrentMeleeWeapon();
     if (!IsValid(MeleeWeapon)) return;
 
-    // 근접 무기 공격을 처리할 수 있는지 확인
-    if (!MeleeCombatComponent->CanStartAttack(MeleeWeapon)) return;
+    // 공격중인지 확인
+    bool bIsMeleeAttackInProgress =
+        CurrentActionState == ECombatActionState::Attacking
+        && MeleeCombatComponent->IsAttackInProgress();
 
-    // 공격 상태로 바꿀 수 있는지 확인하고 가능하면 공격 상태로 전환
-    if (!TrySetActionState(ECombatActionState::Attacking)) return;
+    // 공격 상태에 진입했지만 공격중이 아니라면 return
+    if (CurrentActionState == ECombatActionState::Attacking && !bIsMeleeAttackInProgress) return;
 
-    // 스태미너 사용 처리, 실패하면 행동도 되돌림
-    const float Cost = GetStaminaCost(MeleeWeapon);
-    if (!StatComponent->TryConsumeStamina(Cost))
+    // 다음 콤보 입력이 가능한지 확인
+    if (!CanComboAttackFunc(MeleeWeapon)) return;
+
+    // 첫번째 공격이라면 공격 상태로 전환이 가능한지 확인
+    if (!bIsMeleeAttackInProgress)
     {
-        ClearActionState(ECombatActionState::Attacking);
+        if (!TrySetActionState(ECombatActionState::Attacking)) return;
+    }
+
+    // 스태미너 사용 가능한지 확인
+    const float Cost = GetStaminaCost(MeleeWeapon);
+    if (!StatComponent->CanConsumeStamina(Cost))
+    {
+        // 첫 공격에 실패했다면 행동 되돌림
+        // 콤보 공격에 실패는 Attacking 상태 그대로라 ClearActionState를 호출하면 안됨
+        if (!bIsMeleeAttackInProgress)
+        {
+            ClearActionState(ECombatActionState::Attacking);
+        }
         return;
     }
 
@@ -248,8 +310,16 @@ void UCombatComponent::TryMeleeAttack(
     // 근접무기로 공격
     if (!AttackFunc(MeleeWeapon, FinalAttackPower))
     {
-        ClearActionState(ECombatActionState::Attacking);
+        // 첫 공격에 실패했다면 행동 되돌림
+        if (!bIsMeleeAttackInProgress)
+        {
+            ClearActionState(ECombatActionState::Attacking);
+        }
+        return;
     }
+
+    // 공격이 성공해야 실제 스태미너 소모
+    StatComponent->TryConsumeStamina(Cost);
 }
 
 void UCombatComponent::SetActionState(ECombatActionState NewState)
@@ -260,6 +330,29 @@ void UCombatComponent::SetActionState(ECombatActionState NewState)
     CurrentActionState = NewState;
 
     OnCombatStateChanged.Broadcast(PrevState, CurrentActionState);
+}
+
+void UCombatComponent::InterruptActionForDodge()
+{
+    switch (CurrentActionState)
+    {
+        case ECombatActionState::Attacking:
+        if (IsValid(MeleeCombatComponent))
+        {
+            MeleeCombatComponent->FinishAttack();
+        }
+        break;
+
+    case ECombatActionState::Reloading:
+        if (IsValid(RangedCombatComponent))
+        {
+            RangedCombatComponent->FinishReload();
+        }
+        break;
+
+    default:
+        break;
+    }
 }
 
 void UCombatComponent::HandleDead(AController* DeadInstigator)

@@ -19,22 +19,53 @@ class GUNFIRE_API UStatComponent : public UActorComponent
 public:
 	UStatComponent();
 
+    bool CanConsumeStamina(float Cost) const;
     bool TryConsumeStamina(float Cost);
+    void RecoverStaminaMax();
     void Heal(float Amount);
     void AddBaseStat(ECombatStatType StatType, float AddValue);
     void AddModifier(const FStatModifier& Modifier);
+    void AddModifier(FName SourceID, TConstArrayView<ECombatStatType> StatTypes, EStatModifierType ModifierType, float Value);
     void RemoveModifier(FName SourceID);
     void CalculateFinalStats();
 
     float GetStatValue(ECombatStatType StatType) const;
+
+    UFUNCTION(BlueprintPure)
     bool IsDead() const;
 
+    UFUNCTION(BlueprintPure)
     float GetMaxHealth() const;
+
+    UFUNCTION(BlueprintPure)
     float GetCurrentHealth() const;
+
+    UFUNCTION(BlueprintPure)
     float GetAttackPower() const;
+
+    UFUNCTION(BlueprintPure)
     float GetDefense() const;
-    float GetMovementSpeed(bool bIsSprint) const;
+
+    UFUNCTION(BlueprintPure)
     float GetMaxStamina() const;
+
+    UFUNCTION(BlueprintPure)
+    float GetCurrentStamina() const;
+
+    UFUNCTION(BlueprintPure)
+    const FCombatStat& GetBaseStats() const;
+
+    UFUNCTION(BlueprintPure)
+    bool IsInvincible() const;
+
+    UFUNCTION(BlueprintCallable)
+    void SetBaseStats(const FCombatStat& NewStats);
+
+    UFUNCTION(BlueprintCallable)
+    void SetCurrentHealth(float NewHealth);
+
+    UFUNCTION(BlueprintCallable)
+    void SetInvincible(bool bIsInvincible);
 
 public:
     // 델리게이트
@@ -89,6 +120,9 @@ protected:
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stat")
     bool bUseStamina;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Stat")
+    bool bInvincible;
 
 private:
     void StartRegenStamina();
