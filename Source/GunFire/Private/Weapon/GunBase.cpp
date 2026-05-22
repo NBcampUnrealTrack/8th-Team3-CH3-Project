@@ -1,13 +1,10 @@
 #include "Weapon/GunBase.h"
 
-#include "GameFramework/Character.h"
+#include "Game/SessionData.h"
 #include "GunFire/GunFireProjectile.h"
-#include "Kismet/GameplayStatics.h"
 
 AGunBase::AGunBase()
 {
-    DamageRate = 0.3f;
-
     ReloadSound = nullptr;
     ReloadAnimation = nullptr;
     MuzzleSocketName = TEXT("Muzzle");
@@ -18,9 +15,13 @@ AGunBase::AGunBase()
     MaxReserveAmmo = 24;
     ReloadPerAmmo = 12;
     Range = 1000.f;
+    ProjectileSpeed = 6000.f;
 
     bCanFire = true;
     bCanReload = true;
+    bReloading = false;
+
+    DamageRate = 0.3f;
 }
 
 void AGunBase::BeginPlay()
@@ -33,43 +34,99 @@ void AGunBase::BeginPlay()
 
 void AGunBase::Attack()
 {
-    if (!bCanFire || CurrentAmmo <= 0) return;
-
-    Fire();
+    TryConsumeAmmo();
 }
 
-void AGunBase::Fire()
+bool AGunBase::CanFire() const
 {
+    return bCanFire && !bReloading && CurrentAmmo > 0;
+}
+
+bool AGunBase::TryConsumeAmmo()
+{
+    if (!CanFire()) return false;
+
+    --CurrentAmmo;
     bCanFire = false;
 
-    // 총알 실제로 생성
-    if (ProjectileClass)
-    {
-        UWorld* World = GetWorld();
-        if (!World) return;
+    OnAmmoChanged.Broadcast(CurrentAmmo, RemainAmmo);
 
-        // 생성 필요
-
-        --CurrentAmmo;
-    }
+    const float FireInterval = RoF > 0.f
+        ? 1.f / RoF
+        : 0.1f;
 
     GetWorldTimerManager().SetTimer(
         FireDelayTimer,
         this,
         &AGunBase::HandleFireDelay,
-        1.f / RoF
+        FireInterval,
+        false
         );
+
+    return true;
 }
 
 void AGunBase::Reload()
 {
-    // 현재 총이 전부 장전되어있으면 X, 남은 총알이 없으면 X
-    if (!bCanReload || CurrentAmmo >= ReloadPerAmmo || RemainAmmo <= 0) return;
+    TryStartReload();
+}
+
+bool AGunBase::CanReload() const
+{
+    return bCanReload
+        && !bReloading
+        && CurrentAmmo < ReloadPerAmmo
+        && RemainAmmo > 0;
+}
+
+bool AGunBase::TryStartReload()
+{
+    if (!CanReload()) return false;
 
     bCanFire = false;
     bCanReload = false;
+    bReloading = true;
 
-    PlayReloadAnimation();
+    return true;
+}
+
+bool AGunBase::ApplyReload()
+{
+    if (!bReloading) return false;
+
+    // 현재 총알이 가득 차있거나, 남은 총알이 없다면 false 리턴
+    if (CurrentAmmo >= ReloadPerAmmo) return false;
+    if (RemainAmmo <= 0) return false;
+
+    // 필요한 총알만큼만 장전함
+    // 필요한 총알보다 남은 총알이 적으면 있는 만큼만 장전
+    int32 RequiredAmmo = ReloadPerAmmo - CurrentAmmo;
+    int32 ActualReloadingAmmo = FMath::Min(RemainAmmo, RequiredAmmo);
+
+    CurrentAmmo += ActualReloadingAmmo;
+    RemainAmmo -= ActualReloadingAmmo;
+
+    OnAmmoChanged.Broadcast(CurrentAmmo, RemainAmmo);
+
+    return true;
+}
+
+void AGunBase::FinishReload()
+{
+    if (!bReloading) return;
+
+    bCanFire = true;
+    bCanReload = true;
+    bReloading = false;
+}
+
+void AGunBase::AddAmmo(int32 Amount)
+{
+    if (RemainAmmo >= MaxReserveAmmo) return;
+
+    RemainAmmo = FMath::Min(RemainAmmo + Amount, MaxReserveAmmo);
+
+    OnAmmoChanged.Broadcast(CurrentAmmo, RemainAmmo);
 }
 
 FTransform AGunBase::GetMuzzleTransform() const
@@ -85,6 +142,26 @@ FTransform AGunBase::GetMuzzleTransform() const
     return Mesh->GetSocketTransform(MuzzleSocketName);
 }
 
+USoundBase* AGunBase::GetReloadSound() const
+{
+    return ReloadSound.Get();
+}
+
+UAnimMontage* AGunBase::GetReloadAnimation() const
+{
+    return ReloadAnimation.Get();
+}
+
+int32 AGunBase::GetCurrentAmmo() const
+{
+    return CurrentAmmo;
+}
+
+int32 AGunBase::GetRemainAmmo() const
+{
+    return RemainAmmo;
+}
+
 TSubclassOf<AGunFireProjectile> AGunBase::GetProjectileClass() const
 {
     return ProjectileClass;
@@ -95,25 +172,22 @@ float AGunBase::GetRange() const
     return Range;
 }
 
-void AGunBase::PlayReloadSound()
+float AGunBase::GetProjectileSpeed() const
 {
-    if (!ReloadSound) return;
-
-    UGameplayStatics::PlaySoundAtLocation(
-        this,
-        ReloadSound,
-        GetActorLocation()
-        );
+    return ProjectileSpeed;
 }
 
-void AGunBase::PlayReloadAnimation()
+void AGunBase::SetSessionData(const FGunSessionData& SessionData)
 {
-    if (!ReloadAnimation) return;
+    CurrentAmmo = SessionData.CurrentAmmo;
+    RemainAmmo = SessionData.RemainAmmo;
 
-    ACharacter* OwnerCharacter = GetOwnerCharacter();
-    if (!IsValid(OwnerCharacter)) return;
+    OnAmmoChanged.Broadcast(CurrentAmmo, RemainAmmo);
+}
 
-    OwnerCharacter->PlayAnimMontage(ReloadAnimation);
+float AGunBase::GetDamageRate() const
+{
+    return DamageRate;
 }
 
 void AGunBase::HandleFireDelay()
@@ -122,18 +196,3 @@ void AGunBase::HandleFireDelay()
 
     bCanFire = true;
 }
-
-void AGunBase::HandleReloadComplete()
-{
-    // 필요한 총알만큼만 장전함
-    // 필요한 총알보다 남은 총알이 적으면 있는 만큼만 장전
-    int32 RequiredAmmo = ReloadPerAmmo - CurrentAmmo;
-    int32 ActualReloadingAmmo = FMath::Min(RemainAmmo, RequiredAmmo);
-
-    CurrentAmmo += ActualReloadingAmmo;
-    RemainAmmo -= ActualReloadingAmmo;
-
-    bCanFire = true;
-    bCanReload = true;
-}
-

@@ -3,8 +3,9 @@
 #include "GunFireProjectile.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Components/SphereComponent.h"
+#include "Kismet/GameplayStatics.h"
 
-AGunFireProjectile::AGunFireProjectile() 
+AGunFireProjectile::AGunFireProjectile()
 {
 	// Use a sphere as a simple collision representation
 	CollisionComp = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComp"));
@@ -25,19 +26,59 @@ AGunFireProjectile::AGunFireProjectile()
 	ProjectileMovement->InitialSpeed = 3000.f;
 	ProjectileMovement->MaxSpeed = 3000.f;
 	ProjectileMovement->bRotationFollowsVelocity = true;
-	ProjectileMovement->bShouldBounce = true;
+	ProjectileMovement->bShouldBounce = false;
 
 	// Die after 3 seconds by default
 	InitialLifeSpan = 3.0f;
+
+	Damage = 0.f;
+	DamageInstigator = nullptr;
+	DamageCauser = nullptr;
 }
 
-void AGunFireProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
+void AGunFireProjectile::InitializeProjectile(AController* InstigatorController, AActor* DamageCauserActor,
+        float ActualDamage, float Range, float Speed)
 {
-	// Only add impulse and destroy projectile if we hit a physics
-	if ((OtherActor != nullptr) && (OtherActor != this) && (OtherComp != nullptr) && OtherComp->IsSimulatingPhysics())
-	{
-		OtherComp->AddImpulseAtLocation(GetVelocity() * 100.0f, GetActorLocation());
+	Damage = ActualDamage;
+	DamageInstigator = InstigatorController;
+	DamageCauser = DamageCauserActor;
 
-		Destroy();
+    // 속도 설정
+    // 수명 = 사거리 / 속도
+    ProjectileMovement->InitialSpeed = Speed;
+    ProjectileMovement->MaxSpeed = Speed;
+    ProjectileMovement->Velocity = GetActorForwardVector() * Speed;
+    SetLifeSpan(Range / Speed);
+
+    // 총알을 발사한 캐릭터와 충돌하는것 방지
+	if (IsValid(CollisionComp) && IsValid(DamageCauser))
+	{
+		CollisionComp->IgnoreActorWhenMoving(DamageCauser, true);
 	}
+}
+
+void AGunFireProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor,
+    UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
+{
+	if (!IsValid(OtherActor) || OtherActor == this || OtherActor == DamageCauser.Get()) return;
+
+	if (Damage > 0.f)
+	{
+		UGameplayStatics::ApplyDamage(
+			OtherActor,
+			Damage,
+			DamageInstigator.Get(),
+			DamageCauser.Get(),
+			UDamageType::StaticClass()
+		);
+	}
+
+	Destroy();
+}
+
+void AGunFireProjectile::SetLifeSpan(float InLifespan)
+{
+    Super::SetLifeSpan(InLifespan);
+
+    InitialLifeSpan = InLifespan;
 }

@@ -21,6 +21,14 @@ void UWeaponComponent::BeginPlay()
     Super::BeginPlay();
 }
 
+void UWeaponComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+    // 삭제될때 기존 장착한 무기들 전부 해제
+    UnEquipAllWeapons();
+
+    Super::EndPlay(EndPlayReason);
+}
+
 AWeaponBase* UWeaponComponent::EquipWeapon(TSubclassOf<AWeaponBase> WeaponClass, EWeaponSlot Slot)
 {
     if (!WeaponClass) return nullptr;
@@ -63,6 +71,14 @@ void UWeaponComponent::UnEquipWeapon(EWeaponSlot Slot)
     if (!HasWeapon(EWeaponSlot::LeftHand) && !HasWeapon(EWeaponSlot::RightHand))
     {
         RemoveWeaponMappingContext();
+    }
+}
+
+void UWeaponComponent::UnEquipAllWeapons()
+{
+    for (int32 i = 0; i < static_cast<int32>(EWeaponSlot::Count); ++i)
+    {
+        UnEquipWeapon(static_cast<EWeaponSlot>(i));
     }
 }
 
@@ -160,6 +176,12 @@ void UWeaponComponent::SetWeapon(EWeaponSlot Slot, AWeaponBase* NewWeapon)
     if (!Weapons.IsValidIndex(Index)) return;
 
     Weapons[Index] = NewWeapon;
+
+    // 장비 장착 이벤트 호출
+    if (IsValid(NewWeapon))
+    {
+        OnWeaponEquipped.Broadcast(Slot, NewWeapon);
+    }
 }
 
 void UWeaponComponent::AddWeaponMappingContext()

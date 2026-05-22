@@ -7,8 +7,9 @@ UStatComponent::UStatComponent()
     StaminaRegenInterval = 0.1f;
     StaminaRegenDelayTime = 2.f;
     bUseStamina = false;
+    bInvincible = false;
 
-    constexpr float DefaultStats[] = {100.f, 20.f, 5.f, 600.f, 1.5f, 100.f, 30.f};
+    constexpr float DefaultStats[] = {100.f, 20.f, 5.f, 100.f, 30.f};
     BaseStats.Initialize(DefaultStats);
 }
 
@@ -37,19 +38,25 @@ void UStatComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
     Super::EndPlay(EndPlayReason);
 }
 
+bool UStatComponent::CanConsumeStamina(float Cost) const
+{
+    // 스태미너 소모하지 않거나 코스트가 0이라면 true 리턴
+    if (!bUseStamina || Cost <= 0.f) return true;
+
+    return CurrentStamina >= Cost;
+}
+
 bool UStatComponent::TryConsumeStamina(float Cost)
 {
-    // 스태미너 소모하지 않는 액터이면 true 리턴
-    if (!bUseStamina) return true;
-    // 코스트가 0 이하라면 바로 true 리턴
-    if (Cost <= 0.f) return true;
+    // 스태미너 소모하지 않거나 코스트가 0이라면 아래 스태미너 소모 처리 X
+    if (!bUseStamina || Cost <= 0.f) return true;
 
     UWorld* World = GetWorld();
     if (!World) return false;
 
-    if (CurrentStamina < Cost) return false;
-
     CurrentStamina -= Cost;
+
+    UE_LOG(LogTemp, Warning, TEXT("Stamina: %f"), CurrentStamina);
 
     // 스태미너 변경 이벤트 발생
     OnStaminaChanged.Broadcast(CurrentStamina, GetMaxStamina());
@@ -75,7 +82,13 @@ bool UStatComponent::TryConsumeStamina(float Cost)
         false
         );
 
+
     return true;
+}
+
+void UStatComponent::RecoverStaminaMax()
+{
+    CurrentStamina = GetMaxStamina();
 }
 
 void UStatComponent::Heal(float Amount)
@@ -99,11 +112,32 @@ void UStatComponent::AddBaseStat(ECombatStatType StatType, float AddValue)
     CalculateFinalStats();
 }
 
+// 단일 모디파이어 추가
 void UStatComponent::AddModifier(const FStatModifier& Modifier)
 {
     if (Modifier.StatType == ECombatStatType::Count) return;
 
     Modifiers.Add(Modifier);
+    CalculateFinalStats();
+}
+
+// 여러 타입의 모디파이어 한번에 추가
+void UStatComponent::AddModifier(FName SourceID, TConstArrayView<ECombatStatType> StatTypes,
+    EStatModifierType ModifierType, float Value)
+{
+    for (const ECombatStatType StatType : StatTypes)
+    {
+        if (StatType == ECombatStatType::Count) continue;
+
+        FStatModifier Modifier;
+        Modifier.SourceID = SourceID;
+        Modifier.StatType = StatType;
+        Modifier.ModifierType = ModifierType;
+        Modifier.Value = Value;
+
+        Modifiers.Add(Modifier);
+    }
+
     CalculateFinalStats();
 }
 
@@ -182,21 +216,47 @@ float UStatComponent::GetDefense() const
     return GetStatValue(ECombatStatType::Defense);
 }
 
-float UStatComponent::GetMovementSpeed(bool bIsSprint) const
-{
-    return bIsSprint
-        ? GetStatValue(ECombatStatType::WalkSpeed) * GetStatValue(ECombatStatType::SprintMultiplier)
-        : GetStatValue(ECombatStatType::WalkSpeed);
-}
-
 float UStatComponent::GetMaxStamina() const
 {
     return GetStatValue(ECombatStatType::MaxStamina);
 }
 
+float UStatComponent::GetCurrentStamina() const
+{
+    return CurrentStamina;
+}
+
+const FCombatStat& UStatComponent::GetBaseStats() const
+{
+    return BaseStats;
+}
+
+bool UStatComponent::IsInvincible() const
+{
+    return bInvincible;
+}
+
+void UStatComponent::SetBaseStats(const FCombatStat& NewStats)
+{
+    BaseStats = NewStats;
+}
+
+void UStatComponent::SetCurrentHealth(float NewHealth)
+{
+    CurrentHealth = NewHealth;
+}
+
+void UStatComponent::SetInvincible(bool bIsInvincible)
+{
+    bInvincible = bIsInvincible;
+}
+
 void UStatComponent::TakeDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType,
                                 AController* Instigator, AActor* Causer)
 {
+    // 무적상태면 건너뛰기
+    if (bInvincible) return;
+
     if (IsDead() || Damage <= 0.f) return;
 
     const float BaseDamage = Damage - GetDefense();
@@ -216,6 +276,7 @@ void UStatComponent::TakeDamage(AActor* DamagedActor, float Damage, const UDamag
 
     if (IsDead())
     {
+        UE_LOG(LogTemp, Warning, TEXT("%s 사망"), *this->GetName());
         // 사망 이벤트 발생
         OnDead.Broadcast(Instigator);
     }

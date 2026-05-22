@@ -1,34 +1,96 @@
 #include "Weapon/MeleeWeaponBase.h"
 
+#include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
+#include "Combat/MeleeCombatComponent.h"
+
 AMeleeWeaponBase::AMeleeWeaponBase()
 {
-    DamageRate = 1.f;
+    // WeaponBase의 변수
     StaminaCost = 10.f;
+
+    // MeleeWeapon 변수
+    LightComboAnimMontage = nullptr;
+    HeavyComboAnimMontage = nullptr;
+
+    LightComboSectionNames = { TEXT("Basic1") };
+    HeavyComboSectionNames = { TEXT("Smash1") };
+
+    LightComboDamageRates = { 1.f };
+    HeavyComboDamageRates = { 1.2f };
+
     HeavyAttackStaminaCost = 20.f;
-    TraceRadius = 20.f;
 
     TraceStartSocketName = TEXT("TraceStart");
     TraceEndSocketName = TEXT("TraceEnd");
+
+    TrailEffect = nullptr;
+    TrailEffectSocketName = TEXT("TraceEnd");
+
+    TraceRadius = 20.f;
 }
 
-UAnimMontage* AMeleeWeaponBase::GetHeavyComboAnimation(int32 ComboIndex) const
+void AMeleeWeaponBase::StartTrailEffect()
 {
-    if (HeavyComboAnimations.IsValidIndex(ComboIndex))
-    {
-        return HeavyComboAnimations[ComboIndex].Get();
-    }
+    if (!TrailEffect) return;
 
-    return nullptr;
+    UStaticMeshComponent* MeshComp = GetMesh();
+    if (!IsValid(MeshComp)) return;
+
+    // 켜져있을 수 있으니 꺼주기
+    StopTrailEffect();
+
+    TrailComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(
+        TrailEffect,
+        MeshComp,
+        TrailEffectSocketName,
+        FVector::ZeroVector,
+        FRotator::ZeroRotator,
+        EAttachLocation::SnapToTarget,
+        true
+        );
 }
 
-UAnimMontage* AMeleeWeaponBase::GetLightComboAnimation(int32 ComboIndex) const
+void AMeleeWeaponBase::StopTrailEffect()
 {
-    if (LightComboAnimations.IsValidIndex(ComboIndex))
-    {
-        return LightComboAnimations[ComboIndex].Get();
-    }
+    if (!IsValid(TrailComponent)) return;
 
-    return nullptr;
+    TrailComponent->Deactivate();
+    TrailComponent = nullptr;
+}
+
+UAnimMontage* AMeleeWeaponBase::GetHeavyComboAnimMontage() const
+{
+    return HeavyComboAnimMontage.Get();
+}
+
+UAnimMontage* AMeleeWeaponBase::GetLightComboAnimMontage() const
+{
+    return LightComboAnimMontage.Get();
+}
+
+FName AMeleeWeaponBase::GetHeavyComboSectionName(int32 ComboIndex) const
+{
+    return HeavyComboSectionNames.IsValidIndex(ComboIndex)
+        ? HeavyComboSectionNames[ComboIndex]
+        : NAME_None;
+}
+
+FName AMeleeWeaponBase::GetLightComboSectionName(int32 ComboIndex) const
+{
+    return LightComboSectionNames.IsValidIndex(ComboIndex)
+    ? LightComboSectionNames[ComboIndex]
+    : NAME_None;
+}
+
+int32 AMeleeWeaponBase::GetHeavyComboCount() const
+{
+    return HeavyComboSectionNames.Num();
+}
+
+int32 AMeleeWeaponBase::GetLightComboCount() const
+{
+    return LightComboSectionNames.Num();
 }
 
 float AMeleeWeaponBase::GetHeavyAttackStaminaCost() const
@@ -49,4 +111,24 @@ FName AMeleeWeaponBase::GetTraceEndSocketName() const
 float AMeleeWeaponBase::GetTraceRadius() const
 {
     return TraceRadius;
+}
+
+float AMeleeWeaponBase::GetDamageRate() const
+{
+    return GetDamageRate(EMeleeAttackType::Light, 0);
+}
+
+float AMeleeWeaponBase::GetDamageRate(EMeleeAttackType AttackType, int32 ComboIndex) const
+{
+    const TArray<float> DamageRates =
+        AttackType == EMeleeAttackType::Light
+            ? LightComboDamageRates
+            : HeavyComboDamageRates;
+
+    if (!DamageRates.IsValidIndex(ComboIndex))
+    {
+        return Super::GetDamageRate();
+    }
+
+    return DamageRates[ComboIndex];
 }

@@ -20,6 +20,8 @@ enum class EWeaponSlot : uint8
 };
 
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FWeaponEquippedSignature, EWeaponSlot, Slot, AWeaponBase*, Weapon);
+
 // 무기 관리 클래스
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
@@ -35,6 +37,9 @@ public:
 
     UFUNCTION(BlueprintCallable, Category = "Weapon")
     void UnEquipWeapon(EWeaponSlot Slot);
+
+    UFUNCTION(BlueprintCallable, Category = "Weapon")
+    void UnEquipAllWeapons();
 
     UFUNCTION(BlueprintPure, Category = "Weapon")
     AWeaponBase* GetWeapon(EWeaponSlot Slot) const;
@@ -54,8 +59,15 @@ public:
     UFUNCTION(BlueprintPure, Category = "Weapon")
     bool HasWeapon(EWeaponSlot Slot) const;
 
+public:
+    // 무기 장착을 알리는 델리게이트
+    // 총기 장착 시 총알 변화 이벤트 바인딩을 위한 델리게이트임
+    UPROPERTY(BlueprintAssignable)
+    FWeaponEquippedSignature OnWeaponEquipped;
+
 protected:
 	virtual void BeginPlay() override;
+    virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")

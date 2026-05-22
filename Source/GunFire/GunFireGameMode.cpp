@@ -11,6 +11,10 @@
 #include "Room/StartRoom.h"
 #include "PlayerCharacter.h"
 #include "GunFirePlayerController.h"
+#include "StatComponent.h"
+#include "Item/InventoryComponent.h"
+#include "Weapon/GunBase.h"
+#include "Weapon/WeaponBase.h"
 
 AGunFireGameMode::AGunFireGameMode()
 	: Super()
@@ -54,20 +58,22 @@ void AGunFireGameMode::StartPlay()
     RequiredCombatRoomCount = CountCombatRooms();
     ClearedCombatRoomCount = 0;
 
-    // 게임 인스턴스 층 동기화, 게임 스테이트 동기화
-    if (AGunFireGameState* GFGameState = GetGameState<AGunFireGameState>())
-    {
-        if (UGunFireGameInstance* GFGameInstance = GetGameInstance<UGunFireGameInstance>())
-        {
-            GFGameState->StartFloor(GFGameInstance->GetCurrentFloor(), RequiredCombatRoomCount);
 
-            UE_LOG(LogTemp, Warning, TEXT("%d 층"), GFGameInstance->GetCurrentFloor());
-            UE_LOG(LogTemp, Warning, TEXT("필요한 전투방 클리어 횟수 : %d"), RequiredCombatRoomCount);
+    AGunFireGameState* GFGameState = GetGameState<AGunFireGameState>();
+    if (!GFGameState) return;
 
-            // 플레이어 정보 동기화 필요
-            UE_LOG(LogTemp, Error, TEXT("플레이어 정보 입력 필요!!"));
-        }
-    }
+    UGunFireGameInstance* GFGameInstance = GetGameInstance<UGunFireGameInstance>();
+    if (!GFGameInstance) return;
+
+    // 게임 스테이트 동기화
+    GFGameState->StartFloor(GFGameInstance->GetCurrentFloor(), RequiredCombatRoomCount);
+
+    UE_LOG(LogTemp, Warning, TEXT("%d 층"), GFGameInstance->GetCurrentFloor());
+    UE_LOG(LogTemp, Warning, TEXT("필요한 전투방 클리어 횟수 : %d"), RequiredCombatRoomCount);
+
+
+    // 기존 세션 정보 복구
+    RestoreSessionData();
 
     EnterStartRoom();
 }
@@ -179,17 +185,7 @@ void AGunFireGameMode::EndCurrentRoom()
     UGunFireGameInstance* GFGameInstance = GetGameInstance<UGunFireGameInstance>();
     if (GFGameInstance)
     {
-        FRoomData Data;
-        Data.Floor = GFGameState->GetCurrentFloor();
-        Data.RoomID = CurrentRoom->GetRoomID();
-        Data.RoomType = CurrentRoom->GetRoomType();
-
-        // 시작방은 기록 X
-        if (Data.RoomType != ERoomType::Start)
-        {
-            GFGameInstance->AddRoomData(Data);
-            UE_LOG(LogTemp, Warning, TEXT("방 정보 동기화"));
-        }
+        GFGameInstance->AddClearedRoomCount(1);
     }
 
     // 보스방이 종료되었다면 결과창으로 이동하고 함수 종료
@@ -204,6 +200,7 @@ void AGunFireGameMode::EndCurrentRoom()
     {
         ++ClearedCombatRoomCount;
         GFGameState->SetClearedCombatRoomCount(ClearedCombatRoomCount);
+        GFGameInstance->AddTotalClearedCombatRoomCount(1);
 
         // 요구하는 횟수를 만족하면 시작방에 포탈 활성화
         if (ClearedCombatRoomCount >= RequiredCombatRoomCount)
@@ -229,17 +226,15 @@ void AGunFireGameMode::TryEnterNextFloor(FName NextLevelName)
     // 다음 레벨 이름이 지정되어있지 않으면 진입 X
     if (NextLevelName.IsNone()) return;
 
-
     // 게임 인스턴스 층 변경
     UGunFireGameInstance* GFGameInstance = GetGameInstance<UGunFireGameInstance>();
-    if (GFGameInstance)
-    {
-        GFGameInstance->MoveNextFloor();
+    if (!GFGameInstance) return;
 
-        // 플레이어 정보 동기화 필요
-        UE_LOG(LogTemp, Error, TEXT("층 변경, 플레이어 정보 인스턴스에 기록 필요"));
-    }
+    // 세션 정보 게임 인스턴스에 기록
+    SaveSessionData();
 
+    // 층 증가
+    GFGameInstance->MoveNextFloor();
 
     // 포탈에서 지정한 다음 레벨로 이동
     UGameplayStatics::OpenLevel(this, NextLevelName);
@@ -253,12 +248,16 @@ bool AGunFireGameMode::IsCurrentRoom(ARoomBase* Room) const
 // 게임 클리어시 호출할 함수, 결과창으로 가는 함수
 void AGunFireGameMode::ClearGame()
 {
-    GoToResultLevel(ESessionResult::Victory);
+    GoToResultLevel();
 }
 
 void AGunFireGameMode::GameOver()
 {
-    GoToResultLevel(ESessionResult::Death);
+    APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
+    AGunFirePlayerController* GFPlayerController = Cast<AGunFirePlayerController>(PlayerController);
+    if (!IsValid(GFPlayerController)) return;
+
+    GFPlayerController->ShowGameOverUI();
 }
 
 bool AGunFireGameMode::TryGenerateRandomRelicRoom()
@@ -355,15 +354,8 @@ int32 AGunFireGameMode::CountCombatRooms()
     return Count;
 }
 
-void AGunFireGameMode::GoToResultLevel(ESessionResult Result)
+void AGunFireGameMode::GoToResultLevel()
 {
-    // 게임 인스턴스에서 세션 끝내기
-    if (UGunFireGameInstance* GFGameInstance = GetGameInstance<UGunFireGameInstance>())
-    {
-        UE_LOG(LogTemp, Warning, TEXT("세션 종료, 결과창으로 이동"));
-        GFGameInstance->FinishSession(Result);
-    }
-
     if (ResultLevelName.IsNone())
     {
         UE_LOG(LogTemp, Error, TEXT("Result Level is None"));
@@ -371,4 +363,115 @@ void AGunFireGameMode::GoToResultLevel(ESessionResult Result)
     }
 
     UGameplayStatics::OpenLevel(this, ResultLevelName);
+}
+
+void AGunFireGameMode::SaveSessionData()
+{
+    UGunFireGameInstance* GFGameInstance = GetGameInstance<UGunFireGameInstance>();
+    if (!GFGameInstance) return;
+
+    APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
+    if (!IsValid(PlayerController)) return;
+
+    APlayerCharacter* PlayerCharacter = Cast<APlayerCharacter>(PlayerController->GetPawn());
+    if (!IsValid(PlayerCharacter)) return;
+
+    if (UStatComponent* StatComponent = PlayerCharacter->FindComponentByClass<UStatComponent>())
+    {
+        FPlayerSessionData SessionData;
+        SessionData.BaseStats = StatComponent->GetBaseStats();
+        SessionData.CurrentHealth = StatComponent->GetCurrentHealth();
+
+        GFGameInstance->SetPlayerSessionData(SessionData);
+    }
+
+    if (UWeaponComponent* WeaponComponent = PlayerCharacter->FindComponentByClass<UWeaponComponent>())
+    {
+        TArray<FEquippedWeaponSessionData> SessionData;
+
+        for (int32 i = 0; i < static_cast<int32>(EWeaponSlot::Count); ++i)
+        {
+            EWeaponSlot Slot = static_cast<EWeaponSlot>(i);
+
+            AWeaponBase* Weapon = WeaponComponent->GetWeapon(Slot);
+            if (!IsValid(Weapon)) continue;
+
+            FEquippedWeaponSessionData Data;
+            Data.Slot = Slot;
+            Data.WeaponClass = Weapon->GetClass();
+
+            if (AGunBase* Gun = Cast<AGunBase>(Weapon))
+            {
+                Data.bHasGunData = true;
+                Data.GunData.CurrentAmmo = Gun->GetCurrentAmmo();
+                Data.GunData.RemainAmmo = Gun->GetRemainAmmo();
+            }
+
+            SessionData.Add(Data);
+        }
+
+        GFGameInstance->SetEquippedWeaponSessionData(SessionData);
+    }
+
+    if (UInventoryComponent* InventoryComponent = PlayerCharacter->FindComponentByClass<UInventoryComponent>())
+    {
+        FInventorySessionData SessionData;
+        SessionData.OwnedPassives = InventoryComponent->GetOwnedPassives();
+        SessionData.OwnedActives = InventoryComponent->GetOwnedActives();
+        SessionData.OwnedMaterials = InventoryComponent->GetOwnedMaterials();
+
+        GFGameInstance->SetInventorySessionData(SessionData);
+    }
+}
+
+void AGunFireGameMode::RestoreSessionData()
+{
+    UGunFireGameInstance* GFGameInstance = GetGameInstance<UGunFireGameInstance>();
+    if (!GFGameInstance) return;
+
+    // 1층이면 복원할 필요 X
+    if (GFGameInstance->GetCurrentFloor() <= 1) return;
+
+    APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
+    if (!IsValid(PlayerController)) return;
+
+    APlayerCharacter* PlayerCharacter = Cast<APlayerCharacter>(PlayerController->GetPawn());
+    if (!IsValid(PlayerCharacter)) return;
+
+    if (UStatComponent* StatComponent = PlayerCharacter->FindComponentByClass<UStatComponent>())
+    {
+        const FPlayerSessionData& SessionData = GFGameInstance->GetPlayerSessionData();
+
+        StatComponent->SetBaseStats(SessionData.BaseStats);
+        StatComponent->SetCurrentHealth(SessionData.CurrentHealth);
+        StatComponent->CalculateFinalStats();
+        StatComponent->RecoverStaminaMax();
+    }
+
+    if (UWeaponComponent* WeaponComponent = PlayerCharacter->FindComponentByClass<UWeaponComponent>())
+    {
+        const TArray<FEquippedWeaponSessionData>& SessionData = GFGameInstance->GetEquippedWeaponSessionData();
+
+        for (const FEquippedWeaponSessionData& Data : SessionData)
+        {
+            if (!Data.WeaponClass) continue;
+
+            AWeaponBase* NewWeapon = WeaponComponent->EquipWeapon(Data.WeaponClass, Data.Slot);
+            if (!IsValid(NewWeapon)) continue;
+
+            // 총일경우 총기 관련 데이터 복구
+            if (Data.bHasGunData)
+            {
+                if (AGunBase* Gun = Cast<AGunBase>(NewWeapon))
+                {
+                    Gun->SetSessionData(Data.GunData);
+                }
+            }
+        }
+    }
+
+    if (UInventoryComponent* InventoryComponent = PlayerCharacter->FindComponentByClass<UInventoryComponent>())
+    {
+        InventoryComponent->SetInventorySessionData(GFGameInstance->GetInventorySessionData());
+    }
 }

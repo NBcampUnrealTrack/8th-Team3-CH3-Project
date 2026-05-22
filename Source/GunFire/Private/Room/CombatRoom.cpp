@@ -1,5 +1,6 @@
 ﻿#include "Room/CombatRoom.h"
 
+#include "StatComponent.h"
 #include "Components/BoxComponent.h"
 #include "Game/GunFireGameInstance.h"
 #include "Game/GunFireGameState.h"
@@ -28,12 +29,11 @@ void ACombatRoom::Initialize()
 
 void ACombatRoom::KillEnemyForTest()
 {
-    for (const auto& Enemy : Enemies)
+    for (int32 i = Enemies.Num() - 1; i >= 0; --i)
     {
-        if (IsValid(Enemy))
+        if (IsValid(Enemies[i]))
         {
-            Enemy->Die();
-            return;
+            Enemies[i]->Die();
         }
     }
 }
@@ -201,6 +201,9 @@ void ACombatRoom::SpawnEnemies()
 
             if (IsValid(SpawnedEnemy))
             {
+                // 보너스 스탯 적용
+                ApplyStatBonus(SpawnedEnemy);
+
                 SpawnedEnemy->OnEnemyDead.AddDynamic(this, &ACombatRoom::HandleEnemyDead);
                 Enemies.Add(SpawnedEnemy);
             }
@@ -208,4 +211,32 @@ void ACombatRoom::SpawnEnemies()
     }
 
     RemainingEnemyCount = Enemies.Num();
+}
+
+void ACombatRoom::ApplyStatBonus(AEnemyBase* Enemy)
+{
+    if (!IsValid(Enemy)) return;
+
+    UStatComponent* StatComponent = Enemy->FindComponentByClass<UStatComponent>();
+    if (!IsValid(StatComponent)) return;
+
+    UGunFireGameInstance* GameInstance = GetGameInstance<UGunFireGameInstance>();
+    if (!GameInstance) return;
+
+    float BonusRate = GameInstance->GetEnemyStatBonusRate();
+    if (BonusRate <= 0.f) return;
+
+    static const ECombatStatType EnemyScalingStatTypes[] =
+    {
+        ECombatStatType::MaxHealth,
+        ECombatStatType::AttackPower,
+        ECombatStatType::Defense
+    };
+
+    StatComponent->AddModifier(
+        TEXT("RoomScaling"),
+        EnemyScalingStatTypes,
+        EStatModifierType::Multiply,
+        BonusRate
+        );
 }

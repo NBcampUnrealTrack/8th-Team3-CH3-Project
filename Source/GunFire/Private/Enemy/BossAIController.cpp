@@ -8,6 +8,7 @@
 #include "Enemy/BossEnemy.h"
 #include "Kismet/GameplayStatics.h"
 
+
 ABossAIController::ABossAIController()
     : AEnemyAIController()
 {
@@ -79,7 +80,7 @@ void ABossAIController::UpdateCombatTactics()
             FVector TangentDir = FVector::CrossProduct(FVector::UpVector, FleeDir);
 
             // 타겟위치 + (이동방향 * 현재 서로간의 거리(반지름으로사용) * 좌우이동결정)
-            FVector NextLoc = TargetLoc + (FleeDir + TangentDir).GetSafeNormal() * CurrentRadius * EncircleDirection;
+            FVector NextLoc = TargetLoc + (FleeDir + (TangentDir * EncircleDirection)).GetSafeNormal() * CurrentRadius;
             TacticalPos = NextLoc;
         }
         // 후퇴
@@ -105,8 +106,13 @@ void ABossAIController::StartEngaging(AActor* Target)
 
 void ABossAIController::StopEngaging()
 {
-    // 보스가...교전종료가 필요한가? 일단 넣자
     Super::StopEngaging();
+
+    if (GetWorld())
+    {
+        GetWorld()->GetTimerManager().ClearTimer(CooldownTimerHandle);
+        GetWorld()->GetTimerManager().ClearTimer(TacticTimerHandle);
+    }
 }
 
 void ABossAIController::EndAttackCooldown()
@@ -118,17 +124,54 @@ void ABossAIController::EndAttackCooldown()
         BBComp->SetValueAsBool(IsCooldownKey, false);
         int32 NextPattern = FMath::RandRange(0, 2);
         BBComp->SetValueAsInt(AttackPatternKey, NextPattern);
+        GetWorld()->GetTimerManager().ClearTimer(TacticTimerHandle);
     }
 }
 
 void ABossAIController::OnHitDamage(APawn* Enemy)
 {
-    Super::OnHitDamage(Enemy);
+    UBlackboardComponent* BBComp = GetBlackboardComponent();
+    AEnemyBase* MyPawn = Cast<AEnemyBase>(GetPawn());
+
+    if (!BBComp || !Enemy || !MyPawn || MyPawn->bIsDead())
+        return;
+
+    // 타겟정보 등록
+    BBComp->SetValueAsObject(TargetActorKey, Enemy);
+    BBComp->SetValueAsBool(HasLineOfSightKey, true);
+
+    int32 CurrentBossState = BBComp->GetValueAsInt(BossStateKey);
+
+    // 포효상태면 피격애니메이션x
+    if (CurrentBossState == (int32)EBossState::Engage)
+    {
+        return;
+    }
+
+    // 보스가 대기 상태일 때 피격 -> 포효 상태로 전환
+    if (CurrentBossState == (int32)EBossState::Idle)
+    {
+        BBComp->SetValueAsInt(BossStateKey, (int32)EBossState::Engage);
+        StartEngaging(Enemy);
+        return;
+    }
+
+    // 전투 중일 시 피격 리액션 (공격 중일 경우 제외)
+    if (!bIsAttacking)
+    {
+        MyPawn->PlayHitReaction(Enemy);
+    }
 }
 
 void ABossAIController::SetDead()
 {
-    Super::SetDead();
+    StopEngaging();
+
+    if (UBlackboardComponent* BBComp = GetBlackboardComponent())
+    {
+        BBComp->SetValueAsInt(BossStateKey, (int32)EBossState::Dead);
+
+    }
 }
 
 void ABossAIController::ChangeTactic()
@@ -136,10 +179,22 @@ void ABossAIController::ChangeTactic()
     if (UBlackboardComponent* BBComp = GetBlackboardComponent())
     {
         // 0: 포위, 1: 후퇴
-        int32 Tactic = FMath::RandRange(0, 1);
+        float TotalProb = EncircleProbability + FleeProbability;
+        float RandomValue = FMath::FRandRange(0.0f, TotalProb);
+
+        // 기본은 0(포위)
+        int32 Tactic = 0;
+
+        // 주사위 결과에 따라 변경
+        if (RandomValue > EncircleProbability)
+        {
+            Tactic = 1; // 후퇴
+        }
+
+        // 블랙보드에 결정된 전술적용
         BBComp->SetValueAsInt(TacticPatternKey, Tactic);
 
-        // 포위는 이동방향 랜덤
+        // 포위 기동 시 이동 방향은 랜덤
         EncircleDirection = FMath::RandBool() ? 1.0f : -1.0f;
     }
 }
@@ -151,6 +206,7 @@ void ABossAIController::RoarStart()
     {
         // 애니메이션 재생
         MyPawn->PlayRoarAnimation();
+        MyPawn->ShowBossHPBar();
     }
 
 }
@@ -172,15 +228,15 @@ void ABossAIController::OnAttackAnimationFinished()
 
     if (UBlackboardComponent* BBComp = GetBlackboardComponent())
     {
-        // 쿨타임 상태
+        // 공격 쿨타임 상태
         BBComp->SetValueAsBool(IsCooldownKey, true);
 
-        // 쿨타임 타이머 세팅
+        // 공격 쿨타임 타이머 세팅
         float RandomDeviation = FMath::RandRange(-AttackCooldownDeviation, AttackCooldownDeviation);
         float FinalCooldown = FMath::Max(MinAttackCooldown + RandomDeviation, 0.1f);
         GetWorld()->GetTimerManager().SetTimer(CooldownTimerHandle, this, &ABossAIController::EndAttackCooldown, FinalCooldown, false);
 
-        // 전술 변경 타이머 시작 (TacticChangeInterval 초마다 ChangeTactic 호출)
+        // 전술 변경 타이머 시작
         ChangeTactic();
         GetWorld()->GetTimerManager().SetTimer(TacticTimerHandle, this, &ABossAIController::ChangeTactic, TacticChangeTime, true);
     }

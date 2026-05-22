@@ -55,6 +55,7 @@ public:
     FTimerHandle CombatUpdateTimerHandle; // 전투생각을 위한 타이머
     FTimerHandle LoseSightTimerHandle;  // 시야에 벗어날 시 순찰로 복귀한느 시간
 
+
     // 공격 강제 종료
     void ForceResetAttack();
 
@@ -70,6 +71,10 @@ public:
     virtual void OnHitDamage(APawn* Enemy);
     virtual void AlertAlly(APawn* Target);
     virtual void ReceiveAlert(APawn* Target);
+
+    // 경직 해제 함수
+    virtual void EndHitStun();
+
 protected:
     // 적 ai빙의시
     virtual void OnPossess(APawn* InPawn) override;
@@ -139,12 +144,19 @@ protected:
     // 공격 중일 때 UpdateCombatTactics가 상태를 바꾸지 못하게 막는 변수
     bool bIsAttacking = false;
 
+    // 경직 지속 시간
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Combat")
+    float HitStunDuration = 1.0f;
+
+    FTimerHandle HitStunTimerHandle;
+
     // 블랙보드 키 이름
     FName TargetActorKey = FName("EnemyActor");
     FName DistanceKey = FName("DistanceToTarget");
     FName TacticStateKey = FName("TacticState");
     FName TacticalLocKey = FName("TacticalLocation");
     FName HasLineOfSightKey = FName("HasLineOfSight");
+    FName IsPatrolKey = FName("IsPatrol");
 
 
     // 퍼셉션 이벤트 감지

@@ -12,6 +12,10 @@ class AEnemyBase;
 // Delegate/Event 방식으로 몬스터 사망시 Room 에 알리기 위함
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEnemyDied, AEnemyBase*, DeadEnemy);
 
+//공격 알림
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAttackCollisionStartedDelegate);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAttackCollisionEndedDelegate);
+
 class UStatComponent;
 
 UCLASS()
@@ -22,6 +26,9 @@ class GUNFIRE_API AEnemyBase : public ACharacter
 public:
 	AEnemyBase();
     virtual void BeginPlay() override;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy")
+    FText EnemyName;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     UStatComponent* StatComponent;
@@ -34,9 +41,47 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
     UAnimMontage* DeathMontage;
 
+    // 피격 시 재생할 몽타주
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+    UAnimMontage* HitMontage;
+
     // 삭제를 위한 타이머
     FTimerHandle DeathTimerHandle;
 
+    // 공격 시 피격대상 저장용
+    UPROPERTY()
+    TArray<AActor*> HittedActors;
+
+    // 아이템 스폰시킬 데이터1
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn")
+    TSubclassOf<AActor> ItemActor1;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn")
+    float ItemActor1SpawnRate = 0.1f;
+
+    // 아이템 스폰시킬 데이터2
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn")
+    TSubclassOf<AActor> ItemActor2;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn")
+    float ItemActor2SpawnRate = 0.2f;
+
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI | Combat")
+    bool bIsPatrol = true; // 패트롤 여부
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI | Combat")
+    bool bCanBeStunned = true; // 피격 시 경직 허용 여부
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI | Combat")
+    float HitStunDuration = 1.5f; // 경직 지속 시간
+
+
+    UPROPERTY(BlueprintAssignable, Category = "Combat")
+    FOnAttackCollisionEndedDelegate OnAttackCollisionEnded;
+    UPROPERTY(BlueprintAssignable, Category = "Combat")
+    FOnAttackCollisionStartedDelegate OnAttackCollisionStarted;
+
+    // 피격 재생
+    virtual void PlayHitReaction(APawn* Attacker);
 
     UFUNCTION()
     virtual void OnWeaponOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
@@ -50,7 +95,10 @@ public:
     UFUNCTION()
     virtual void Die();
     UFUNCTION()
-    void ExecuteDestroy();
+    virtual void ExecuteDestroy();
+
+    UFUNCTION()
+    virtual void SpawnItem();
 
 protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
@@ -81,7 +129,7 @@ public:
 
     // 공격애니메이션 재생
     // 부모에 구현된 코드는 예시코드임
-    UFUNCTION(BlueprintCallable, Category = "AI|Combat")
+    UFUNCTION(BlueprintCallable, Category = "Combat")
     virtual void PlayAttack();
 
     //// 피해 처리
@@ -92,4 +140,7 @@ public:
     float GetMaxHP() const;
     float GetAttackDamage() const;
     bool bIsDead() const;
+    bool GetIsPatrol() const { return bIsPatrol; }
+    bool GetCanBeStunned() const { return bCanBeStunned; }
+    float GetHitStunDuration() const { return HitStunDuration; }
 };
