@@ -100,6 +100,7 @@ protected:
     // 사망
     virtual void Die() override;
     virtual void IMDead() override;
+    virtual void ExecuteDestroy() override;
 
     // 스톰프 공격 전 경고용 데칼
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss | Decal")

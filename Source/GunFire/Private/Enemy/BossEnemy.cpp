@@ -385,6 +385,12 @@ void ABossEnemy::IMDead()
     }
 }
 
+void ABossEnemy::ExecuteDestroy()
+{
+    HideBossHPBar();
+    Super::ExecuteDestroy();
+}
+
 void ABossEnemy::OnDecalLoadCompleted()
 {
     if (WarningDecalSoftClass.IsValid())

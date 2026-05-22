@@ -95,7 +95,7 @@ public:
     UFUNCTION()
     virtual void Die();
     UFUNCTION()
-    void ExecuteDestroy();
+    virtual void ExecuteDestroy();
 
     UFUNCTION()
     virtual void SpawnItem();
