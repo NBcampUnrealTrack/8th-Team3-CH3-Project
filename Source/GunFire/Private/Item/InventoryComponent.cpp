@@ -175,78 +175,93 @@ void UInventoryComponent::AddMaterial(FGF_PassiveItemData NewData)
 // 아이템 강화
 int32 UInventoryComponent::UpgradeItem(int32 TargetIndex, int32 MaterialIndex)
 {
-    UE_LOG(LogTemp, Warning, TEXT("Upgrade Called!"));
 
-    // 인덱스 체크
     if (!OwnedPassives.IsValidIndex(TargetIndex) ||
         !OwnedPassives.IsValidIndex(MaterialIndex))
     {
-        UE_LOG(LogTemp, Warning, TEXT("Invalid Index"));
+        UE_LOG(LogTemp, Error,
+            TEXT("Upgrade Failed: Invalid Index (Target: %d / Material: %d)"),
+            TargetIndex,
+            MaterialIndex);
+
         return -1;
     }
 
-    // 데이터 테이블 체크
     if (!PassiveItemTable)
     {
-        UE_LOG(LogTemp, Warning, TEXT("PassiveItemTable Null"));
+        UE_LOG(LogTemp, Error,
+            TEXT("Upgrade Failed: PassiveItemTable is Null"));
+
         return -1;
     }
 
-    // 강화 대상
-    FGF_PassiveItemData& TargetItem = OwnedPassives[TargetIndex];
+    if (OwnedPassives[TargetIndex].ItemRowName.IsNone())
+    {
+        UE_LOG(LogTemp, Error,
+            TEXT("Upgrade Failed: ItemRowName is None"));
 
-    // Row 찾기
+        return -1;
+    }
+
     FGF_PassiveItemData* RowData =
         PassiveItemTable->FindRow<FGF_PassiveItemData>(
-            TargetItem.ItemRowName,
+            OwnedPassives[TargetIndex].ItemRowName,
             TEXT("UpgradeItem")
         );
 
     if (!RowData)
     {
-        UE_LOG(LogTemp, Warning, TEXT("Row Not Found"));
+        UE_LOG(LogTemp, Error,
+            TEXT("Upgrade Failed: Row Not Found (%s)"),
+            *OwnedPassives[TargetIndex].ItemRowName.ToString());
+
         return -1;
     }
 
-    // =========================
-    // 강화 처리
-    // =========================
 
-    // 이름 강제 변경
-    TargetItem.ItemName = RowData->UpgradeItemName;
+    // 강화 적용
+    OwnedPassives[TargetIndex].ItemName =
+        RowData->UpgradeItemName;
 
-    // 설명 강제 변경
-    TargetItem.ItemDescription = RowData->UpgradeItemDescription;
+    OwnedPassives[TargetIndex].ItemDescription =
+        RowData->UpgradeItemDescription;
+
+    OwnedPassives[TargetIndex].ItemIcon =
+        RowData->ItemIcon;
 
     // 스탯 증가
-    TargetItem.StatValue += RowData->StatValue;
+    OwnedPassives[TargetIndex].StatValue +=
+        RowData->StatValue;
 
-    // 레벨 강제 설정
-    TargetItem.CurrentLevel = 1;
+    // 레벨 증가
+    OwnedPassives[TargetIndex].CurrentLevel += 1;
 
     UE_LOG(LogTemp, Warning,
-        TEXT("Upgrade Success : %s / Level : %d"),
-        *TargetItem.ItemName.ToString(),
-        TargetItem.CurrentLevel
-    );
+        TEXT("Upgrade Success -> Name: %s / Level: %d"),
+        *OwnedPassives[TargetIndex].ItemName.ToString(),
+        OwnedPassives[TargetIndex].CurrentLevel);
 
-    // =========================
-    // 재료 소모
-    // =========================
+    // 재료 사용
 
-    if (OwnedPassives[MaterialIndex].StackCount > 1)
+    if (MaterialIndex != TargetIndex)
     {
-        OwnedPassives[MaterialIndex].StackCount--;
-    }
-    else
-    {
-        OwnedPassives[MaterialIndex] = FGF_PassiveItemData();
+        if (OwnedPassives[MaterialIndex].StackCount > 1)
+        {
+            OwnedPassives[MaterialIndex].StackCount--;
+        }
+        else
+        {
+            OwnedPassives[MaterialIndex].ItemRowName = NAME_None;
+            OwnedPassives[MaterialIndex].ItemName = FText::GetEmpty();
+            OwnedPassives[MaterialIndex].ItemDescription = FText::GetEmpty();
+            OwnedPassives[MaterialIndex].ItemIcon = nullptr;
+            OwnedPassives[MaterialIndex].CurrentLevel = 0;
+            OwnedPassives[MaterialIndex].StackCount = 0;
+            OwnedPassives[MaterialIndex].StatValue = 0.0f;
+        }
     }
 
-    // =========================
-    // UI 갱신 알림
-    // =========================
-
+    // UI 갱신
     OnInventoryChanged.Broadcast();
 
     return TargetIndex;
