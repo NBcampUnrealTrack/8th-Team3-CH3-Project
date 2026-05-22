@@ -59,7 +59,7 @@ protected:
     const FName BossStateKey = FName("BossState");
     const FName IsCooldownKey = FName("IsCooldown");
     const FName AttackPatternKey = FName("AttackPattern");
-    const FName TacticPatternKey = FName("TacticPAttern");
+    const FName TacticPatternKey = FName("TacticPattern");
 
 
     // 쿨타임 (딜레이) 랜덤 범위
@@ -84,4 +84,8 @@ protected:
 public:
     // 공격이 끝난 후 처리
     virtual void OnAttackAnimationFinished() override;
+
+    // 공격 상태를 켜고 끌 수 있게 해주는 함수
+    UFUNCTION(BlueprintCallable, Category = "Boss | Attack")
+    void SetIsAttacking(bool bAttacking) { bIsAttacking = bAttacking; }
 };

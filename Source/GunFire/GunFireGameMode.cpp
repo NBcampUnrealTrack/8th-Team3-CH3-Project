@@ -200,6 +200,7 @@ void AGunFireGameMode::EndCurrentRoom()
     {
         ++ClearedCombatRoomCount;
         GFGameState->SetClearedCombatRoomCount(ClearedCombatRoomCount);
+        GFGameInstance->AddTotalClearedCombatRoomCount(1);
 
         // 요구하는 횟수를 만족하면 시작방에 포탈 활성화
         if (ClearedCombatRoomCount >= RequiredCombatRoomCount)

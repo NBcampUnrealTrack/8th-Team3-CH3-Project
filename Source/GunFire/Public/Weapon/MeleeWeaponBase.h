@@ -5,6 +5,7 @@
 #include "MeleeWeaponBase.generated.h"
 
 
+enum class EMeleeAttackType : uint8;
 class UNiagaraSystem;
 class UNiagaraComponent;
 
@@ -60,22 +61,35 @@ public:
     UFUNCTION(BlueprintPure)
     float GetTraceRadius() const;
 
+
+    float GetDamageRate() const override;
+
+    float GetDamageRate(EMeleeAttackType AttackType, int32 ComboIndex) const;
+
 protected:
+    // 약공격 콤보 애니메이션
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Melee")
+    TObjectPtr<UAnimMontage> LightComboAnimMontage;
+
     // 강공격 콤보 애니메이션
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Melee")
     TObjectPtr<UAnimMontage> HeavyComboAnimMontage;
 
-    // 약공격 콤보 애니메이션
+    // 약공격 콤보들의 애니메이션 몽타주 섹션 이름
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Melee")
-    TObjectPtr<UAnimMontage> LightComboAnimMontage;
+    TArray<FName> LightComboSectionNames;
 
     // 강공격 콤보들의 애니메이션 몽타주 섹션 이름
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Melee")
     TArray<FName> HeavyComboSectionNames;
 
-    // 약공격 콤보들의 애니메이션 몽타주 섹션 이름
+    // 약공격 콤보들의 데미지 배율
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Melee")
-    TArray<FName> LightComboSectionNames;
+    TArray<float> LightComboDamageRates;
+
+    // 강공격 콤보들의 데미지 배율
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Melee")
+    TArray<float> HeavyComboDamageRates;
 
     // 강공격의 스태미너 소모량
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Stamina")

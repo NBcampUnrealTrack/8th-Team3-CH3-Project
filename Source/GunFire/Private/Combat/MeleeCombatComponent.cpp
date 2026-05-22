@@ -216,9 +216,9 @@ bool UMeleeCombatComponent::StartAttack(AMeleeWeaponBase* MeleeWeapon, float Att
     }
 
     CurrentMeleeWeapon = MeleeWeapon;
-    CurrentPower = AttackPower * MeleeWeapon->GetDamageRate();
     CurrentAttackType = AttackType;
     CurrentComboIndex = 0;
+    CurrentPower = AttackPower * MeleeWeapon->GetDamageRate(AttackType, CurrentComboIndex);
     bCanComboInput = false;
     bComboTriggered = false;
     bAttackInProgress = true;
@@ -278,7 +278,7 @@ bool UMeleeCombatComponent::TryChainAttack(AMeleeWeaponBase* MeleeWeapon, float 
     if (AnimInstance->Montage_GetCurrentSection(AttackMontage) != NextSectionName) return false;
 
     CurrentComboIndex = NextComboIndex;
-    CurrentPower = AttackPower * MeleeWeapon->GetDamageRate();
+    CurrentPower = AttackPower * MeleeWeapon->GetDamageRate(AttackType, CurrentComboIndex);
     bComboTriggered = true;
     bCanComboInput = false;
 

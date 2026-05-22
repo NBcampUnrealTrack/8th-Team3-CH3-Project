@@ -17,11 +17,17 @@ void UGunFireGameInstance::ResetSessionData()
 
     ClearedRoomCount = 0;
     KilledEnemyCount = 0;
+    EnemyStatBonusPerRoom = 5.f;
 }
 
 void UGunFireGameInstance::AddClearedRoomCount(int32 Count)
 {
     ClearedRoomCount += FMath::Max(0, Count);
+}
+
+void UGunFireGameInstance::AddTotalClearedCombatRoomCount(int32 Count)
+{
+    TotalClearedCombatRoomCount += FMath::Max(0, Count);
 }
 
 void UGunFireGameInstance::AddKilledEnemyCount(int32 Count)
@@ -52,6 +58,11 @@ const FInventorySessionData& UGunFireGameInstance::GetInventorySessionData() con
 int32 UGunFireGameInstance::GetCurrentFloor() const
 {
     return CurrentFloor;
+}
+
+float UGunFireGameInstance::GetEnemyStatBonusRate() const
+{
+    return TotalClearedCombatRoomCount * EnemyStatBonusPerRoom;
 }
 
 void UGunFireGameInstance::SetPlayerSessionData(const FPlayerSessionData& SessionData)

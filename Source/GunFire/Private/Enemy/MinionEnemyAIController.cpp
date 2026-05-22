@@ -54,11 +54,15 @@ void AMinionEnemyAIController::UpdateCombatTactics()
         return;
     }
 
+    ETacticState CurrentState = (ETacticState)BBComp->GetValueAsInt(TacticStateKey);
+    if (CurrentState == ETacticState::Groggy)
+    {
+        return;
+    }
+
     // 공격중일 시 무시
     if (!BBComp || !MyPawn || bIsAttacking)
         return;
-
-    ETacticState CurrentState = (ETacticState)BBComp->GetValueAsInt(TacticStateKey);
 
     AActor* EnemyTarget = Cast<AActor>(BBComp->GetValueAsObject(TargetActorKey));
     // 대상 타겟이 없다면 여기와선 안됫음
@@ -127,6 +131,7 @@ ETacticState AMinionEnemyAIController::DetermineNextTactic(ETacticState CurrentS
     {
         GetWorld()->GetTimerManager().ClearTimer(RetreatTimerHandle);
         GetWorld()->GetTimerManager().ClearTimer(EncircleTimerHandle);
+        bIsAttacking = true;
         return ETacticState::Attack;
     }
 

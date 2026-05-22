@@ -5,8 +5,6 @@
 
 AGunBase::AGunBase()
 {
-    DamageRate = 0.3f;
-
     ReloadSound = nullptr;
     ReloadAnimation = nullptr;
     MuzzleSocketName = TEXT("Muzzle");
@@ -22,6 +20,8 @@ AGunBase::AGunBase()
     bCanFire = true;
     bCanReload = true;
     bReloading = false;
+
+    DamageRate = 0.3f;
 }
 
 void AGunBase::BeginPlay()
@@ -183,6 +183,11 @@ void AGunBase::SetSessionData(const FGunSessionData& SessionData)
     RemainAmmo = SessionData.RemainAmmo;
 
     OnAmmoChanged.Broadcast(CurrentAmmo, RemainAmmo);
+}
+
+float AGunBase::GetDamageRate() const
+{
+    return DamageRate;
 }
 
 void AGunBase::HandleFireDelay()

@@ -28,6 +28,10 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Session")
     void AddClearedRoomCount(int32 Count = 1);
 
+    // 클리어한 전투방 개수 추가
+    UFUNCTION(BlueprintCallable, Category = "Session")
+    void AddTotalClearedCombatRoomCount(int32 Count = 1);
+
     // 처치한 적 수 기록
     UFUNCTION(BlueprintCallable, Category = "Session")
     void AddKilledEnemyCount(int32 Count);
@@ -52,6 +56,8 @@ public:
     UFUNCTION(BlueprintPure, Category = "Session")
     int32 GetCurrentFloor() const;
 
+    UFUNCTION(BlueprintPure, Category = "Session")
+    float GetEnemyStatBonusRate() const;
 
     /* 세터 */
 
@@ -89,7 +95,15 @@ protected:
     UPROPERTY(BlueprintReadOnly, Category = "Session")
     int32 ClearedRoomCount;
 
+    // 클리어한 총 전투방 갯수
+    UPROPERTY(BlueprintReadOnly, Category = "Session")
+    int32 TotalClearedCombatRoomCount;
+
     // 처치한 적의 수
     UPROPERTY(BlueprintReadOnly, Category = "Session")
     int32 KilledEnemyCount;
+
+    // 전투방을 클리어할때 증가할 적 스탯 보너스 수치
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Session")
+    float EnemyStatBonusPerRoom;
 };

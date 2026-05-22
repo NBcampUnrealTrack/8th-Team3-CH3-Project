@@ -17,6 +17,8 @@ AEnemyBase::AEnemyBase()
     StatComponent = CreateDefaultSubobject<UStatComponent>(TEXT("StatComponent"));
     bDead = false;
     AttackSpeedRate = 1.0f;
+
+    Tags.Add(FName("Enemy"));
 }
 
 void AEnemyBase::BeginPlay()
@@ -69,6 +71,57 @@ void AEnemyBase::BeginPlay()
                 }
             }), 3.0f, true);
     }
+}
+
+void AEnemyBase::PlayHitReaction(APawn* Attacker)
+{
+    if (bDead || !HitMontage || !Attacker)
+        return;
+
+    UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+    if (!AnimInstance)
+        return;
+
+    // 공격자와 나를 향하는 벡터 (2차원으로만 계산)
+    FVector DirToAttacker = (Attacker->GetActorLocation() - GetActorLocation()).GetSafeNormal();
+    DirToAttacker.Z = 0.f;
+
+    FVector MyForward = GetActorForwardVector();
+    FVector MyRight = GetActorRightVector();
+
+    // 내적 계산
+    float ForwardDot = FVector::DotProduct(MyForward, DirToAttacker);
+    float RightDot = FVector::DotProduct(MyRight, DirToAttacker);
+
+    FName SectionName = FName("Hit_F");
+
+    // 방향 판정, 절댓값이 크다 = 해당벡터와가까움
+    // 양수 : 예각, 음수 : 둔각
+    // 앞뒤에서 맞은거
+    if (FMath::Abs(ForwardDot) >= FMath::Abs(RightDot))
+    {
+        // 예각 = 정면
+        if (ForwardDot > 0.f)
+            // 앞에서 맞음
+            SectionName = FName("Hit_F");
+        else
+            // 뒤에서 맞음
+            SectionName = FName("Hit_B");
+    }
+    // 좌우에서 맞은 것
+    else
+    {
+        // 예각 = 오른쪽
+        if (RightDot > 0.f)
+            // 오른쪽에서 맞음
+            SectionName = FName("Hit_R");
+        else
+            // 왼쪽에서 맞음
+            SectionName = FName("Hit_L");
+    }
+
+    PlayAnimMontage(HitMontage, 1.0f, SectionName);
+
 }
 
 void AEnemyBase::OnWeaponOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -132,6 +185,27 @@ void AEnemyBase::ExecuteDestroy()
     Destroy();
 }
 
+void AEnemyBase::SpawnItem()
+{
+    // 현재 아이템은 두개므로 하드코딩으로 작성
+    float RandomValue = FMath::FRand();
+
+    //GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Cyan,
+    //    FString::Printf(TEXT("Dice: %.2f | Dash: %.2f | Encircle: %.2f"),
+    //        RandomValue, DashProbability, EncircleProbability));
+
+    if (ItemActor1 && RandomValue <= ItemActor1SpawnRate)
+    {
+        GetWorld()->SpawnActor<AActor>(ItemActor1, GetActorLocation(), FRotator::ZeroRotator);
+    }
+
+    else if (ItemActor2 && RandomValue <= (ItemActor1SpawnRate + ItemActor2SpawnRate))
+    {
+        GetWorld()->SpawnActor<AActor>(ItemActor2, GetActorLocation(), FRotator::ZeroRotator);
+    }
+
+}
+
 void AEnemyBase::OnEnemyDeath(AController* InstigatorController)
 {
     Die();
@@ -185,6 +259,9 @@ void AEnemyBase::IMDead()
         // 컨트롤러 사망 처리 호출
         AIC->SetDead();
     }
+
+    //아이템 스폰
+    SpawnItem();
 }
 
 void AEnemyBase::IMGrogi()

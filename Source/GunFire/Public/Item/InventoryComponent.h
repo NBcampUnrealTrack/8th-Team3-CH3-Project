@@ -7,6 +7,8 @@
 
 struct FInventorySessionData;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryChangedSignature);
+
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class GUNFIRE_API UInventoryComponent : public UActorComponent
 {
@@ -14,6 +16,9 @@ class GUNFIRE_API UInventoryComponent : public UActorComponent
 
 public:
     UInventoryComponent();
+
+    UPROPERTY(BlueprintAssignable, Category = "Inventory|Event")
+    FOnInventoryChangedSignature OnInventoryChanged;
 
     // 랜덤 목록 가져오기
     UFUNCTION(BlueprintCallable, Category = "Inventory")
@@ -32,6 +37,9 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Inventory")
     void AddMaterial(FGF_PassiveItemData NewData);
 
+    UFUNCTION(BlueprintCallable, Category = "Inventory|Upgrade")
+    int32 UpgradeItem(int32 TargetIndex, int32 MaterialIndex);
+
     // 보유 리스트 반환
     UFUNCTION(BlueprintPure, Category = "Inventory")
     TArray<FGF_PassiveItemData> GetOwnedPassives() const { return OwnedPassives; }
@@ -47,7 +55,6 @@ public:
     void SetInventorySessionData(const FInventorySessionData& InventorySessionData);
 
 protected:
-    // 데이터 테이블
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")
     class UDataTable* PassiveItemTable;
 
@@ -62,5 +69,5 @@ protected:
     TArray<FGF_ActiveItemData> OwnedActives;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
-    TArray<FGF_PassiveItemData> OwnedMaterials; // 재료 배열
+    TArray<FGF_PassiveItemData> OwnedMaterials;
 };

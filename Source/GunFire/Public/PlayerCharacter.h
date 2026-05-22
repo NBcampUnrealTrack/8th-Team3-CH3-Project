@@ -88,8 +88,9 @@ protected:
     // 대쉬(회피)
     float DefaultGroundFriction;            // 현재 마찰력 저장
     float DefaultBrakingDeceleration;       // 현재 제동력 저장
-    FTimerHandle DashCooldownTimerHandle;   // 대쉬 쿨타임타이머
-    FTimerHandle DashStopTimerHandle;       // 대쉬 적용시간 타이머
+    bool bPrevOrientRotationToMovement;     // 대쉬 전 캐릭터 회전 상태
+    bool bPrevUseControllerRotationYaw;     // 대쉬 전 캐릭터의 카메라 회전 상태
+    bool bPrevUseControllerDesiredRotation;
 
     // 달리기
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Run")
