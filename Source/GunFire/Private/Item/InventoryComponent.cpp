@@ -1,6 +1,8 @@
-﻿#include "Item/InventoryComponent.h"
+#include "Item/InventoryComponent.h"
+#include "Item/ItemSystemTypes.h"
 #include "Engine/DataTable.h"
 #include "Game/SessionData.h"
+
 
 UInventoryComponent::UInventoryComponent()
 {
@@ -13,13 +15,16 @@ TArray<FGF_PassiveItemData> UInventoryComponent::GetRandomPassiveOptions(int32 C
     TArray<FGF_PassiveItemData> Result;
     if (!PassiveItemTable) return Result;
 
-    TArray<FGF_PassiveItemData*> AllRows;
-    PassiveItemTable->GetAllRows<FGF_PassiveItemData>(TEXT("GetAllRows"), AllRows);
-    if (AllRows.Num() == 0) return Result;
+    // 행 이름 가져오기
+    TArray<FName> RowNames = PassiveItemTable->GetRowNames();
+    if (RowNames.Num() == 0) return Result;
 
     TArray<FGF_PassiveItemData> ValidOptions;
-    for (auto RowPtr : AllRows)
+
+    // 데이터 검색
+    for (const FName& Name : RowNames)
     {
+        FGF_PassiveItemData* RowPtr = PassiveItemTable->FindRow<FGF_PassiveItemData>(Name, TEXT("GetRandomPassiveOptions"));
         if (RowPtr)
         {
             bool bAlreadyOwned = false;
@@ -31,7 +36,14 @@ TArray<FGF_PassiveItemData> UInventoryComponent::GetRandomPassiveOptions(int32 C
                     break;
                 }
             }
-            if (!bAlreadyOwned) ValidOptions.Add(*RowPtr);
+            if (!bAlreadyOwned)
+            {
+                FGF_PassiveItemData CopyData = *RowPtr;
+
+                CopyData.ItemRowName = Name;
+
+                ValidOptions.Add(CopyData);
+            }
         }
     }
 
@@ -101,6 +113,12 @@ void UInventoryComponent::AddPassive(FGF_PassiveItemData NewData)
         if (NewData.ItemName.EqualTo(OwnedItem.ItemName))
         {
             OwnedItem.StackCount += NewData.StackCount;
+
+            if (OwnedItem.ItemRowName.IsNone() || OwnedItem.ItemRowName == TEXT("None"))
+            {
+                OwnedItem.ItemRowName = NewData.ItemRowName;
+            }
+
             bFound = true;
             break;
         }
@@ -152,6 +170,86 @@ void UInventoryComponent::AddMaterial(FGF_PassiveItemData NewData)
     {
         OwnedMaterials.Add(NewData);
     }
+}
+
+// 아이템 강화
+int32 UInventoryComponent::UpgradeItem(int32 TargetIndex, int32 MaterialIndex)
+{
+    UE_LOG(LogTemp, Warning, TEXT("Upgrade Called!"));
+
+    // 인덱스 체크
+    if (!OwnedPassives.IsValidIndex(TargetIndex) ||
+        !OwnedPassives.IsValidIndex(MaterialIndex))
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Invalid Index"));
+        return -1;
+    }
+
+    // 데이터 테이블 체크
+    if (!PassiveItemTable)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("PassiveItemTable Null"));
+        return -1;
+    }
+
+    // 강화 대상
+    FGF_PassiveItemData& TargetItem = OwnedPassives[TargetIndex];
+
+    // Row 찾기
+    FGF_PassiveItemData* RowData =
+        PassiveItemTable->FindRow<FGF_PassiveItemData>(
+            TargetItem.ItemRowName,
+            TEXT("UpgradeItem")
+        );
+
+    if (!RowData)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Row Not Found"));
+        return -1;
+    }
+
+    // =========================
+    // 강화 처리
+    // =========================
+
+    // 이름 강제 변경
+    TargetItem.ItemName = RowData->UpgradeItemName;
+
+    // 설명 강제 변경
+    TargetItem.ItemDescription = RowData->UpgradeItemDescription;
+
+    // 스탯 증가
+    TargetItem.StatValue += RowData->StatValue;
+
+    // 레벨 강제 설정
+    TargetItem.CurrentLevel = 1;
+
+    UE_LOG(LogTemp, Warning,
+        TEXT("Upgrade Success : %s / Level : %d"),
+        *TargetItem.ItemName.ToString(),
+        TargetItem.CurrentLevel
+    );
+
+    // =========================
+    // 재료 소모
+    // =========================
+
+    if (OwnedPassives[MaterialIndex].StackCount > 1)
+    {
+        OwnedPassives[MaterialIndex].StackCount--;
+    }
+    else
+    {
+        OwnedPassives[MaterialIndex] = FGF_PassiveItemData();
+    }
+
+    // =========================
+    // UI 갱신 알림
+    // =========================
+
+    OnInventoryChanged.Broadcast();
+
+    return TargetIndex;
 }
 
 void UInventoryComponent::SetInventorySessionData(const FInventorySessionData& InventorySessionData)

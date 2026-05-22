@@ -20,6 +20,9 @@ struct FGF_ItemBase : public FTableRowBase
     GENERATED_BODY()
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
+    FName ItemRowName;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
     FText ItemName;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (MultiLine = true))
@@ -41,7 +44,7 @@ struct FGF_ItemBase : public FTableRowBase
     int32 CurrentLevel = 0;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
-    int32 StackCount = 1; 
+    int32 StackCount = 1;
 };
 
 // 패시브 아이템 
