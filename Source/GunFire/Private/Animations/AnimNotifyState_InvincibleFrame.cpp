@@ -1,9 +1,9 @@
-#include "Animations/AnimNotifyState_DodgeIFrame.h"
+#include "Animations/AnimNotifyState_InvincibleFrame.h"
 
 #include "PlayerCharacter.h"
 #include "StatComponent.h"
 
-void UAnimNotifyState_DodgeIFrame::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
+void UAnimNotifyState_InvincibleFrame::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
                                                float TotalDuration, const FAnimNotifyEventReference& EventReference)
 {
     if (!IsValid(MeshComp)) return;
@@ -17,7 +17,7 @@ void UAnimNotifyState_DodgeIFrame::NotifyBegin(USkeletalMeshComponent* MeshComp,
     StatComponent->SetInvincible(true);
 }
 
-void UAnimNotifyState_DodgeIFrame::NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
+void UAnimNotifyState_InvincibleFrame::NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
     const FAnimNotifyEventReference& EventReference)
 {
     if (!IsValid(MeshComp)) return;

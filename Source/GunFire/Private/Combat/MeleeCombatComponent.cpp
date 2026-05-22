@@ -228,8 +228,6 @@ bool UMeleeCombatComponent::StartAttack(AMeleeWeaponBase* MeleeWeapon, float Att
     OnAttackMontageEnded.BindUObject(this, &UMeleeCombatComponent::HandleAttackMontageEnded);
     AnimInstance->Montage_SetEndDelegate(OnAttackMontageEnded, AttackMontage);
 
-    PlayAttackSound(MeleeWeapon);
-
     return true;
 }
 
@@ -282,8 +280,6 @@ bool UMeleeCombatComponent::TryChainAttack(AMeleeWeaponBase* MeleeWeapon, float 
     bComboTriggered = true;
     bCanComboInput = false;
 
-    PlayAttackSound(MeleeWeapon);
-
     return true;
 }
 
@@ -307,20 +303,6 @@ void UMeleeCombatComponent::ResetAttackState()
     CurrentMeleeWeapon.Reset();
     CurrentPower = 0.f;
     HitActors.Empty();
-}
-
-void UMeleeCombatComponent::PlayAttackSound(AMeleeWeaponBase* MeleeWeapon) const
-{
-    if (!IsValid(MeleeWeapon) || !IsValid(OwnerCharacter)) return;
-
-    if (USoundBase* AttackSound = MeleeWeapon->GetAttackSound())
-    {
-        UGameplayStatics::PlaySoundAtLocation(
-            this,
-            AttackSound,
-            OwnerCharacter->GetActorLocation()
-            );
-    }
 }
 
 void UMeleeCombatComponent::HandleAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)

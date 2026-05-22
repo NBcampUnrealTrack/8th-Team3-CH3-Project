@@ -29,9 +29,6 @@ public:
     UStaticMeshComponent* GetMesh() const;
 
     UFUNCTION(BlueprintPure)
-    USoundBase* GetAttackSound() const;
-
-    UFUNCTION(BlueprintPure)
     UAnimMontage* GetAttackAnimation() const;
 
     UFUNCTION(BlueprintPure)
@@ -53,10 +50,6 @@ protected:
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon|Component")
     TObjectPtr<UStaticMeshComponent> StaticMesh;
-
-    // 공격 사운드
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
-    TObjectPtr<USoundBase> AttackSound;
 
     // 공격 애니메이션
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")

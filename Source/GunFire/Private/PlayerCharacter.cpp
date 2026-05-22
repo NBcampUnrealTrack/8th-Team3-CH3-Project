@@ -14,6 +14,7 @@
 #include "WorldCollision.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/Actor.h"
+#include "Weapon/WeaponComponent.h"
 
 APlayerCharacter::APlayerCharacter()
 {
@@ -439,6 +440,9 @@ void APlayerCharacter::Aiming(const FInputActionValue& Value)
     if (!Controller) return;
 
     if (CombatComponent && !CombatComponent->CanMove()) return;
+
+    UWeaponComponent* WeaponComp = FindComponentByClass<UWeaponComponent>();
+    if (!IsValid(WeaponComp) || !WeaponComp->HasGun()) return;
 
     if (!IsAiming)
     {

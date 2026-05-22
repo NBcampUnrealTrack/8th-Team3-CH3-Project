@@ -131,8 +131,6 @@ private:
     // 공격 상태 초기화하는 함수
     void ResetAttackState();
 
-    // 공격 사운드 재생 함수
-    void PlayAttackSound(AMeleeWeaponBase* MeleeWeapon) const;
     // 공격 애니메이션 몽타주 끝났을때 처리하는 함수
     UFUNCTION()
     void HandleAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);

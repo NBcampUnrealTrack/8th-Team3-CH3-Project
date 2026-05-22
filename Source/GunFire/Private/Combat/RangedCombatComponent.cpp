@@ -40,7 +40,6 @@ bool URangedCombatComponent::TryFire(AGunBase* Gun, float AttackPower)
     if (!Gun->TryConsumeAmmo()) return false;
     if (!SpawnProjectile(Gun, ActualDamage)) return false;
 
-    PlayFireSound(Gun);
     PlayFireAnimation(Gun);
 
     return true;
@@ -70,10 +69,7 @@ void URangedCombatComponent::ApplyReload()
     AGunBase* Gun = CurrentReloadingGun.Get();
     if (!IsValid(Gun)) return;
 
-    if (Gun->ApplyReload())
-    {
-        PlayReloadSound(Gun);
-    }
+    Gun->ApplyReload();
 }
 
 void URangedCombatComponent::FinishReload()
@@ -118,7 +114,7 @@ FVector URangedCombatComponent::GetCameraAimPoint(AGunBase* Gun) const
     Controller->GetPlayerViewPoint(ViewLocation, ViewRotation);
 
     // 조준점까지의 거리, 가능한 멀리 잡아야 크로스 헤어랑 비슷하게 됨
-    constexpr float AimTraceDistance = 10000.f;
+    constexpr float AimTraceDistance = 5000.f;
 
     // 카메라 중앙을 기준으로 먼 지점을 AimPoint로 잡음
     FVector TraceStart = ViewLocation;
@@ -188,36 +184,7 @@ bool URangedCombatComponent::SpawnProjectile(AGunBase* Gun, float Damage)
     Projectile->InitializeProjectile(OwnerCharacter->GetController(), OwnerCharacter,
         Damage, Range, ProjectileSpeed);
 
-    // ----------  디버그 라인 그리기 -----------
-#if ENABLE_DRAW_DEBUG
-    DrawDebugLine(
-        World,
-        SpawnLocation,
-        SpawnLocation + FireDirection * Gun->GetRange(),
-        FColor::Green,
-        false,
-        1.f,
-        0,
-        1.f
-        );
-#endif
-    // ----------  디버그 라인 그리기 -----------
-
     return true;
-}
-
-void URangedCombatComponent::PlayFireSound(AGunBase* Gun)
-{
-    if (!IsValid(Gun)) return;
-
-    if (USoundBase* AttackSound = Gun->GetAttackSound())
-    {
-        UGameplayStatics::PlaySoundAtLocation(
-            this,
-            AttackSound,
-            Gun->GetActorLocation()
-            );
-    }
 }
 
 void URangedCombatComponent::PlayFireAnimation(AGunBase* Gun)
@@ -227,20 +194,6 @@ void URangedCombatComponent::PlayFireAnimation(AGunBase* Gun)
     if (UAnimMontage* AttackMontage = Gun->GetAttackAnimation())
     {
         OwnerCharacter->PlayAnimMontage(AttackMontage);
-    }
-}
-
-void URangedCombatComponent::PlayReloadSound(AGunBase* Gun)
-{
-    if (!IsValid(Gun)) return;
-
-    if (USoundBase* ReloadSound = Gun->GetReloadSound())
-    {
-        UGameplayStatics::PlaySoundAtLocation(
-            this,
-            ReloadSound,
-            Gun->GetActorLocation()
-            );
     }
 }
 
