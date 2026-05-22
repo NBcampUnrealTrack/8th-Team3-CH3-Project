@@ -50,7 +50,7 @@ void AEnemyAIController::OnAttackAnimationFinished()
     bIsAttacking = false;
 
     OnAttackFinishedDispatcher.Broadcast();
-    GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Cyan, FString::Printf(TEXT("공격 끝!")));
+    //GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Cyan, FString::Printf(TEXT("공격 끝!")));
 
     // 공격 딜레이
     // 멈춰둔 타이머 재실행
@@ -180,11 +180,11 @@ void AEnemyAIController::OnHitDamage(APawn* Enemy)
 
         // 피격 몽타주 재생
         MyPawn->PlayHitReaction(Enemy);
-        GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Cyan, FString::Printf(TEXT("경직되어야함!")));
+        //GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Cyan, FString::Printf(TEXT("경직되어야함!")));
     }
     else
     {
-        GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Cyan, FString::Printf(TEXT("경직이 될수없음! : %d"), bIsAttacking));
+        //GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Cyan, FString::Printf(TEXT("경직이 될수없음! : %d"), bIsAttacking));
     }
 
     // 블랙보드에 타겟 등록 및 시야 확보 처리
