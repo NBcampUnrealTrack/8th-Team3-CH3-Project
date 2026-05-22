@@ -4,6 +4,8 @@ Saved/
 DerivedDataCache/
 Build/
 Content/Resources/
+/Content/Megascans/
+/Content/Textures/
 Content/ParagonMinions/
 Content/ParagonRevenant/
 *.uproject.local
