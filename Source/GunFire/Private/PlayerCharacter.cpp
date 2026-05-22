@@ -14,6 +14,10 @@
 #include "WorldCollision.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/Actor.h"
+#include "Kismet/GamePlayStatics.h"
+#include "Particles/ParticleSystemComponent.h"   // 파티클 제어용
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraComponent.h"
 
 APlayerCharacter::APlayerCharacter()
 {
@@ -326,6 +330,34 @@ bool APlayerCharacter::StartDash(float DashStrength)
     // 공중 상태면 함수 종료
     if (MoveComp->IsFalling()) return false;
 
+    GetMesh()->SetHiddenInGame(true);
+
+    if (DashParticle)
+    {
+        // Root 본에 붙여서 캐릭터 이동 경로를 그대로 따라오게 만듭니다.
+        ActiveDashParticleComp = UGameplayStatics::SpawnEmitterAttached(
+            DashParticle,
+            GetMesh(),
+            FName(),
+            FVector::ZeroVector,
+            FRotator::ZeroRotator,
+            EAttachLocation::KeepRelativeOffset
+        );
+    }
+
+    //if (DashNiagara)
+    //{
+    //    // 주로 캐릭터 발바닥(Root)이나 특정 본(Bone) 이름에 부착합니다.
+    //    ActiveDashNiagaraComp = UNiagaraFunctionLibrary::SpawnSystemAttached(
+    //        DashNiagara,
+    //        GetMesh(),                 // 부착할 대상 컴포넌트 (캐릭터 메쉬)
+    //        FName(),
+    //        FVector::ZeroVector,       // 상대 위치 오프셋
+    //        FRotator::ZeroRotator,     // 상대 회전 오프셋
+    //        EAttachLocation::KeepRelativeOffset,
+    //        true
+    //    );
+    //}
 
     // 이동방향으로 회전 못하게 잠시 막아둠
     MoveComp->bOrientRotationToMovement = false;
@@ -384,12 +416,27 @@ void APlayerCharacter::FinishDash()
     UCharacterMovementComponent* MoveComp = GetCharacterMovement();
     if (!MoveComp) return;
 
+    GetMesh()->SetHiddenInGame(false);
+
     MoveComp->MaxWalkSpeed = NormalSpeed;
     // 원래의 마찰력으로 복구
     MoveComp->GroundFriction = DefaultGroundFriction;
     MoveComp->BrakingDecelerationWalking = DefaultBrakingDeceleration;
     MoveComp->bOrientRotationToMovement = true;
 
+    if (ActiveDashParticleComp)
+    {
+        // Deactivate()를 호출하면 새로 뿜어져 나오는 파티클은 멈추고, 
+        // 이미 월드에 생성되어 날아가던 잔상 파티클들은 자연스럽게 수명이 다해 사라집니다.
+        ActiveDashParticleComp->Deactivate();
+        ActiveDashParticleComp = nullptr;
+    }
+
+    /*if (ActiveDashNiagaraComp)
+    {
+        ActiveDashNiagaraComp->Deactivate();
+        ActiveDashNiagaraComp = nullptr;
+    }*/
     // 무적 혹시 남아있다면 풀어주기
     if (IsValid(StatComponent))
     {
@@ -539,19 +586,6 @@ void APlayerCharacter::CheckInteractablesRamge()
     FCollisionShape Sphere = FCollisionShape::MakeSphere(Radius);
     FCollisionQueryParams Params;
     Params.AddIgnoredActor(this);
-
-    // 범위 확인용 나중에 삭제
-    //DrawDebugSphere(
-    //    GetWorld(),
-    //    Center,          // 구체 중심
-    //    Radius,          // 반경
-    //    12,              // 세그먼트 (숫자가 높을수록 부드러운 구체가 됨)
-    //    FColor::Green,   // 선 색상
-    //    false,           // 매 프레임 새로 그릴 것이므로 false (Persistent)
-    //    -1.f,            // 지속 시간 (-1은 이번 프레임만)
-    //    0,               // Depth Priority
-    //    1.f              // 선 두께
-    //);
 
     bool bHit = GetWorld()->OverlapMultiByChannel(
         OverlapResults,

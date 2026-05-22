@@ -11,6 +11,10 @@ class USkeletalMeshComponent;
 class USpringArmComponent;
 class UCameraComponent;
 class UInputComponent;
+class UParticleSystem;
+class UParticleSystemComponent;
+class UNiagaraSystem;
+class UNiagaraComponent;
 struct FInputActionValue;
 
 UCLASS()
@@ -57,6 +61,20 @@ public:
     // 대쉬 몽타주
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dash")
     UAnimMontage* DashMontage;
+
+    // 대쉬 이펙트
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effects")
+    UParticleSystem* DashParticle;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effects")
+    UNiagaraSystem* DashNiagara;
+    UPROPERTY()
+    UNiagaraComponent* ActiveDashNiagaraComp;
+    // 몸에 붙여서 따라오게 할 때, 나중에 끄기 위해 기억해두는 컴포넌트 변수
+    UPROPERTY()
+    UParticleSystemComponent* ActiveDashParticleComp;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effects")
+    UNiagaraSystem* HealingNiagara;
 public:
 	virtual void Tick(float DeltaTime) override;
 
