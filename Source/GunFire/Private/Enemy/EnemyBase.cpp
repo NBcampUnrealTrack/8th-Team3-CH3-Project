@@ -17,6 +17,8 @@ AEnemyBase::AEnemyBase()
     StatComponent = CreateDefaultSubobject<UStatComponent>(TEXT("StatComponent"));
     bDead = false;
     AttackSpeedRate = 1.0f;
+
+    Tags.Add(FName("Enemy"));
 }
 
 void AEnemyBase::BeginPlay()
