@@ -170,72 +170,82 @@ void UInventoryComponent::AddMaterial(FGF_PassiveItemData NewData)
     }
 }
 
-// 아이템 강화 
+// 아이템 강화
 int32 UInventoryComponent::UpgradeItem(int32 TargetIndex, int32 MaterialIndex)
 {
-    UE_LOG(LogTemp, Warning, TEXT("Upgrade Called! TargetIndex: %d"), TargetIndex);
+    UE_LOG(LogTemp, Warning, TEXT("Upgrade Called!"));
 
-    // 1. 방어 코드: 인덱스가 현재 패시브 배열 범위 내에 있는지 확인
-    if (!OwnedPassives.IsValidIndex(TargetIndex) || !OwnedPassives.IsValidIndex(MaterialIndex))
+    // 인덱스 체크
+    if (!OwnedPassives.IsValidIndex(TargetIndex) ||
+        !OwnedPassives.IsValidIndex(MaterialIndex))
     {
-        UE_LOG(LogTemp, Warning, TEXT("Upgrade Item Failed: Invalid Passive or Material Index."));
+        UE_LOG(LogTemp, Warning, TEXT("Invalid Index"));
         return -1;
     }
 
+    // 데이터 테이블 체크
     if (!PassiveItemTable)
     {
-        UE_LOG(LogTemp, Warning, TEXT("Upgrade Item Failed: PassiveItemTable is Null."));
+        UE_LOG(LogTemp, Warning, TEXT("PassiveItemTable Null"));
         return -1;
     }
 
-    // 2. 강화 대상의 데이터 테이블 RowKey 확인
-    FName RowKey = OwnedPassives[TargetIndex].ItemRowName;
-    if (RowKey.IsNone() || RowKey == TEXT("None"))
+    // 강화 대상
+    FGF_PassiveItemData& TargetItem = OwnedPassives[TargetIndex];
+
+    // Row 찾기
+    FGF_PassiveItemData* RowData =
+        PassiveItemTable->FindRow<FGF_PassiveItemData>(
+            TargetItem.ItemRowName,
+            TEXT("UpgradeItem")
+        );
+
+    if (!RowData)
     {
-        UE_LOG(LogTemp, Warning, TEXT("Upgrade Item Failed: ItemRowName is None."));
+        UE_LOG(LogTemp, Warning, TEXT("Row Not Found"));
         return -1;
     }
 
-    // 3. 데이터 테이블에서 정보 검색
-    FGF_PassiveItemData* TargetRowData = PassiveItemTable->FindRow<FGF_PassiveItemData>(RowKey, TEXT("UpgradeItem"));
+    // =========================
+    // 강화 처리
+    // =========================
 
-    if (TargetRowData)
+    // 이름 강제 변경
+    TargetItem.ItemName = RowData->UpgradeItemName;
+
+    // 설명 강제 변경
+    TargetItem.ItemDescription = RowData->UpgradeItemDescription;
+
+    // 스탯 증가
+    TargetItem.StatValue += RowData->StatValue;
+
+    // 레벨 강제 설정
+    TargetItem.CurrentLevel = 1;
+
+    UE_LOG(LogTemp, Warning,
+        TEXT("Upgrade Success : %s / Level : %d"),
+        *TargetItem.ItemName.ToString(),
+        TargetItem.CurrentLevel
+    );
+
+    // =========================
+    // 재료 소모
+    // =========================
+
+    if (OwnedPassives[MaterialIndex].StackCount > 1)
     {
-        // 4. 배열 아이템 데이터 수정
-        OwnedPassives[TargetIndex].CurrentLevel++;
-        OwnedPassives[TargetIndex].ItemName = TargetRowData->UpgradeItemName;
-        OwnedPassives[TargetIndex].ItemDescription = TargetRowData->UpgradeItemDescription;
-        OwnedPassives[TargetIndex].StatValue += TargetRowData->StatValue;
-
-        UE_LOG(LogTemp, Warning, TEXT("!!! Upgrade Success !!! Item: %s, Level: %d"),
-            *OwnedPassives[TargetIndex].ItemName.ToString(), OwnedPassives[TargetIndex].CurrentLevel);
-
-        // 5. 재료 소모 처리 (수정됨!)
-        if (OwnedPassives[MaterialIndex].StackCount > 1)
-        {
-            // 갯수가 여유 있으면 숫자만 감소
-            OwnedPassives[MaterialIndex].StackCount--;
-        }
-        else
-        {
-            // [중요 수정] 배열에서 RemoveAt으로 삭제하지 않고, 
-            // 빈 아이템 구조체로 덮어씌워 인덱스를 보존합니다.
-            OwnedPassives[MaterialIndex] = FGF_PassiveItemData();
-
-            // 만약 FPassiveItem() 기본 생성자가 모든 값을 초기화하지 않는다면 아래처럼 명시적으로 비우세요.
-            // OwnedPassives[MaterialIndex].ItemRowName = FName("None");
-            // OwnedPassives[MaterialIndex].StackCount = 0;
-        }
-
-        // 6. 인벤토리 변경 알림 브로드캐스트
-        if (OnInventoryChanged.IsBound())
-        {
-            OnInventoryChanged.Broadcast();
-        }
-
-        return TargetIndex;
+        OwnedPassives[MaterialIndex].StackCount--;
+    }
+    else
+    {
+        OwnedPassives[MaterialIndex] = FGF_PassiveItemData();
     }
 
-    UE_LOG(LogTemp, Warning, TEXT("Upgrade Item Failed: Row [%s] not found in DataTable."), *RowKey.ToString());
-    return -1;
+    // =========================
+    // UI 갱신 알림
+    // =========================
+
+    OnInventoryChanged.Broadcast();
+
+    return TargetIndex;
 }
