@@ -82,6 +82,21 @@ void UWeaponComponent::UnEquipAllWeapons()
     }
 }
 
+void UWeaponComponent::SetHiddenAllWeapons(bool bHidden)
+{
+    for (int32 i = 0; i < static_cast<int32>(EWeaponSlot::Count); ++i)
+    {
+        if (IsValid(Weapons[i]))
+        {
+            UStaticMeshComponent* StaticMeshComp = Weapons[i]->GetMesh();
+            if (IsValid(StaticMeshComp))
+            {
+                StaticMeshComp->SetHiddenInGame(bHidden);
+            }
+        }
+    }
+}
+
 AWeaponBase* UWeaponComponent::GetWeapon(EWeaponSlot Slot) const
 {
     int32 Index = static_cast<int32>(Slot);

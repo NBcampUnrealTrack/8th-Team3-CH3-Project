@@ -41,6 +41,9 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Weapon")
     void UnEquipAllWeapons();
 
+    UFUNCTION(BlueprintCallable, Category = "Weapon")
+    void SetHiddenAllWeapons(bool bHidden);
+
     UFUNCTION(BlueprintPure, Category = "Weapon")
     AWeaponBase* GetWeapon(EWeaponSlot Slot) const;
 
