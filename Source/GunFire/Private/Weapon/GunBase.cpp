@@ -5,7 +5,6 @@
 
 AGunBase::AGunBase()
 {
-    ReloadSound = nullptr;
     ReloadAnimation = nullptr;
     MuzzleSocketName = TEXT("Muzzle");
 
@@ -140,11 +139,6 @@ FTransform AGunBase::GetMuzzleTransform() const
     }
 
     return Mesh->GetSocketTransform(MuzzleSocketName);
-}
-
-USoundBase* AGunBase::GetReloadSound() const
-{
-    return ReloadSound.Get();
 }
 
 UAnimMontage* AGunBase::GetReloadAnimation() const

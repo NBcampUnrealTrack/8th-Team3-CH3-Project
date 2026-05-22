@@ -20,13 +20,22 @@ public:
 	UStatComponent();
 
     bool CanConsumeStamina(float Cost) const;
+
     bool TryConsumeStamina(float Cost);
+
     void RecoverStaminaMax();
+
+    UFUNCTION(BlueprintCallable)
     void Heal(float Amount);
+
     void AddBaseStat(ECombatStatType StatType, float AddValue);
+
     void AddModifier(const FStatModifier& Modifier);
+
     void AddModifier(FName SourceID, TConstArrayView<ECombatStatType> StatTypes, EStatModifierType ModifierType, float Value);
+
     void RemoveModifier(FName SourceID);
+
     void CalculateFinalStats();
 
     float GetStatValue(ECombatStatType StatType) const;

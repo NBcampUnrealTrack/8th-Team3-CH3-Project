@@ -46,9 +46,7 @@ private:
     FVector GetCameraAimPoint(AGunBase* Gun) const;
 
     bool SpawnProjectile(AGunBase* Gun, float Damage);
-    void PlayFireSound(AGunBase* Gun);
     void PlayFireAnimation(AGunBase* Gun);
-    void PlayReloadSound(AGunBase* Gun);
     bool PlayReloadAnimation(AGunBase* Gun);
 
     // 재장전 몽타주 종료시 호출할 함수

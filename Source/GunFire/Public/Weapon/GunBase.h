@@ -58,9 +58,6 @@ public:
     FTransform GetMuzzleTransform() const;
 
     UFUNCTION(BlueprintPure)
-    USoundBase* GetReloadSound() const;
-
-    UFUNCTION(BlueprintPure)
     UAnimMontage* GetReloadAnimation() const;
 
     UFUNCTION(BlueprintPure)
@@ -98,10 +95,6 @@ protected:
     // 발사할 총알 클래스
     UPROPERTY(EditDefaultsOnly, Category = "Weapon|Gun")
     TSubclassOf<AGunFireProjectile> ProjectileClass;
-
-    // 재장전 사운드
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Gun")
-    TObjectPtr<USoundBase> ReloadSound;
 
     // 재장전 애니메이션
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Gun")

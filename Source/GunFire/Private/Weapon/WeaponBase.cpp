@@ -14,7 +14,6 @@ AWeaponBase::AWeaponBase()
     StaticMesh->SetCollisionProfileName(TEXT("NoCollision"));
     StaticMesh->SetupAttachment(Scene);
 
-    AttackSound = nullptr;
     AttackAnimation = nullptr;
     bEquipped = false;
     StaminaCost = 0.f;
@@ -59,11 +58,6 @@ void AWeaponBase::UnEquip()
 UStaticMeshComponent* AWeaponBase::GetMesh() const
 {
     return StaticMesh.Get();
-}
-
-USoundBase* AWeaponBase::GetAttackSound() const
-{
-    return AttackSound.Get();
 }
 
 UAnimMontage* AWeaponBase::GetAttackAnimation() const

@@ -1,6 +1,8 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "GunFireProjectile.h"
+
+#include "Damageable.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Components/SphereComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -62,16 +64,19 @@ void AGunFireProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor,
 {
 	if (!IsValid(OtherActor) || OtherActor == this || OtherActor == DamageCauser.Get()) return;
 
-	if (Damage > 0.f)
-	{
-		UGameplayStatics::ApplyDamage(
-			OtherActor,
-			Damage,
-			DamageInstigator.Get(),
-			DamageCauser.Get(),
-			UDamageType::StaticClass()
-		);
-	}
+    if (!OtherActor->GetClass()->ImplementsInterface(UDamageable::StaticClass()))
+    {
+        Destroy();
+        return;
+    }
+
+	UGameplayStatics::ApplyDamage(
+		OtherActor,
+		Damage,
+		DamageInstigator.Get(),
+		DamageCauser.Get(),
+		UDamageType::StaticClass()
+	);
 
 	Destroy();
 }

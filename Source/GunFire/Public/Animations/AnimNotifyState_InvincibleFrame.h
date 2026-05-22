@@ -2,11 +2,11 @@
 
 #include "CoreMinimal.h"
 #include "Animation/AnimNotifies/AnimNotifyState.h"
-#include "AnimNotifyState_DodgeIFrame.generated.h"
+#include "AnimNotifyState_InvincibleFrame.generated.h"
 
 
 UCLASS()
-class GUNFIRE_API UAnimNotifyState_DodgeIFrame : public UAnimNotifyState
+class GUNFIRE_API UAnimNotifyState_InvincibleFrame : public UAnimNotifyState
 {
 	GENERATED_BODY()
 

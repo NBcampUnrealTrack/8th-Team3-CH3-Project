@@ -1,5 +1,6 @@
 #include "Combat/MeleeCombatComponent.h"
 
+#include "Damageable.h"
 #include "Animation/AnimInstance.h"
 #include "GameFramework/Character.h"
 #include "Kismet/GameplayStatics.h"
@@ -228,8 +229,6 @@ bool UMeleeCombatComponent::StartAttack(AMeleeWeaponBase* MeleeWeapon, float Att
     OnAttackMontageEnded.BindUObject(this, &UMeleeCombatComponent::HandleAttackMontageEnded);
     AnimInstance->Montage_SetEndDelegate(OnAttackMontageEnded, AttackMontage);
 
-    PlayAttackSound(MeleeWeapon);
-
     return true;
 }
 
@@ -282,8 +281,6 @@ bool UMeleeCombatComponent::TryChainAttack(AMeleeWeaponBase* MeleeWeapon, float 
     bComboTriggered = true;
     bCanComboInput = false;
 
-    PlayAttackSound(MeleeWeapon);
-
     return true;
 }
 
@@ -307,20 +304,6 @@ void UMeleeCombatComponent::ResetAttackState()
     CurrentMeleeWeapon.Reset();
     CurrentPower = 0.f;
     HitActors.Empty();
-}
-
-void UMeleeCombatComponent::PlayAttackSound(AMeleeWeaponBase* MeleeWeapon) const
-{
-    if (!IsValid(MeleeWeapon) || !IsValid(OwnerCharacter)) return;
-
-    if (USoundBase* AttackSound = MeleeWeapon->GetAttackSound())
-    {
-        UGameplayStatics::PlaySoundAtLocation(
-            this,
-            AttackSound,
-            OwnerCharacter->GetActorLocation()
-            );
-    }
 }
 
 void UMeleeCombatComponent::HandleAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
@@ -408,12 +391,12 @@ void UMeleeCombatComponent::DoHitTrace()
         AActor* HitActor = HitResult.GetActor();
         if (!IsValid(HitActor)) continue;
 
-        AEnemyBase* HitEnemy = Cast<AEnemyBase>(HitActor);
-        if (!IsValid(HitEnemy)) continue;
+        // Damageable 인터페이스 있는지 확인
+        if (!HitActor->GetClass()->ImplementsInterface(UDamageable::StaticClass())) continue;
 
-        if (HitActors.Contains(HitEnemy)) continue;
+        if (HitActors.Contains(HitActor)) continue;
 
-        HitActors.Add(HitEnemy);
+        HitActors.Add(HitActor);
 
         UGameplayStatics::ApplyDamage(
             HitActor,
