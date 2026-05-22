@@ -4,7 +4,6 @@
 #include "Components/ActorComponent.h"
 #include "MeleeCombatComponent.generated.h"
 
-class AEnemyBase;
 class ACharacter;
 class AMeleeWeaponBase;
 class UAnimMontage;
@@ -147,7 +146,7 @@ private:
 
     // 맞은 적 Set에 담아서 중복처리 못하게
     UPROPERTY()
-    TSet<TObjectPtr<AEnemyBase>> HitActors;
+    TSet<TObjectPtr<AActor>> HitActors;
 
     // 현재 데미지
     float CurrentPower;

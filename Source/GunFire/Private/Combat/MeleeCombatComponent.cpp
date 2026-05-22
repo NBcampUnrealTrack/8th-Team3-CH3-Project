@@ -1,5 +1,6 @@
 #include "Combat/MeleeCombatComponent.h"
 
+#include "Damageable.h"
 #include "Animation/AnimInstance.h"
 #include "GameFramework/Character.h"
 #include "Kismet/GameplayStatics.h"
@@ -390,12 +391,12 @@ void UMeleeCombatComponent::DoHitTrace()
         AActor* HitActor = HitResult.GetActor();
         if (!IsValid(HitActor)) continue;
 
-        AEnemyBase* HitEnemy = Cast<AEnemyBase>(HitActor);
-        if (!IsValid(HitEnemy)) continue;
+        // Damageable 인터페이스 있는지 확인
+        if (!HitActor->GetClass()->ImplementsInterface(UDamageable::StaticClass())) continue;
 
-        if (HitActors.Contains(HitEnemy)) continue;
+        if (HitActors.Contains(HitActor)) continue;
 
-        HitActors.Add(HitEnemy);
+        HitActors.Add(HitActor);
 
         UGameplayStatics::ApplyDamage(
             HitActor,

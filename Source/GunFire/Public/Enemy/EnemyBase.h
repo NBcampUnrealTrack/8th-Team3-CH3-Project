@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Damageable.h"
 #include "GameFramework/Character.h"
 #include "EnemyBase.generated.h"
 
@@ -19,7 +20,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAttackCollisionEndedDelegate);
 class UStatComponent;
 
 UCLASS()
-class GUNFIRE_API AEnemyBase : public ACharacter
+class GUNFIRE_API AEnemyBase : public ACharacter, public IDamageable
 {
 	GENERATED_BODY()
 
