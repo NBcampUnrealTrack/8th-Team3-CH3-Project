@@ -82,6 +82,16 @@ void AMinionEnemy::OnWeaponOverlap(UPrimitiveComponent* OverlappedComponent, AAc
                 this,                      // 때린 녀석의 몸통 : 무기를 쥔 나 자신
                 UDamageType::StaticClass() // 데미지 속성 : 기본 데미지
             );
+
+            // 적중 사운드
+            if (HitSound)
+            {
+                UGameplayStatics::PlaySoundAtLocation(
+                    GetWorld(),
+                    HitSound,
+                    GetActorLocation()
+                );
+            }
         }
     }
 }
