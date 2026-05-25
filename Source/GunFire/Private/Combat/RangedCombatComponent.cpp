@@ -114,7 +114,7 @@ FVector URangedCombatComponent::GetCameraAimPoint(AGunBase* Gun) const
     Controller->GetPlayerViewPoint(ViewLocation, ViewRotation);
 
     // 조준점까지의 거리, 가능한 멀리 잡아야 크로스 헤어랑 비슷하게 됨
-    constexpr float AimTraceDistance = 5000.f;
+    constexpr float AimTraceDistance = 3500.f;
 
     // 카메라 중앙을 기준으로 먼 지점을 AimPoint로 잡음
     FVector TraceStart = ViewLocation;

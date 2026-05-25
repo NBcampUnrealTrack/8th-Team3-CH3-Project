@@ -11,7 +11,9 @@
 #include "Room/StartRoom.h"
 #include "PlayerCharacter.h"
 #include "GunFirePlayerController.h"
+#include "LevelLayoutManager.h"
 #include "StatComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Item/InventoryComponent.h"
 #include "Weapon/GunBase.h"
 #include "Weapon/WeaponBase.h"
@@ -32,6 +34,8 @@ AGunFireGameMode::AGunFireGameMode()
     ClearedCombatRoomCount = 0;
     MaxRandomRelicRoomCount = 2;
     CurrentRandomRelicRoomCount = 0;
+
+    CurrentGravityScale = 0.f;
 }
 
 void AGunFireGameMode::InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage)
@@ -46,36 +50,19 @@ void AGunFireGameMode::StartPlay()
 {
     Super::StartPlay();
 
-    // UI 입력 모드에서 GameOnly로 전환
-    APlayerController* PlayerController = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr;
-    if (IsValid(PlayerController))
+    LockPlayer();
+    ShowLoadingScreen();
+
+    ALevelLayoutManager* LayoutManager = FindLevelLayoutManager();
+    if (!IsValid(LayoutManager))
     {
-        PlayerController->SetInputMode(FInputModeGameOnly());
-        PlayerController->SetShowMouseCursor(false);
+        UE_LOG(LogTemp, Error, TEXT("레벨레이아웃 매니저를 배치해야합니다!!!"));
+        return;
     }
 
-    // 전투 방 갯수 확인
-    RequiredCombatRoomCount = CountCombatRooms();
-    ClearedCombatRoomCount = 0;
-
-
-    AGunFireGameState* GFGameState = GetGameState<AGunFireGameState>();
-    if (!GFGameState) return;
-
-    UGunFireGameInstance* GFGameInstance = GetGameInstance<UGunFireGameInstance>();
-    if (!GFGameInstance) return;
-
-    // 게임 스테이트 동기화
-    GFGameState->StartFloor(GFGameInstance->GetCurrentFloor(), RequiredCombatRoomCount);
-
-    UE_LOG(LogTemp, Warning, TEXT("%d 층"), GFGameInstance->GetCurrentFloor());
-    UE_LOG(LogTemp, Warning, TEXT("필요한 전투방 클리어 횟수 : %d"), RequiredCombatRoomCount);
-
-
-    // 기존 세션 정보 복구
-    RestoreSessionData();
-
-    EnterStartRoom();
+    LayoutManager->OnLayoutReady.AddDynamic(this, &AGunFireGameMode::HandleLayoutReady);
+    LayoutManager->OnLoadingProgress.AddDynamic(this, &AGunFireGameMode::HandleLoadingProgress);
+    LayoutManager->StartLevel();
 }
 
 // 레벨 시작 시 StartRoom에 진입
@@ -200,7 +187,11 @@ void AGunFireGameMode::EndCurrentRoom()
     {
         ++ClearedCombatRoomCount;
         GFGameState->SetClearedCombatRoomCount(ClearedCombatRoomCount);
-        GFGameInstance->AddTotalClearedCombatRoomCount(1);
+
+        if (GFGameInstance)
+        {
+            GFGameInstance->AddTotalClearedCombatRoomCount(1);
+        }
 
         // 요구하는 횟수를 만족하면 시작방에 포탈 활성화
         if (ClearedCombatRoomCount >= RequiredCombatRoomCount)
@@ -295,6 +286,47 @@ void AGunFireGameMode::ActivatePortal()
     if (IsValid(StartingRoom))
     {
         StartingRoom->ActivateFloorPortal();
+    }
+}
+
+void AGunFireGameMode::HandleLayoutReady()
+{
+    // 전투 방 갯수 확인
+    RequiredCombatRoomCount = CountCombatRooms();
+    ClearedCombatRoomCount = 0;
+
+    AGunFireGameState* GFGameState = GetGameState<AGunFireGameState>();
+    if (!GFGameState) return;
+
+    UGunFireGameInstance* GFGameInstance = GetGameInstance<UGunFireGameInstance>();
+    if (!GFGameInstance) return;
+
+    // 게임 스테이트 동기화
+    GFGameState->StartFloor(GFGameInstance->GetCurrentFloor(), RequiredCombatRoomCount);
+
+    UE_LOG(LogTemp, Warning, TEXT("%d 층"), GFGameInstance->GetCurrentFloor());
+    UE_LOG(LogTemp, Warning, TEXT("필요한 전투방 클리어 횟수 : %d"), RequiredCombatRoomCount);
+
+    // 기존 세션 정보 복구
+    RestoreSessionData();
+
+    // 시작방 진입
+    EnterStartRoom();
+
+    // 플레이어 조작 가능하게 하고, 로딩 UI 가리기
+    UnlockPlayer();
+    HideLoadingScreen();
+}
+
+void AGunFireGameMode::HandleLoadingProgress(float Progress)
+{
+    APlayerController* PlayerController = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr;
+    if (!IsValid(PlayerController)) return;
+
+    AGunFirePlayerController* GFPlayerController = Cast<AGunFirePlayerController>(PlayerController);
+    if (IsValid(GFPlayerController))
+    {
+        GFPlayerController->UpdateLoadingProgress(Progress);
     }
 }
 
@@ -474,4 +506,88 @@ void AGunFireGameMode::RestoreSessionData()
     {
         InventoryComponent->SetInventorySessionData(GFGameInstance->GetInventorySessionData());
     }
+}
+
+ALevelLayoutManager* AGunFireGameMode::FindLevelLayoutManager()
+{
+    if (UWorld* World = GetWorld())
+    {
+        for (TActorIterator<ALevelLayoutManager> It(World); It; ++It)
+        {
+            ALevelLayoutManager* LayoutManager = *It;
+            if (IsValid(LayoutManager))
+            {
+                return LayoutManager;
+            }
+        }
+    }
+    return nullptr;
+}
+
+void AGunFireGameMode::ShowLoadingScreen()
+{
+    // 로딩창 가리기
+    APlayerController* PlayerController = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr;
+    if (!IsValid(PlayerController)) return;
+
+    AGunFirePlayerController* GFPlayerController = Cast<AGunFirePlayerController>(PlayerController);
+    if (IsValid(GFPlayerController))
+    {
+        GFPlayerController->ShowLoadingScreen();
+    }
+}
+
+void AGunFireGameMode::HideLoadingScreen()
+{
+    // 로딩창 가리기
+    APlayerController* PlayerController = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr;
+    if (!IsValid(PlayerController)) return;
+
+    AGunFirePlayerController* GFPlayerController = Cast<AGunFirePlayerController>(PlayerController);
+    if (IsValid(GFPlayerController))
+    {
+        GFPlayerController->HideLoadingScreen();
+    }
+}
+
+void AGunFireGameMode::LockPlayer()
+{
+    APlayerController* PlayerController = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr;
+    if (!IsValid(PlayerController)) return;
+
+    ACharacter* Character = Cast<APlayerCharacter>(PlayerController->GetPawn());
+    if (!IsValid(Character)) return;
+
+    UCharacterMovementComponent* MovementComponent = Character->GetCharacterMovement();
+    if (!IsValid(MovementComponent)) return;
+
+    // 이동, 마우스 회전 금지
+    PlayerController->SetIgnoreLookInput(true);
+    PlayerController->SetIgnoreMoveInput(true);
+
+    // 움직임을 멈추고 이동 불가능하게 만들기, 중력 0으로
+    MovementComponent->StopMovementImmediately();
+    MovementComponent->DisableMovement();
+    CurrentGravityScale = MovementComponent->GravityScale;
+    MovementComponent->GravityScale = 0.f;
+}
+
+void AGunFireGameMode::UnlockPlayer()
+{
+    APlayerController* PlayerController = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr;
+    if (!IsValid(PlayerController)) return;
+
+    ACharacter* Character = Cast<APlayerCharacter>(PlayerController->GetPawn());
+    if (!IsValid(Character)) return;
+
+    UCharacterMovementComponent* MovementComponent = Character->GetCharacterMovement();
+    if (!IsValid(MovementComponent)) return;
+
+    // 움직임과 중력 되돌리기
+    MovementComponent->SetMovementMode(MOVE_Walking);
+    MovementComponent->GravityScale = CurrentGravityScale;
+
+    // 이동, 마우스 회전 되돌리기
+    PlayerController->SetIgnoreLookInput(false);
+    PlayerController->SetIgnoreMoveInput(false);
 }

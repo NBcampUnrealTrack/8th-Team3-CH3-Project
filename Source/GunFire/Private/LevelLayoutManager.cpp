@@ -8,17 +8,54 @@ ALevelLayoutManager::ALevelLayoutManager()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
+    ExpectedStreamingLevelCount = 0;
+    ReadiedStreamingLevelCount = 0;
+    StreamingLevels.Empty();
+    bStartLoading = false;
+    bEndLoading = false;
 }
 
-void ALevelLayoutManager::BeginPlay()
+void ALevelLayoutManager::StartLevel()
 {
-	Super::BeginPlay();
+    if (bStartLoading) return;
+
+    bStartLoading = true;
+    ExpectedStreamingLevelCount = 0;
+    ReadiedStreamingLevelCount = 0;
+    StreamingLevels.Empty();
+
+    OnLoadingProgress.Broadcast(0.f);
+
     SpawnRoomsAtSlots(StartRoomPool, StartSlotTag);
     SpawnRoomsAtSlots(BattleRoomPool, BattleSlotTag);
     SpawnRoomsAtSlots(RandomRoomPool, RandomSlotTag);
     SpawnRoomsAtSlots(BossRoomPool, BossSlotTag);
     SpawnCorridors();
-	
+
+    CheckLayoutReady();
+}
+
+void ALevelLayoutManager::CheckStreamingLevel(ULevelStreamingDynamic* StreamingLevel, bool bSuccess)
+{
+    if (!bSuccess || !IsValid(StreamingLevel)) return;
+
+    ++ExpectedStreamingLevelCount;
+    StreamingLevels.Add(StreamingLevel);
+
+    StreamingLevel->OnLevelShown.AddDynamic(this, &ALevelLayoutManager::HandleStreamingLevelShown);
+}
+
+void ALevelLayoutManager::HandleStreamingLevelShown()
+{
+    ++ReadiedStreamingLevelCount;
+
+    float Progress = ExpectedStreamingLevelCount > 0
+        ? static_cast<float>(ReadiedStreamingLevelCount) / static_cast<float>(ExpectedStreamingLevelCount)
+        : 1.f;
+
+    OnLoadingProgress.Broadcast(Progress);
+
+    CheckLayoutReady();
 }
 
 void ALevelLayoutManager::SpawnRoomsAtSlots(
@@ -55,11 +92,13 @@ void ALevelLayoutManager::SpawnRoomsAtSlots(
     {
         AActor* Slot = FoundSlots[i];
         bool bSuccess = false;
-        ULevelStreamingDynamic::LoadLevelInstanceBySoftObjectPtr(
+        ULevelStreamingDynamic* StreamingLevel = ULevelStreamingDynamic::LoadLevelInstanceBySoftObjectPtr(
             this, ShuffledPool[i],
             Slot->GetActorLocation(),
             Slot->GetActorRotation(),
             bSuccess);
+
+        CheckStreamingLevel(StreamingLevel, bSuccess);
     }
 }
 
@@ -108,6 +147,19 @@ void ALevelLayoutManager::SpawnCorridorBetween(AActor* A, AActor* B)
     Rot.Pitch = 0; Rot.Roll = 0; // Yaw만 사용
 
     bool bSuccess = false;
-    ULevelStreamingDynamic::LoadLevelInstanceBySoftObjectPtr(
+    ULevelStreamingDynamic* StreamingLevel = ULevelStreamingDynamic::LoadLevelInstanceBySoftObjectPtr(
         this, CorridorAsset, Mid, Rot, bSuccess);
+
+    CheckStreamingLevel(StreamingLevel, bSuccess);
+}
+
+void ALevelLayoutManager::CheckLayoutReady()
+{
+    if (bEndLoading) return;
+    if (ReadiedStreamingLevelCount < ExpectedStreamingLevelCount) return;
+
+    // 로딩 종료 알림
+    bEndLoading = true;
+    OnLoadingProgress.Broadcast(1.f);
+    OnLayoutReady.Broadcast();
 }

@@ -19,7 +19,16 @@ public:
     void ShowGameOverUI();
 
     UFUNCTION(BlueprintCallable)
+    void ShowLoadingScreen();
+
+    UFUNCTION(BlueprintCallable)
+    void HideLoadingScreen();
+
+    UFUNCTION(BlueprintCallable)
     void GotoMainMenu();
+
+    UFUNCTION(BlueprintImplementableEvent)
+    void UpdateLoadingProgress(float Progress);
 
     virtual void BeginPlay() override;
 
@@ -84,6 +93,12 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
     TSubclassOf<UUserWidget> GameOverWidgetClass;
 
-    UPROPERTY()
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
     TObjectPtr<UUserWidget> GameOverWidget;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
+    TSubclassOf<UUserWidget> LoadingScreenWidgetClass;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
+    TObjectPtr<UUserWidget> LoadingScreenWidget;
 };

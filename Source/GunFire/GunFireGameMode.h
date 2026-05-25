@@ -6,7 +6,7 @@
 #include "GameFramework/GameModeBase.h"
 #include "GunFireGameMode.generated.h"
 
-enum class ESessionResult : uint8;
+class ALevelLayoutManager;
 class AStartRoom;
 class AGunFireGameState;
 class ARoomBase;
@@ -94,13 +94,36 @@ protected:
     UFUNCTION(BlueprintCallable, Category = "Room")
     void ActivatePortal();
 
+    // 레벨 레이아웃 로딩이 완료되면 호출하는 함수
+    UFUNCTION()
+    void HandleLayoutReady();
+
+    // 로딩 진행도 변화 이벤트에 바인딩하는 함수
+    UFUNCTION()
+    void HandleLoadingProgress(float Progress);
+
 private:
     bool CanEnterRoom(const ARoomBase* EnteredRoom);
     AStartRoom* FindStartRoom();
     int32 CountCombatRooms();
     void GoToResultLevel();
 
+    // 게임 인스턴스 저장/복구
     void SaveSessionData();
     void RestoreSessionData();
+
+    // 배치된 레벨 레이아웃 매니저 찾는 함수
+    ALevelLayoutManager* FindLevelLayoutManager();
+
+    // 로딩 스크린 보여주기
+    void ShowLoadingScreen();
+    // 로딩 스크린 가리기
+    void HideLoadingScreen();
+    // 플레이어 행동 막기
+    void LockPlayer();
+    // 플레이어 행동 풀기
+    void UnlockPlayer();
+
+    float CurrentGravityScale;
 };
 
