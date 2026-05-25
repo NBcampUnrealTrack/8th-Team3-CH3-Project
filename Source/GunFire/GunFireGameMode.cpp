@@ -15,6 +15,7 @@
 #include "StatComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Item/InventoryComponent.h"
+#include "Sound/SoundSubsystem.h"
 #include "Weapon/GunBase.h"
 #include "Weapon/WeaponBase.h"
 
@@ -36,13 +37,7 @@ AGunFireGameMode::AGunFireGameMode()
     CurrentRandomRelicRoomCount = 0;
 
     CurrentGravityScale = 0.f;
-}
-
-void AGunFireGameMode::InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage)
-{
-    Super::InitGame(MapName, Options, ErrorMessage);
-
-    UE_LOG(LogTemp, Warning, TEXT("Game Mode Initialize"));
+    FloorBGMFadeInTime = 1.f;
 }
 
 // 레벨의 시작 처리
@@ -56,7 +51,7 @@ void AGunFireGameMode::StartPlay()
     ALevelLayoutManager* LayoutManager = FindLevelLayoutManager();
     if (!IsValid(LayoutManager))
     {
-        UE_LOG(LogTemp, Error, TEXT("레벨레이아웃 매니저를 배치해야합니다!!!"));
+        UE_LOG(LogTemp, Error, TEXT("레벨 레이아웃 매니저를 배치해야합니다!!!"));
         return;
     }
 
@@ -312,6 +307,9 @@ void AGunFireGameMode::HandleLayoutReady()
 
     // 시작방 진입
     EnterStartRoom();
+
+    // 층별 BGM 재생
+    PlayCurrentFloorBGM();
 
     // 플레이어 조작 가능하게 하고, 로딩 UI 가리기
     UnlockPlayer();
@@ -590,4 +588,23 @@ void AGunFireGameMode::UnlockPlayer()
     // 이동, 마우스 회전 되돌리기
     PlayerController->SetIgnoreLookInput(false);
     PlayerController->SetIgnoreMoveInput(false);
+}
+
+void AGunFireGameMode::PlayCurrentFloorBGM()
+{
+    UGunFireGameInstance* GFGameInstance = GetGameInstance<UGunFireGameInstance>();
+    if (!GFGameInstance) return;
+
+    int32 CurrentFloor = GFGameInstance->GetCurrentFloor();
+    int32 BGMIndex = CurrentFloor - 1;
+
+    if (!FloorBGMs.IsValidIndex(BGMIndex)) return;
+
+    USoundBase* BGM = FloorBGMs[BGMIndex];
+    if (!BGM) return;
+
+    USoundSubsystem* SoundSubsystem = GetWorld() ? GetWorld()->GetSubsystem<USoundSubsystem>() : nullptr;
+    if (!SoundSubsystem) return;
+
+    SoundSubsystem->PlayBGM(BGM, FloorBGMFadeInTime);
 }

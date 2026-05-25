@@ -21,7 +21,6 @@ public:
 	AGunFireGameMode();
 
     // 게임 모드 기본 함수
-    virtual void InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage) override;
     virtual void StartPlay() override;
 
     UFUNCTION(BlueprintCallable, Category = "Room")
@@ -89,6 +88,12 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Room")
     int32 CurrentRandomRelicRoomCount;
 
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio")
+    TArray<TObjectPtr<USoundBase>> FloorBGMs;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio")
+    float FloorBGMFadeInTime;
+
 protected:
     // 다음 방 넘어가는 포탈 활성화 함수
     UFUNCTION(BlueprintCallable, Category = "Room")
@@ -124,6 +129,9 @@ private:
     // 플레이어 행동 풀기
     void UnlockPlayer();
 
+    void PlayCurrentFloorBGM();
+
+private:
     float CurrentGravityScale;
 };
 

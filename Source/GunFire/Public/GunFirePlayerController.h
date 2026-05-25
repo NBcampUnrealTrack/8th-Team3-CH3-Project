@@ -101,4 +101,8 @@ protected:
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
     TObjectPtr<UUserWidget> LoadingScreenWidget;
+
+protected:
+    UFUNCTION(BlueprintImplementableEvent)
+    void OnHideLoadingScreen();
 };

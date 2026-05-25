@@ -78,6 +78,7 @@ void AGunFirePlayerController::HideLoadingScreen()
 {
     if (IsValid(LoadingScreenWidget))
     {
+        OnHideLoadingScreen();
         LoadingScreenWidget->RemoveFromParent();
         LoadingScreenWidget = nullptr;
     }
