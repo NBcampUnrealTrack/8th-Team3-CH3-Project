@@ -13,6 +13,9 @@ class GUNFIRE_API AInteractTestItem : public AActor, public IInteractableInterfa
 public:	
 	AInteractTestItem();
 
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item")
+    class UStaticMeshComponent* Mesh;
+
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
     class UWidgetComponent* InteractionWidget;
 

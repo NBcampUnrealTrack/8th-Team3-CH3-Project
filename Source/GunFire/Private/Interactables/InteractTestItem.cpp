@@ -5,6 +5,9 @@ AInteractTestItem::AInteractTestItem()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
+    Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
+    SetRootComponent(Mesh);
+
     InteractionWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("InteractionWidget"));
     InteractionWidget->SetupAttachment(RootComponent);
 
