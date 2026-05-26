@@ -151,6 +151,12 @@ void UStatComponent::RemoveModifier(FName SourceID)
     CalculateFinalStats();
 }
 
+void UStatComponent::ResetModifier()
+{
+    Modifiers.Empty();
+    CalculateFinalStats();
+}
+
 void UStatComponent::CalculateFinalStats()
 {
     FCombatStat AddStats;

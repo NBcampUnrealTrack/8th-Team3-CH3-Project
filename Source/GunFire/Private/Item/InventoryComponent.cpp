@@ -1,4 +1,6 @@
 ﻿#include "Item/InventoryComponent.h"
+
+#include "StatComponent.h"
 #include "Item/ItemSystemTypes.h"
 #include "Engine/DataTable.h"
 #include "Game/SessionData.h"
@@ -144,6 +146,8 @@ void UInventoryComponent::AddPassive(FGF_PassiveItemData NewData)
         OwnedPassives.Add(NewData);
     }
 
+    UpdatePassiveStats();
+
     OnInventoryChanged.Broadcast();
 }
 
@@ -214,6 +218,8 @@ bool UInventoryComponent::UpgradeItem(int32 TargetIndex)
     OwnedPassives[TargetIndex].MaxStamina_Pct = RowData->Upgrade_MaxStamina_Pct * Stack;
     OwnedPassives[TargetIndex].StaminaRegen_Pct = RowData->Upgrade_StaminaRegen_Pct * Stack;
 
+    UpdatePassiveStats();
+
     OnInventoryChanged.Broadcast();
     return true;
 }
@@ -246,5 +252,51 @@ void UInventoryComponent::SetInventorySessionData(const FInventorySessionData& I
     OwnedActives = InventorySessionData.OwnedActives;
     OwnedMaterials = InventorySessionData.OwnedMaterials;
 
+    UpdatePassiveStats();
+
     OnInventoryChanged.Broadcast();
+}
+
+void UInventoryComponent::UpdatePassiveStats()
+{
+    AActor* Owner = GetOwner();
+    if (!IsValid(Owner)) return;
+
+    UStatComponent* StatComp = Owner->FindComponentByClass<UStatComponent>();
+    if (!IsValid(StatComp)) return;
+
+    StatComp->ResetModifier();
+
+    for (const FGF_PassiveItemData& Item : OwnedPassives)
+    {
+        // 아이템타입이 패시브가 아닌 경우 건너뛰기
+        if (Item.ItemType != EGF_ItemType::Passive) continue;
+
+        FName SourceID = Item.ItemRowName.IsNone()
+            ? FName(*Item.ItemName.ToString())
+            : Item.ItemRowName;
+
+        AddPassiveModifier(StatComp, SourceID, ECombatStatType::AttackPower, Item.AttackPower_Pct);
+        AddPassiveModifier(StatComp, SourceID, ECombatStatType::MaxHealth, Item.MaxHealth_Pct);
+        AddPassiveModifier(StatComp, SourceID, ECombatStatType::Defense, Item.Defense_Pct);
+        AddPassiveModifier(StatComp, SourceID, ECombatStatType::MaxStamina, Item.MaxStamina_Pct);
+        AddPassiveModifier(StatComp, SourceID, ECombatStatType::StaminaRegen, Item.StaminaRegen_Pct);
+
+        UE_LOG(LogTemp, Warning, TEXT("TEST : %f"), Item.AttackPower_Pct);
+    }
+}
+
+void UInventoryComponent::AddPassiveModifier(UStatComponent* StatComponent, FName SourceID, ECombatStatType StatType,
+    float Value)
+{
+    if (!IsValid(StatComponent)) return;
+    if (FMath::IsNearlyZero(Value)) return;
+
+    FStatModifier Modifier;
+    Modifier.SourceID = SourceID;
+    Modifier.StatType = StatType;
+    Modifier.ModifierType = EStatModifierType::Multiply;
+    Modifier.Value = Value;
+
+    StatComponent->AddModifier(Modifier);
 }

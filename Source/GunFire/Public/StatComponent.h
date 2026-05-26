@@ -36,6 +36,8 @@ public:
 
     void RemoveModifier(FName SourceID);
 
+    void ResetModifier();
+
     void CalculateFinalStats();
 
     float GetStatValue(ECombatStatType StatType) const;

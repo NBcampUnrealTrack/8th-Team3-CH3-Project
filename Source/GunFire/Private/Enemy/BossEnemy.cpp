@@ -346,23 +346,28 @@ void ABossEnemy::ExecuteStomp()
             // 플레이어 에게만 & 땅에있을때만 적용
             if (HitActor->ActorHasTag(FName("Player")) && !HitChar->GetCharacterMovement()->IsFalling())
             {
-                // 혹시나할 중복적용을 방지
-                AoEHittedActors.Add(HitActor);
+                UStatComponent* StatComp = HitActor->FindComponentByClass<UStatComponent>();
+                if (!IsValid(StatComp)) return;
 
-                float StompDamage = GetAttackDamage() * StompAttackDamageMultiplier;
+                if (!StatComp->IsInvincible())
+                {
+                    // 혹시나할 중복적용을 방지
+                    AoEHittedActors.Add(HitActor);
 
-                // 데미지 처리
-                UGameplayStatics::ApplyDamage(
-                    HitActor,
-                    StompDamage,
-                    GetController(),
-                    this,
-                    UDamageType::StaticClass()
-                );
+                    float StompDamage = GetAttackDamage() * StompAttackDamageMultiplier;
 
-                // 에어본
-                HitChar->LaunchCharacter(FVector(0, 0, StompKnockupForce), false, true);
+                    // 데미지 처리
+                    UGameplayStatics::ApplyDamage(
+                        HitActor,
+                        StompDamage,
+                        GetController(),
+                        this,
+                        UDamageType::StaticClass()
+                    );
 
+                    // 에어본
+                    HitChar->LaunchCharacter(FVector(0, 0, StompKnockupForce), false, true);
+                }
             }
         }
     }

@@ -69,9 +69,7 @@ void AGunFirePlayerController::ShowLoadingScreen()
 
     bShowMouseCursor = true;
 
-    FInputModeUIOnly InputMode;
-    InputMode.SetWidgetToFocus(LoadingScreenWidget->TakeWidget());
-    SetInputMode(InputMode);
+    SetInputMode(FInputModeUIOnly());
 }
 
 void AGunFirePlayerController::HideLoadingScreen()
@@ -91,8 +89,7 @@ void AGunFirePlayerController::GotoMainMenu()
 {
     bShowMouseCursor = true;
 
-    FInputModeUIOnly InputMode;
-    SetInputMode(InputMode);
+    SetInputMode(FInputModeUIOnly());
 
     UGameplayStatics::OpenLevel(this, TEXT("MainMenuLevel"));
 }

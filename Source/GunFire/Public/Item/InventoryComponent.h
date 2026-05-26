@@ -1,12 +1,14 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
+#include "CombatStat.h"
 #include "Components/ActorComponent.h"
 #include "ItemSystemTypes.h"
 #include "Engine/DataTable.h"
 #include "InventoryComponent.generated.h"
 
 struct FInventorySessionData;
+class UStatComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryChanged);
 
@@ -73,4 +75,15 @@ public:
     // 게임 인스턴스에 저장된 정보로 인벤토리 복구하는 함수
     UFUNCTION(BlueprintCallable, Category = "Inventory")
     void SetInventorySessionData(const FInventorySessionData& InventorySessionData);
+
+protected:
+    void UpdatePassiveStats();
+
+private:
+    void AddPassiveModifier(
+        UStatComponent* StatComponent,
+        FName SourceID,
+        ECombatStatType StatType,
+        float Value
+        );
 };
