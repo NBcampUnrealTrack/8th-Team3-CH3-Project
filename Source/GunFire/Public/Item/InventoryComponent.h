@@ -3,11 +3,12 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "ItemSystemTypes.h"
+#include "Engine/DataTable.h"
 #include "InventoryComponent.generated.h"
 
 struct FInventorySessionData;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryChangedSignature);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryChanged);
 
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class GUNFIRE_API UInventoryComponent : public UActorComponent
@@ -17,10 +18,35 @@ class GUNFIRE_API UInventoryComponent : public UActorComponent
 public:
     UInventoryComponent();
 
-    UPROPERTY(BlueprintAssignable, Category = "Inventory|Event")
-    FOnInventoryChangedSignature OnInventoryChanged;
+    // UI에서 이벤트를 바인딩할 수 있도록 BlueprintAssignable 추가
+    UPROPERTY(BlueprintAssignable, Category = "Inventory")
+    FOnInventoryChanged OnInventoryChanged;
 
-    // 랜덤 목록 가져오기
+    // ---------------------------------------------------------
+    // 데이터 테이블 변수
+    // ---------------------------------------------------------
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")
+    UDataTable* PassiveItemTable;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")
+    UDataTable* ActiveItemTable;
+
+    // ---------------------------------------------------------
+    // 인벤토리 메인 바구니 배열들
+    // ---------------------------------------------------------
+    // 장비와 재료가 모두 함께 담기는 메인 패시브 배열
+    UPROPERTY(BlueprintReadOnly, Category = "Inventory")
+    TArray<FGF_PassiveItemData> OwnedPassives;
+
+    UPROPERTY(BlueprintReadOnly, Category = "Inventory")
+    TArray<FGF_ActiveItemData> OwnedActives;
+
+    UPROPERTY(BlueprintReadOnly, Category = "Inventory")
+    TArray<FGF_PassiveItemData> OwnedMaterials;
+
+    // ---------------------------------------------------------
+    // 주요 함수 선언부
+    // ---------------------------------------------------------
     UFUNCTION(BlueprintCallable, Category = "Inventory")
     TArray<FGF_PassiveItemData> GetRandomPassiveOptions(int32 Count);
 
@@ -37,37 +63,14 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Inventory")
     void AddMaterial(FGF_PassiveItemData NewData);
 
-    UFUNCTION(BlueprintCallable, Category = "Inventory|Upgrade")
-    int32 UpgradeItem(int32 TargetIndex, int32 MaterialIndex);
+    // 아이템 강화 함수
+    UFUNCTION(BlueprintCallable, Category = "Inventory")
+    bool UpgradeItem(int32 TargetIndex);
 
-    // 보유 리스트 반환
-    UFUNCTION(BlueprintPure, Category = "Inventory")
-    TArray<FGF_PassiveItemData> GetOwnedPassives() const { return OwnedPassives; }
-
-    UFUNCTION(BlueprintPure, Category = "Inventory")
-    TArray<FGF_ActiveItemData> GetOwnedActives() const { return OwnedActives; }
-
-    UFUNCTION(BlueprintPure, Category = "Inventory")
-    TArray<FGF_PassiveItemData> GetOwnedMaterials() const { return OwnedMaterials; }
-
+    // 재료 소모 함수 (OwnedPassives 배열 기준)
+    UFUNCTION(BlueprintCallable, Category = "Inventory")
+    bool ConsumeMaterial(int32 MaterialIndex);
     // 게임 인스턴스에 저장된 정보로 인벤토리 복구하는 함수
     UFUNCTION(BlueprintCallable, Category = "Inventory")
     void SetInventorySessionData(const FInventorySessionData& InventorySessionData);
-
-protected:
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")
-    class UDataTable* PassiveItemTable;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")
-    class UDataTable* ActiveItemTable;
-
-    // 보유 데이터 배열
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
-    TArray<FGF_PassiveItemData> OwnedPassives;
-
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
-    TArray<FGF_ActiveItemData> OwnedActives;
-
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
-    TArray<FGF_PassiveItemData> OwnedMaterials;
 };

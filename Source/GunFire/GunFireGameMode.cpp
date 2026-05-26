@@ -454,9 +454,9 @@ void AGunFireGameMode::SaveSessionData()
     if (UInventoryComponent* InventoryComponent = PlayerCharacter->FindComponentByClass<UInventoryComponent>())
     {
         FInventorySessionData SessionData;
-        SessionData.OwnedPassives = InventoryComponent->GetOwnedPassives();
-        SessionData.OwnedActives = InventoryComponent->GetOwnedActives();
-        SessionData.OwnedMaterials = InventoryComponent->GetOwnedMaterials();
+        SessionData.OwnedPassives = InventoryComponent->OwnedPassives;
+        SessionData.OwnedActives = InventoryComponent->OwnedActives;
+        SessionData.OwnedMaterials = InventoryComponent->OwnedMaterials;
 
         GFGameInstance->SetInventorySessionData(SessionData);
     }
