@@ -2,6 +2,7 @@
 
 UGunFireGameInstance::UGunFireGameInstance()
 {
+    EnemyStatBonusPerRoom = 0.05f;
     ResetSessionData();
 }
 
@@ -13,11 +14,13 @@ void UGunFireGameInstance::StartNewSession()
 void UGunFireGameInstance::ResetSessionData()
 {
     PlayerSessionData = FPlayerSessionData();
-    CurrentFloor = 1;
+    EquippedWeapons.Empty();
+    InventorySessionData = FInventorySessionData();
 
+    CurrentFloor = 1;
     ClearedRoomCount = 0;
+    TotalClearedCombatRoomCount = 0;
     KilledEnemyCount = 0;
-    EnemyStatBonusPerRoom = 5.f;
 }
 
 void UGunFireGameInstance::AddClearedRoomCount(int32 Count)
