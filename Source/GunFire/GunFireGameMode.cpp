@@ -15,6 +15,7 @@
 #include "StatComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Item/InventoryComponent.h"
+#include "Room/BossRoom.h"
 #include "Sound/SoundSubsystem.h"
 #include "Weapon/GunBase.h"
 #include "Weapon/WeaponBase.h"
@@ -174,15 +175,9 @@ void AGunFireGameMode::EndCurrentRoom()
         GFGameInstance->AddClearedRoomCount(1);
     }
 
-    // 보스방이 종료되었다면 결과창으로 이동하고 함수 종료
-    if (CurrentRoom->GetRoomType() == ERoomType::Boss)
-    {
-        ClearGame();
-        return;
-    }
-
     // CombatRoom이면 클리어한 전투방 카운트 증가
-    if (CurrentRoom->GetRoomType() == ERoomType::Combat)
+    if (CurrentRoom->GetRoomType() == ERoomType::Combat
+        || CurrentRoom->GetRoomType() == ERoomType::Boss)
     {
         ++ClearedCombatRoomCount;
         GFGameState->SetClearedCombatRoomCount(ClearedCombatRoomCount);
@@ -192,11 +187,22 @@ void AGunFireGameMode::EndCurrentRoom()
             GFGameInstance->AddTotalClearedCombatRoomCount(1);
         }
 
-        // 요구하는 횟수를 만족하면 시작방에 포탈 활성화
-        if (ClearedCombatRoomCount >= RequiredCombatRoomCount)
+        // 전투방 종료시 포탈  활성화 체크
+        if (CurrentRoom->GetRoomType() == ERoomType::Combat)
         {
-            UE_LOG(LogTemp, Warning, TEXT("모든 전투방 클리어. 포탈을 활성화합니다!!"));
-            ActivatePortal();
+            // 요구하는 횟수를 만족하면 시작방에 포탈 활성화
+            if (ClearedCombatRoomCount >= RequiredCombatRoomCount)
+            {
+                UE_LOG(LogTemp, Warning, TEXT("모든 전투방 클리어. 포탈을 활성화합니다!!"));
+                ActivatePortal();
+            }
+        }
+        else  // 보스방이 종료되었다면 결과창으로 이동하고 함수 종료
+        {
+            if (ABossRoom* BossRoom = Cast<ABossRoom>(CurrentRoom))
+            {
+                BossRoom->ActivateResultPortal();
+            }
         }
     }
 }
@@ -238,7 +244,13 @@ bool AGunFireGameMode::IsCurrentRoom(ARoomBase* Room) const
 // 게임 클리어시 호출할 함수, 결과창으로 가는 함수
 void AGunFireGameMode::ClearGame()
 {
-    GoToResultLevel();
+    if (ResultLevelName.IsNone())
+    {
+        UE_LOG(LogTemp, Error, TEXT("Result Level is None"));
+        return;
+    }
+
+    UGameplayStatics::OpenLevel(this, ResultLevelName);
 }
 
 void AGunFireGameMode::GameOver()
@@ -379,24 +391,15 @@ int32 AGunFireGameMode::CountCombatRooms()
         for (TActorIterator<ACombatRoom> It(World); It; ++It)
         {
             ACombatRoom* CombatRoom = *It;
-            if (IsValid(CombatRoom) && CombatRoom->GetRoomType() == ERoomType::Combat)
+            if (IsValid(CombatRoom) &&
+                (CombatRoom->GetRoomType() == ERoomType::Combat ||
+                CombatRoom->GetRoomType() == ERoomType::Boss))
             {
                 ++Count;
             }
         }
     }
     return Count;
-}
-
-void AGunFireGameMode::GoToResultLevel()
-{
-    if (ResultLevelName.IsNone())
-    {
-        UE_LOG(LogTemp, Error, TEXT("Result Level is None"));
-        return;
-    }
-
-    UGameplayStatics::OpenLevel(this, ResultLevelName);
 }
 
 void AGunFireGameMode::SaveSessionData()

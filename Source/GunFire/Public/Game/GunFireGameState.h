@@ -5,6 +5,7 @@
 #include "Room/RoomTypes.h"
 #include "GunFireGameState.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FCombatRoomChangedSignature, int32, ClearedCount, int32, RequiredCount);
 
 UCLASS()
 class GUNFIRE_API AGunFireGameState : public AGameStateBase
@@ -49,6 +50,10 @@ public:
     void SetClearedCombatRoomCount(int32 Count);
 
     void AddClearedCombatRoomCount();
+
+public:
+    UPROPERTY(BlueprintAssignable)
+    FCombatRoomChangedSignature OnCombatRoomChanged;
 
 protected:
     // 현재 방의 타입

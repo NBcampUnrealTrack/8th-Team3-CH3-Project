@@ -21,6 +21,7 @@ APortal::APortal()
 
     TargetLevelName = NAME_None;
     bActive = false;
+    PortalType = EPortalType::NextFloor;
 }
 
 void APortal::BeginPlay()
@@ -64,8 +65,14 @@ void APortal::OnPortalBeginOverlap(UPrimitiveComponent* OverlappedComponent, AAc
                 GetWorld()->GetAuthGameMode<AGunFireGameMode>() :
                 nullptr)
         {
-            UE_LOG(LogTemp, Warning, TEXT("Portal Overlapped"));
-            GFGameMode->TryEnterNextFloor(TargetLevelName);
+            if (PortalType == EPortalType::NextFloor)
+            {
+                GFGameMode->TryEnterNextFloor(TargetLevelName);
+            }
+            else if (PortalType == EPortalType::ClearGame)
+            {
+                GFGameMode->ClearGame();
+            }
         }
     }
 }

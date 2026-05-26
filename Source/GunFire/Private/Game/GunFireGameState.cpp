@@ -23,6 +23,8 @@ void AGunFireGameState::StartFloor(int32 NewFloor, int32 CombatRoomCount)
     CurrentRoomState = ERoomState::InProgress;
     CurrentFloor = NewFloor;
     RequiredCombatRoomCount = CombatRoomCount;
+
+    OnCombatRoomChanged.Broadcast(ClearedCombatRoomCount, RequiredCombatRoomCount);
 }
 
 ERoomType AGunFireGameState::GetCurrentRoomType() const
@@ -103,6 +105,8 @@ void AGunFireGameState::SetRequiredCombatRoomCount(int32 Count)
 void AGunFireGameState::SetClearedCombatRoomCount(int32 Count)
 {
     ClearedCombatRoomCount = FMath::Max(0, Count);
+
+    OnCombatRoomChanged.Broadcast(ClearedCombatRoomCount, RequiredCombatRoomCount);
 }
 
 void AGunFireGameState::AddClearedCombatRoomCount()

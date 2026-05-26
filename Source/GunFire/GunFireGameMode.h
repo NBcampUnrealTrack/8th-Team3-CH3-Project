@@ -111,7 +111,6 @@ private:
     bool CanEnterRoom(const ARoomBase* EnteredRoom);
     AStartRoom* FindStartRoom();
     int32 CountCombatRooms();
-    void GoToResultLevel();
 
     // 게임 인스턴스 저장/복구
     void SaveSessionData();

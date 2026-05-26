@@ -5,6 +5,8 @@
 #include "BossRoom.generated.h"
 
 
+class APortal;
+
 UCLASS()
 class GUNFIRE_API ABossRoom : public ACombatRoom
 {
@@ -12,4 +14,10 @@ class GUNFIRE_API ABossRoom : public ACombatRoom
 
 public:
     ABossRoom();
+
+    void ActivateResultPortal();
+
+protected:
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Room|Boss")
+    TObjectPtr<APortal> ResultPortal;
 };

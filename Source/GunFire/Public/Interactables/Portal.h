@@ -7,6 +7,13 @@
 class UBoxComponent;
 class UNiagaraComponent;
 
+UENUM(BlueprintType)
+enum class EPortalType : uint8
+{
+    NextFloor,
+    ClearGame
+};
+
 UCLASS()
 class GUNFIRE_API APortal : public AActor
 {
@@ -38,6 +45,10 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Portal")
     bool bActive;
 
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Portal")
+    EPortalType PortalType;
+
+protected:
     // 충돌 바인딩 함수
     UFUNCTION()
     void OnPortalBeginOverlap(
@@ -49,5 +60,4 @@ protected:
         const FHitResult& SweepResult
         );
 
-private:
 };
