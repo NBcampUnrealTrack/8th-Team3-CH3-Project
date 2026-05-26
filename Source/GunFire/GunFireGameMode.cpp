@@ -49,15 +49,19 @@ void AGunFireGameMode::StartPlay()
     ShowLoadingScreen();
 
     ALevelLayoutManager* LayoutManager = FindLevelLayoutManager();
-    if (!IsValid(LayoutManager))
+
+    // 레벨 레이아웃 매니저 있으면 로드, 없으면 테스트할 수 있게 그냥 시작
+    if (IsValid(LayoutManager))
+    {
+        LayoutManager->OnLayoutReady.AddDynamic(this, &AGunFireGameMode::HandleLayoutReady);
+        LayoutManager->OnLoadingProgress.AddDynamic(this, &AGunFireGameMode::HandleLoadingProgress);
+        LayoutManager->StartLevel();
+    }
+    else
     {
         UE_LOG(LogTemp, Error, TEXT("레벨 레이아웃 매니저를 배치해야합니다!!!"));
-        return;
+        HandleLayoutReady();
     }
-
-    LayoutManager->OnLayoutReady.AddDynamic(this, &AGunFireGameMode::HandleLayoutReady);
-    LayoutManager->OnLoadingProgress.AddDynamic(this, &AGunFireGameMode::HandleLoadingProgress);
-    LayoutManager->StartLevel();
 }
 
 // 레벨 시작 시 StartRoom에 진입
