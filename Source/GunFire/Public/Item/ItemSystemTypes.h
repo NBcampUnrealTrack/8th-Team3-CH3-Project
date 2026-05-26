@@ -4,7 +4,7 @@
 #include "Engine/DataTable.h"
 #include "ItemSystemTypes.generated.h"
 
-// 아이템 타입 
+// 아이템 타입 (기존 유지)
 UENUM(BlueprintType)
 enum class EGF_ItemType : uint8
 {
@@ -13,7 +13,7 @@ enum class EGF_ItemType : uint8
     Material  UMETA(DisplayName = "Material")
 };
 
-// 아이템 공통
+// 아이템 공통 (기존 유지)
 USTRUCT(BlueprintType)
 struct FGF_ItemBase : public FTableRowBase
 {
@@ -47,20 +47,47 @@ struct FGF_ItemBase : public FTableRowBase
     int32 StackCount = 1;
 };
 
-// 패시브 아이템 
+// 패시브 아이템
 USTRUCT(BlueprintType)
 struct FGF_PassiveItemData : public FGF_ItemBase
 {
     GENERATED_BODY()
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Passive")
-    FName StatTag;
+    // 기본 획득 시 % 수치 0.1 입력 시 10% 증가로 기획
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Passive | Base Stat %")
+    float AttackPower_Pct = 0.0f;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Passive")
-    float StatValue = 0.0f;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Passive | Base Stat %")
+    float MaxHealth_Pct = 0.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Passive | Base Stat %")
+    float Defense_Pct = 0.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Passive | Base Stat %")
+    float MaxStamina_Pct = 0.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Passive | Base Stat %")
+    float StaminaRegen_Pct = 0.0f;
+
+    // 업그레이드 시 % 수치
+ 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Passive | Upgrade Stat %")
+    float Upgrade_AttackPower_Pct = 0.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Passive | Upgrade Stat %")
+    float Upgrade_MaxHealth_Pct = 0.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Passive | Upgrade Stat %")
+    float Upgrade_Defense_Pct = 0.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Passive | Upgrade Stat %")
+    float Upgrade_MaxStamina_Pct = 0.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Passive | Upgrade Stat %")
+    float Upgrade_StaminaRegen_Pct = 0.0f;
 };
 
-// 액티브 아이템 
+// 액티브 아이템 (기존 유지)
 USTRUCT(BlueprintType)
 struct FGF_ActiveItemData : public FGF_ItemBase
 {

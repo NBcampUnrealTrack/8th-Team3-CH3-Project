@@ -1,8 +1,7 @@
-#include "Item/InventoryComponent.h"
+﻿#include "Item/InventoryComponent.h"
 #include "Item/ItemSystemTypes.h"
 #include "Engine/DataTable.h"
 #include "Game/SessionData.h"
-
 
 UInventoryComponent::UInventoryComponent()
 {
@@ -107,6 +106,29 @@ void UInventoryComponent::AddPassive(FGF_PassiveItemData NewData)
         {
             OwnedItem.StackCount += NewData.StackCount;
 
+            FGF_PassiveItemData* RowData = PassiveItemTable->FindRow<FGF_PassiveItemData>(OwnedItem.ItemRowName, TEXT("AddPassive_MultiStat"));
+            if (RowData)
+            {
+                int32 Stack = OwnedItem.StackCount;
+
+                if (OwnedItem.CurrentLevel > 0)
+                {
+                    OwnedItem.AttackPower_Pct = RowData->Upgrade_AttackPower_Pct * Stack;
+                    OwnedItem.MaxHealth_Pct = RowData->Upgrade_MaxHealth_Pct * Stack;
+                    OwnedItem.Defense_Pct = RowData->Upgrade_Defense_Pct * Stack;
+                    OwnedItem.MaxStamina_Pct = RowData->Upgrade_MaxStamina_Pct * Stack;
+                    OwnedItem.StaminaRegen_Pct = RowData->Upgrade_StaminaRegen_Pct * Stack;
+                }
+                else
+                {
+                    OwnedItem.AttackPower_Pct = RowData->AttackPower_Pct * Stack;
+                    OwnedItem.MaxHealth_Pct = RowData->MaxHealth_Pct * Stack;
+                    OwnedItem.Defense_Pct = RowData->Defense_Pct * Stack;
+                    OwnedItem.MaxStamina_Pct = RowData->MaxStamina_Pct * Stack;
+                    OwnedItem.StaminaRegen_Pct = RowData->StaminaRegen_Pct * Stack;
+                }
+            }
+
             if (OwnedItem.ItemRowName.IsNone() || OwnedItem.ItemRowName == TEXT("None"))
             {
                 OwnedItem.ItemRowName = NewData.ItemRowName;
@@ -181,8 +203,16 @@ bool UInventoryComponent::UpgradeItem(int32 TargetIndex)
     OwnedPassives[TargetIndex].ItemName = RowData->UpgradeItemName;
     OwnedPassives[TargetIndex].ItemDescription = RowData->UpgradeItemDescription;
     OwnedPassives[TargetIndex].ItemIcon = RowData->ItemIcon;
-    OwnedPassives[TargetIndex].StatValue += RowData->StatValue;
+
     OwnedPassives[TargetIndex].CurrentLevel += 1;
+
+    // 업그레이드 시 덮어쓰기
+    int32 Stack = OwnedPassives[TargetIndex].StackCount;
+    OwnedPassives[TargetIndex].AttackPower_Pct = RowData->Upgrade_AttackPower_Pct * Stack;
+    OwnedPassives[TargetIndex].MaxHealth_Pct = RowData->Upgrade_MaxHealth_Pct * Stack;
+    OwnedPassives[TargetIndex].Defense_Pct = RowData->Upgrade_Defense_Pct * Stack;
+    OwnedPassives[TargetIndex].MaxStamina_Pct = RowData->Upgrade_MaxStamina_Pct * Stack;
+    OwnedPassives[TargetIndex].StaminaRegen_Pct = RowData->Upgrade_StaminaRegen_Pct * Stack;
 
     OnInventoryChanged.Broadcast();
     return true;
@@ -202,7 +232,6 @@ bool UInventoryComponent::ConsumeMaterial(int32 DummyIndex)
     }
 
     if (FoundMaterialIndex == INDEX_NONE) return false;
-
     if (OwnedPassives[FoundMaterialIndex].StackCount <= 0) return false;
 
     OwnedPassives[FoundMaterialIndex].StackCount = FMath::Max(0, OwnedPassives[FoundMaterialIndex].StackCount - 1);
@@ -217,5 +246,5 @@ void UInventoryComponent::SetInventorySessionData(const FInventorySessionData& I
     OwnedActives = InventorySessionData.OwnedActives;
     OwnedMaterials = InventorySessionData.OwnedMaterials;
 
-	OnInventoryChanged.Broadcast();
+    OnInventoryChanged.Broadcast();
 }
