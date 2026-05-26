@@ -14,7 +14,6 @@ AInteractTestItem::AInteractTestItem()
 
 void AInteractTestItem::Interact_Implementation(AActor* Interactor)
 {
-    GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("아이템 상호작용"));
     Destroy();
 }
 

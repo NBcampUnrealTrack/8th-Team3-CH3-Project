@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Interactables/InteractableInterface.h"
 #include "DoorBase.generated.h"
 
 class UBoxComponent;
@@ -12,7 +13,7 @@ class ADoorBase;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDoorEntered, ADoorBase*, Door);
 
 UCLASS()
-class GUNFIRE_API ADoorBase : public AActor
+class GUNFIRE_API ADoorBase : public AActor, public IInteractableInterface
 {
     GENERATED_BODY()
 
@@ -44,6 +45,9 @@ public:
     // 진입 보간이 완료된 시점에 브로드캐스트된다. (StartRoom 등이 바인딩해서 후처리)
     UPROPERTY(BlueprintAssignable, Category = "Door")
     FOnDoorEntered OnDoorEntered;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
+    class UWidgetComponent* InteractionWidget;
 
 protected:
     UFUNCTION(BlueprintImplementableEvent, Category = "Door")

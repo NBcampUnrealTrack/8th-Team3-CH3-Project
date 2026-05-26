@@ -7,6 +7,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "InputCoreTypes.h"
+#include "Components/WidgetComponent.h"
 
 ADoorBase::ADoorBase()
 {
@@ -33,6 +34,13 @@ ADoorBase::ADoorBase()
     EntryDirectionArrow = CreateDefaultSubobject<UArrowComponent>(TEXT("EntryDirectionArrow"));
     EntryDirectionArrow->SetupAttachment(Scene);
     EntryDirectionArrow->SetArrowColor(FLinearColor::Yellow);
+
+    // 위젯 컴포넌트
+    InteractionWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("InteractionWidget"));
+    InteractionWidget->SetupAttachment(RootComponent);
+
+    InteractionWidget->SetVisibility(false);
+    InteractionWidget->SetWidgetSpace(EWidgetSpace::Screen);
 }
 
 void ADoorBase::BeginPlay()
