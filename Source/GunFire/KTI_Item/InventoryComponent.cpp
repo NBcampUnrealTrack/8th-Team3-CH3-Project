@@ -117,6 +117,8 @@ void UInventoryComponent::AddPassive(FGF_PassiveItemData NewData)
     {
         OwnedPassives.Add(NewData);
     }
+
+    OnInventoryChanged.Broadcast();
 }
 
 void UInventoryComponent::AddActive(FGF_ActiveItemData NewData)
@@ -137,6 +139,8 @@ void UInventoryComponent::AddActive(FGF_ActiveItemData NewData)
     {
         OwnedActives.Add(NewData);
     }
+
+    OnInventoryChanged.Broadcast();
 }
 
 void UInventoryComponent::AddMaterial(FGF_PassiveItemData NewData)
@@ -157,9 +161,10 @@ void UInventoryComponent::AddMaterial(FGF_PassiveItemData NewData)
     {
         OwnedMaterials.Add(NewData);
     }
+
+    OnInventoryChanged.Broadcast();
 }
 
-// 아이템 강화
 bool UInventoryComponent::UpgradeItem(int32 TargetIndex)
 {
     if (!OwnedPassives.IsValidIndex(TargetIndex)) return false;
@@ -169,7 +174,6 @@ bool UInventoryComponent::UpgradeItem(int32 TargetIndex)
     FGF_PassiveItemData* RowData = PassiveItemTable->FindRow<FGF_PassiveItemData>(OwnedPassives[TargetIndex].ItemRowName, TEXT("UpgradeItem"));
     if (!RowData) return false;
 
-    // 데이터 적용
     OwnedPassives[TargetIndex].ItemName = RowData->UpgradeItemName;
     OwnedPassives[TargetIndex].ItemDescription = RowData->UpgradeItemDescription;
     OwnedPassives[TargetIndex].ItemIcon = RowData->ItemIcon;
@@ -180,15 +184,12 @@ bool UInventoryComponent::UpgradeItem(int32 TargetIndex)
     return true;
 }
 
-// 재료 소모 
 bool UInventoryComponent::ConsumeMaterial(int32 DummyIndex)
 {
     int32 FoundMaterialIndex = INDEX_NONE;
 
-    // 1. 큰 바구니(OwnedPassives)를 돌며 아이템 타입을 검사합니다.
     for (int32 i = 0; i < OwnedPassives.Num(); ++i)
     {
-        // 변수 타입이 Enum이므로 열거형 값인 EGF_ItemType::Material 하고만 비교해야 합니다.
         if (OwnedPassives[i].ItemType == EGF_ItemType::Material)
         {
             FoundMaterialIndex = i;
@@ -196,20 +197,12 @@ bool UInventoryComponent::ConsumeMaterial(int32 DummyIndex)
         }
     }
 
-    // 2. 만약 인벤토리에 재료가 하나도 없다면 실패 처리
     if (FoundMaterialIndex == INDEX_NONE) return false;
 
-    // 3. 찾은 재료 인덱스를 기준으로 수량을 깎거나 삭제합니다.
-    if (OwnedPassives[FoundMaterialIndex].StackCount > 1)
-    {
-        OwnedPassives[FoundMaterialIndex].StackCount--;
-    }
-    else
-    {
-        OwnedPassives.RemoveAt(FoundMaterialIndex);
-    }
+    if (OwnedPassives[FoundMaterialIndex].StackCount <= 0) return false;
 
-    // 4. UI에 변경 신호 발송
+    OwnedPassives[FoundMaterialIndex].StackCount = FMath::Max(0, OwnedPassives[FoundMaterialIndex].StackCount - 1);
+
     OnInventoryChanged.Broadcast();
     return true;
 }
