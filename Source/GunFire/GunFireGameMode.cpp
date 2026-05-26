@@ -159,9 +159,12 @@ void AGunFireGameMode::StartCurrentRoom()
 void AGunFireGameMode::EndCurrentRoom()
 {
     if (!IsValid(CurrentRoom)) return;
+    if (CurrentRoom->IsCleared()) return;
 
     AGunFireGameState* GFGameState = GetGameState<AGunFireGameState>();
     if (!GFGameState) return;
+
+    if (GFGameState->GetCurrentRoomState() == ERoomState::Cleared) return;
 
     GFGameState->SetCurrentRoomState(ERoomState::Cleared);
 

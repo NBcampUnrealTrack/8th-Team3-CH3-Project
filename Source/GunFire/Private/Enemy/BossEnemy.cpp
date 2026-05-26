@@ -10,6 +10,7 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "Enemy/EnemyBase.h"
 #include "AIController.h"
+#include "StatComponent.h"
 #include "TimerManager.h"
 #include "Enemy/EnemyAIController.h"
 #include "Components/CapsuleComponent.h"
@@ -189,6 +190,12 @@ void ABossEnemy::HandleHeavyAttackHit(ACharacter* HitPlayer)
     if (!HitPlayer)
         return;
 
+    UStatComponent* StatComp = HitPlayer->FindComponentByClass<UStatComponent>();
+    if (!IsValid(StatComp)) return;
+
+    if (StatComp->IsInvincible()) return;
+
+
     // 최종 데미지 산출
     float HeavyDamage = GetAttackDamage() * HeavyAttackDamageMultiplier;
 
@@ -229,6 +236,11 @@ void ABossEnemy::HandleStompDirectHit(ACharacter* HitPlayer)
 {
     if (!HitPlayer)
         return;
+
+    UStatComponent* StatComp = HitPlayer->FindComponentByClass<UStatComponent>();
+    if (!IsValid(StatComp)) return;
+
+    if (StatComp->IsInvincible()) return;
 
     // 스톰프 직접 타격 데미지
     float DirectDamage = GetAttackDamage();
