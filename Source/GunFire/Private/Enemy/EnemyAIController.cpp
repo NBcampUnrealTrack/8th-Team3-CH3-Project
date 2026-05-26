@@ -220,7 +220,6 @@ void AEnemyAIController::AlertAlly(APawn* Target)
     TArray<AActor*> ActorsToIgnore;
     ActorsToIgnore.Add(MyPawn);
     TArray<FHitResult> OutHits;
-    const float Radius = 3000.f;
 
     // 디버그용
     // 구형태로 검사진행

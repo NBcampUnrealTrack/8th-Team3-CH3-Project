@@ -131,6 +131,9 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Combat")
     float ExitMargin; // 전술 유지 마진
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Combat")
+    float Radius = 1500.f; // 알람범위
+
     UPROPERTY(EditAnywhere)
     TEnumAsByte<ECollisionChannel> TraceChannel;
 
