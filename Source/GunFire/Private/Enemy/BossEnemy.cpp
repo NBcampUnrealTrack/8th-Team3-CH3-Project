@@ -69,7 +69,8 @@ void ABossEnemy::OnWeaponOverlap(UPrimitiveComponent* OverlappedComponent, AActo
     if (OtherActor && OtherActor != this && OtherActor->ActorHasTag(FName("Player")))
     {
         ACharacter* PlayerCharacter = Cast<ACharacter>(OtherActor);
-        if (!PlayerCharacter) return;
+        if (!PlayerCharacter)
+            return;
 
         // 이미 때렸으면 그냥 종료
         if (HittedActors.Contains(OtherActor))
@@ -171,6 +172,16 @@ void ABossEnemy::HandleLightAttackHit(ACharacter* HitPlayer)
         this,
         UDamageType::StaticClass()
     );
+
+    // 적중 사운드
+    if (HitSound)
+    {
+        UGameplayStatics::PlaySoundAtLocation(
+            GetWorld(),
+            HitSound,
+            GetActorLocation()
+        );
+    }
 }
 
 void ABossEnemy::HandleHeavyAttackHit(ACharacter* HitPlayer)
@@ -202,6 +213,16 @@ void ABossEnemy::HandleHeavyAttackHit(ACharacter* HitPlayer)
     // 플레이어 날라감
     // 뒤의 옵션을 켜서 x,y,z속도 무시하고 덮어씀
     HitPlayer->LaunchCharacter(LaunchVelocity, true, true);
+
+    // 적중 사운드
+    if (HitSound)
+    {
+        UGameplayStatics::PlaySoundAtLocation(
+            GetWorld(),
+            HitSound,
+            GetActorLocation()
+        );
+    }
 }
 
 void ABossEnemy::HandleStompDirectHit(ACharacter* HitPlayer)
@@ -218,6 +239,16 @@ void ABossEnemy::HandleStompDirectHit(ACharacter* HitPlayer)
         this,
         UDamageType::StaticClass()
     );
+
+    // 적중 사운드
+    if (HitSound)
+    {
+        UGameplayStatics::PlaySoundAtLocation(
+            GetWorld(),
+            HitSound,
+            GetActorLocation()
+        );
+    }
 }
 
 void ABossEnemy::PlayRoarAnimation()
