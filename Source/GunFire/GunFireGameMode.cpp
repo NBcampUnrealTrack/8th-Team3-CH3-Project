@@ -199,6 +199,7 @@ void AGunFireGameMode::EndCurrentRoom()
         }
         else  // 보스방이 종료되었다면 결과창으로 이동하고 함수 종료
         {
+            UE_LOG(LogTemp, Warning, TEXT("보스방 클리어"));
             if (ABossRoom* BossRoom = Cast<ABossRoom>(CurrentRoom))
             {
                 BossRoom->ActivateResultPortal();
