@@ -99,6 +99,8 @@ protected:
     float RunSpeedMultiplier;   // 기본 속도 대비 몇 배로 달리지 결정
     UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Run")
     float RunSpeed;             // 최종 달리는 속도
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Run")
+    float RunStaminaCostPerSecond;  // 달리기 초당 스태미너 소모량
 
     // 조준
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Aiming")

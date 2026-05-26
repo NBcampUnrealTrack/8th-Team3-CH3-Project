@@ -18,7 +18,6 @@
 #include "Kismet/GamePlayStatics.h"
 #include "Particles/ParticleSystemComponent.h"   // 파티클 제어용
 #include "NiagaraFunctionLibrary.h"
-#include "NiagaraComponent.h"
 
 APlayerCharacter::APlayerCharacter()
 {
@@ -40,6 +39,7 @@ APlayerCharacter::APlayerCharacter()
     RunSpeedMultiplier = 1.5f;
     RunSpeed = NormalSpeed * RunSpeedMultiplier;
     GetCharacterMovement()->MaxWalkSpeed = NormalSpeed;
+    RunStaminaCostPerSecond = 5.f;
 
     // 조준
     IsAiming = false;
@@ -472,13 +472,25 @@ void APlayerCharacter::Run(const FInputActionValue& Value)
     {
         if (Value.Get<bool>())
         {
-            //if (CurrentStamina <= 0) return;
+            if (IsValid(StatComponent))
+            {
+                if (GetWorld())
+                {
+                    // 달릴때 초당 소모량만큼  스태미너 감소
+                    float Cost = RunStaminaCostPerSecond * GetWorld()->GetDeltaSeconds();
+                    if (!StatComponent->TryConsumeStamina(Cost))
+                    {
+                        StopRun();
+                        return;
+                    }
+                }
+            }
+
             GetCharacterMovement()->MaxWalkSpeed = RunSpeed;
-            //CurrentStamina = FMath::Clamp(CurrentStamina - 1, 0, MaxStamina);
         }
         else
         {
-            GetCharacterMovement()->MaxWalkSpeed = NormalSpeed;
+            StopRun();
         }
     }
 }
