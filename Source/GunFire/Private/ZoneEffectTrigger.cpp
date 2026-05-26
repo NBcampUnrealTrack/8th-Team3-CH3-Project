@@ -75,6 +75,25 @@ void AZoneEffectTrigger::ApplyZoneEffect()
         }
     }
 
+    for (AActor* PhysActor : PhysicsActorsToWake)
+    {
+        if (!IsValid(PhysActor))
+        {
+            continue;
+        }
+
+        TArray<UPrimitiveComponent*> PrimComps;
+        PhysActor->GetComponents<UPrimitiveComponent>(PrimComps);
+
+        for (UPrimitiveComponent* Prim : PrimComps)
+        {
+            if (Prim && Prim->IsSimulatingPhysics())
+            {
+                Prim->WakeAllRigidBodies();
+            }
+        }
+    }
+
     if (SoundToPlay)
     {
         if (bPlaySoundAtLocation)

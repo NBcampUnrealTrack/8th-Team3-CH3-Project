@@ -26,6 +26,9 @@ protected:
     TArray<TObjectPtr<AActor>> MeshActorsToHide;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zone|Effect")
+    TArray<TObjectPtr<AActor>> PhysicsActorsToWake;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zone|Effect")
     TObjectPtr<USoundBase> SoundToPlay;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Zone|Effect")
