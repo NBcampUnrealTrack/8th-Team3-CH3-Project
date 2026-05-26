@@ -29,18 +29,4 @@ protected:
     // 랜덤 반경
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
     float RandomOffsetRadius;
-
-    // 마지막으로 생성한 최종 위치
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
-    FVector LastPopupLocation;
-
-    // 새로운 위치에 생성되는 시간, N초동안 데미지 팝업 없으면 새로운 위치에 팝업
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
-    float NewPositionTime;
-
-    // 일정 시간 지나면 새로운 위치에 생성되도록 하는 타이머
-    FTimerHandle PopupTimerHandle;
-
-    // 일정 시간이 지나 마지막으로 생성된 위치를 비우는 함수
-    void ClearLastLocation();
 };
