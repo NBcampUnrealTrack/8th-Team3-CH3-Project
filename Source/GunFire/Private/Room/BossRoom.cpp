@@ -3,6 +3,7 @@
 #include "Interactables/Portal.h"
 #include "Kismet/GameplayStatics.h"
 #include "Components/AudioComponent.h"
+#include "Sound/SoundSubsystem.h"
 
 ABossRoom::ABossRoom()
 {
@@ -24,10 +25,14 @@ void ABossRoom::OnPrepare(AGunFireGameMode* GFGameMode, AGunFireGameState* GFGam
 
     if (IsValid(BossTheme))
     {
+        // 기존 BGM은 종료
+        USoundSubsystem* SoundSubsystem = GetWorld() ? GetWorld()->GetSubsystem<USoundSubsystem>() : nullptr;
+        if (IsValid(SoundSubsystem))
+        {
+            SoundSubsystem->StopBGM(0.5f, false);
+        }
+
         BossThemeComponent = UGameplayStatics::SpawnSound2D(this, BossTheme);
-    }
-    else
-    {
     }
 }
 
