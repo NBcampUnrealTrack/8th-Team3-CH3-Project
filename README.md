@@ -13,7 +13,8 @@
 ## 목차
 
 - [프로젝트 개요](#프로젝트-개요)
-- [실행파일](#실행-파일)
+- [실행 영상](#실행-영상)
+- [실행 파일](#실행-파일)
 - [게임 컨셉](#게임-컨셉)
 - [게임 진행 흐름](#게임-진행-흐름)
 - [조작 방법](#조작-방법)
@@ -48,11 +49,19 @@
 
 ---
 
+## 실행 영상
+
+프로젝트 플레이 영상은 아래 썸네일을 클릭하면 확인할 수 있습니다.
+
+[![Chalice of Reborn Demo](https://img.youtube.com/vi/T9vG3pN6qN8/maxresdefault.jpg)](https://youtu.be/T9vG3pN6qN8)
+
+---
+
 ## 실행 파일
 
 패키징된 게임 실행 파일은 아래 링크에서 다운로드할 수 있습니다.
 
-- [Chalice of Reborn 패키징 파일 다운로드](https://drive.google.com/file/d/1FHX4FhO0jBIeuAJXmewGlv5FtvKzvMpI/view?usp=sharing)
+- [Chalice of Reborn 패키징 파일 다운로드](https://drive.google.com/file/d/1VIxiL4LNiyHbJwoJ6Qthg_uXJjDkZk-z/view?usp=sharing)
 
 ---
 
